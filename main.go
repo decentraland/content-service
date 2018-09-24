@@ -78,6 +78,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func contentsHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	fileLocation := "/tmp/" + params["cid"]
+	http.ServeFile(w, r, fileLocation)
 }
 
 func validateHandler(w http.ResponseWriter, r *http.Request) {
