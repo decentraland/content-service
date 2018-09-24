@@ -80,6 +80,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 func contentsHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	fileLocation := "/tmp/" + params["cid"]
+	w.Header().Add("Content-Disposition", "Attachment")
 	http.ServeFile(w, r, fileLocation)
 }
 
