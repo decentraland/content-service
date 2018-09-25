@@ -9,11 +9,16 @@
 
 1. Set (if it's not already set) your `GOPATH` environment variable, you can do this like: `GOPATH=/home/user/go`
 
+## Flags
+
+- `-local=true`: Use this flag to use local storage.
+- `-s3=true`: Use this flag to use S3 storage (your environment should be set accordingly).
+
 ## Running
 
 To run simply do `make run`.
 
-This will start an HTTP server using port 8000.
+This will start an HTTP server using port 8000 and using local storage.
 
 ## Testing
 
