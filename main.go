@@ -11,6 +11,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/gorilla/mux"
 )
 
@@ -41,6 +44,30 @@ func saveFile(fileHeader *multipart.FileHeader) (string, error) {
 	return hashstr, nil
 }
 
+func saveFileS3(fileHeader *multipart.FileHeader) (string, error) {
+	sess := session.Must(session.NewSession())
+
+	uploader := s3manager.NewUploader(sess)
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", err
+	}
+
+	result, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String("content-service"),
+		Key:    aws.String(fileHeader.Filename),
+		Body:   file,
+	})
+	if err != nil {
+		fmt.Printf("failed to upload file, %v", err)
+		return "", err
+	}
+	fmt.Printf("file uploaded to, %s\n", result.Location)
+
+	return result.Location, nil
+}
+
 func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
@@ -57,7 +84,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	for _, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
 
-		hash, err := saveFile(fileHeader)
+		hash, err := saveFileS3(fileHeader)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
