@@ -44,26 +44,24 @@ func saveFile(fileHeader *multipart.FileHeader) (string, error) {
 	return hashstr, nil
 }
 
-func saveFileS3(fileHeader *multipart.FileHeader) (string, error) {
+func getFileS3(cid string) string {
+	return "https://content-service.s3.amazonaws.com/" + cid
+}
+
+func saveFileS3(fileDescriptor multipart.File, filename string) (string, error) {
 	sess := session.Must(session.NewSession())
 
 	uploader := s3manager.NewUploader(sess)
 
-	file, err := fileHeader.Open()
-	if err != nil {
-		return "", err
-	}
-
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String("content-service"),
-		Key:    aws.String(fileHeader.Filename),
-		Body:   file,
+		Key:    aws.String(filename),
+		Body:   fileDescriptor,
 	})
 	if err != nil {
 		fmt.Printf("failed to upload file, %v", err)
 		return "", err
 	}
-	fmt.Printf("file uploaded to, %s\n", result.Location)
 
 	return result.Location, nil
 }
@@ -84,7 +82,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	for _, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
 
-		hash, err := saveFileS3(fileHeader)
+		file, err := fileHeader.Open()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+
+		hash, err := saveFileS3(file, fileHeader.Filename)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -93,8 +98,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		savedFiles = append(savedFiles, uploadFile{fileHeader.Filename, hash})
 	}
-
-	fmt.Printf("%+v", savedFiles)
 
 	err = json.NewEncoder(w).Encode(savedFiles)
 	if err != nil {
@@ -106,9 +109,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 func contentsHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	fileLocation := "/tmp/" + params["cid"]
-	w.Header().Add("Content-Disposition", "Attachment")
-	http.ServeFile(w, r, fileLocation)
+	location := getFileS3(params["cid"])
+
+	http.Redirect(w, r, location, 301)
 }
 
 func validateHandler(w http.ResponseWriter, r *http.Request) {
