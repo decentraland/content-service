@@ -3,6 +3,11 @@
 ## Requirements
 
 - [Go 1.11](https://golang.org/dl/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+## Setup
+
+1. Set (if it's not already set) your `GOPATH` environment variable, you can do this like: `GOPATH=/home/user/go`
 
 ## Running
 
