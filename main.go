@@ -82,11 +82,11 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var hash string
+		var name string
 		if s3Storage {
-			hash, err = saveFileS3(file, fileHeader.Filename)
+			name, err = saveFileS3(file, fileHeader.Filename)
 		} else {
-			hash, err = saveFile(file, fileHeader.Filename)
+			name, err = saveFile(file, fileHeader.Filename)
 		}
 		if err != nil {
 			log.Println(err)
@@ -94,7 +94,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		savedFiles = append(savedFiles, uploadFile{fileHeader.Filename, hash})
+		savedFiles = append(savedFiles, uploadFile{fileHeader.Filename, name})
 	}
 
 	err = json.NewEncoder(w).Encode(savedFiles)
