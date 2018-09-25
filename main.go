@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"flag"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -22,26 +21,20 @@ type uploadFile struct {
 	Cid  string `json:"cid"`
 }
 
-func saveFile(fileHeader *multipart.FileHeader) (string, error) {
-	hash := sha256.Sum256([]byte(fileHeader.Filename))
-	hashstr := hex.EncodeToString(hash[:])
+var localStorage, s3Storage bool
 
-	dst, err := os.Create("/tmp/" + string(hashstr))
+func saveFile(fileDescriptor multipart.File, filename string) (string, error) {
+	dst, err := os.Create("/tmp/" + filename)
 	if err != nil {
 		return "", err
 	}
 
-	file, err := fileHeader.Open()
+	_, err = io.Copy(dst, fileDescriptor)
 	if err != nil {
 		return "", err
 	}
 
-	_, err = io.Copy(dst, file)
-	if err != nil {
-		return "", err
-	}
-
-	return hashstr, nil
+	return filename, nil
 }
 
 func getFileS3(cid string) string {
@@ -89,7 +82,12 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		hash, err := saveFileS3(file, fileHeader.Filename)
+		var hash string
+		if s3Storage {
+			hash, err = saveFileS3(file, fileHeader.Filename)
+		} else {
+			hash, err = saveFile(file, fileHeader.Filename)
+		}
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -118,6 +116,15 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	flag.BoolVar(& localStorage, "local", true, "Local storage")
+	flag.BoolVar(& s3Storage, "s3", false, "S3 storage")
+	flag.Parse()
+
+	if !localStorage && !s3Storage {
+		fmt.Println("Need to set either local or s3 storage")
+		return
+	}
+
 	r := mux.NewRouter()
 
 	r.HandleFunc("/mappings", mappingsHandler).Methods("GET").Queries("x1", "{x1}", "y1", "{y1}", "x2", "{x2}", "y2", "{y2}")
