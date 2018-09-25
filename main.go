@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"flag"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -22,9 +22,10 @@ type uploadFile struct {
 }
 
 var localStorage, s3Storage bool
+var localStorageDir string
 
 func saveFile(fileDescriptor multipart.File, filename string) (string, error) {
-	dst, err := os.Create("/tmp/" + filename)
+	dst, err := os.Create(localStorageDir + filename)
 	if err != nil {
 		return "", err
 	}
@@ -116,13 +117,20 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.BoolVar(& localStorage, "local", true, "Local storage")
-	flag.BoolVar(& s3Storage, "s3", false, "S3 storage")
+	flag.BoolVar(&localStorage, "local", false, "Local storage")
+	flag.StringVar(&localStorageDir, "local-dir", "/tmp/", "Local storage directory")
+	flag.BoolVar(&s3Storage, "s3", false, "S3 storage")
 	flag.Parse()
 
 	if !localStorage && !s3Storage {
-		fmt.Println("Need to set either local or s3 storage")
-		return
+		localStorage = true
+	} else if localStorage && s3Storage {
+		fmt.Println("You must set only ONE storage")
+		os.Exit(1)
+	}
+
+	if localStorageDir[len(localStorageDir)-1:] != "/" {
+		localStorageDir = localStorageDir + "/"
 	}
 
 	r := mux.NewRouter()

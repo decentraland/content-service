@@ -11,14 +11,15 @@
 
 ## Flags
 
-- `-local=true`: Use this flag to use local storage.
-- `-s3=true`: Use this flag to use S3 storage (your environment should be set accordingly).
+- `--local`: Use this flag to use local storage.
+- `--local-dir <dir>`: Set the directory you want to store files in, by default `/tmp/`. **IMPORTANT**: Your directory must end with `/`.
+- `--s3`: Use this flag to use S3 storage (your environment should be set accordingly).
 
 ## Running
 
-To run simply do `make run`.
+To run simply you can simply do `make run`. This will start the HTTP server using port 8000 and using local storage.
 
-This will start an HTTP server using port 8000 and using local storage.
+If you have Go installed locally you can do `go run main.go <flags>`.
 
 ## Testing
 
