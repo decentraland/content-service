@@ -8,6 +8,24 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type uploadFile struct {
+	Name string `json:"name"`
+	Cid  string `json:"cid"`
+}
+
+type signature struct {
+	Value        string `json:"value"`
+	Signature    string `json:"signature"`
+	Validity     string `json:"validity"`
+	ValidityType string `json:"validityType"`
+	Sequence     string `json:"sequence"`
+}
+
+type metadata struct {
+	rootCid   string `json:"cid"`
+	timestamp string `json:"timestamp"`
+}
+
 func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
