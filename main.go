@@ -24,6 +24,10 @@ type uploadFile struct {
 var localStorage, s3Storage bool
 var localStorageDir string
 
+func getFile(cid string) string {
+	return localStorageDir + cid
+}
+
 func saveFile(fileDescriptor multipart.File, filename string) (string, error) {
 	dst, err := os.Create(localStorageDir + filename)
 	if err != nil {
@@ -50,6 +54,7 @@ func saveFileS3(fileDescriptor multipart.File, filename string) (string, error) 
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String("content-service"),
 		Key:    aws.String(filename),
+		ACL:    aws.String("public-read"),
 		Body:   fileDescriptor,
 	})
 	if err != nil {
@@ -108,9 +113,15 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 func contentsHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-	location := getFileS3(params["cid"])
 
-	http.Redirect(w, r, location, 301)
+	if s3Storage {
+		location := getFileS3(params["cid"])
+		http.Redirect(w, r, location, 301)
+	} else {
+		location := getFile(params["cid"])
+		w.Header().Add("Content-Disposition", "Attachment")
+		http.ServeFile(w, r, location)
+	}
 }
 
 func validateHandler(w http.ResponseWriter, r *http.Request) {
