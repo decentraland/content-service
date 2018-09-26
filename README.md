@@ -21,6 +21,12 @@ To run simply you can simply do `make run`. This will start the HTTP server usin
 
 If you have Go installed locally you can do `go run main.go <flags>`.
 
+## Endpoints
+
+### POST /mappings
+
+This endpoint recieves a request with `Content-Type:multipart/form-data`. Inside the request we will have: metadata signature, metadata, and the files. **Important**: The metadata part needs to be named `metadata` and the metadata signature part needs to be named `signature`.
+
 ## Testing
 
 You can test manually using `curl`.

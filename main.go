@@ -10,11 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type uploadFile struct {
-	Name string `json:"name"`
-	Cid  string `json:"cid"`
-}
-
 var localStorage, s3Storage bool
 var localStorageDir string
 

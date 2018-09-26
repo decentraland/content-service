@@ -22,8 +22,8 @@ type signature struct {
 }
 
 type metadata struct {
-	rootCid   string `json:"cid"`
-	timestamp string `json:"timestamp"`
+	RootCid   string `json:"rootcid"`
+	Timestamp string `json:"timestamp"`
 }
 
 func mappingsHandler(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +34,22 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(0)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	var sig signature
+	err = json.Unmarshal([]byte(r.MultipartForm.Value["signature"][0]), &sig)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	var meta metadata
+	err = json.Unmarshal([]byte(r.MultipartForm.Value["metadata"][0]), &meta)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
