@@ -62,14 +62,14 @@ func getEstate(id string) (*estate, error) {
 	return jsonResponse.Data, nil
 }
 
-func getParcels(x1, y1, x2, y2 int) ([]*parcel, error) {
+func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
 	url := fmt.Sprintf("https://api.decentraland.org/v1/map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var jsonResponse mapResponse
 	json.NewDecoder(resp.Body).Decode(&jsonResponse)
-	return jsonResponse.Data.Assets.Parcels, nil
+	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
 }
