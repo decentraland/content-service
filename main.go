@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
+	"github.com/go-redis/redis"
 )
 
 type uploadFile struct {
@@ -20,6 +21,17 @@ var localStorage, s3Storage bool
 var localStorageDir string
 
 func main() {
+
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	err := client.Set("key", "value", 0).Err()
+	if err != nil {
+		panic(err)
+	}
 
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
 	
