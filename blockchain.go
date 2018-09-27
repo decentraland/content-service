@@ -16,6 +16,16 @@ type estateResponse struct {
 	Data *estate `json:"data"`
 }
 
+type mapResponse struct {
+	Ok   bool `json:"ok"`
+	Data struct {
+		Assets struct {
+			Parcels []*parcel `json:"parcels"`
+			Estates []*estate `json:"estates"`
+		} `json:"assets"`
+	} `json:"data"`
+}
+
 type parcel struct {
 	ID    string `json:"id"`
 	X     int    `json:"x"`
@@ -50,4 +60,16 @@ func getEstate(id string) (*estate, error) {
 	var jsonResponse estateResponse
 	json.NewDecoder(resp.Body).Decode(&jsonResponse)
 	return jsonResponse.Data, nil
+}
+
+func getParcels(x1, y1, x2, y2 int) ([]*parcel, error) {
+	url := fmt.Sprintf("https://api.decentraland.org/v1/map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonResponse mapResponse
+	json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	return jsonResponse.Data.Assets.Parcels, nil
 }
