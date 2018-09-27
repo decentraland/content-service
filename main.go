@@ -21,11 +21,11 @@ var localStorage, s3Storage bool
 var localStorageDir string
 
 func main() {
-
+	// redis connection example
 	client := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Password: "",
+		DB:       0,
 	})
 
 	err := client.Set("key", "value", 0).Err()
@@ -33,8 +33,8 @@ func main() {
 		panic(err)
 	}
 
+	// CID decoding coding example
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
-	
 	fmt.Println("Got CID: ", c)
 
 	flag.BoolVar(&localStorage, "local", false, "Local storage")
