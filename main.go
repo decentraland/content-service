@@ -8,12 +8,18 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-cid"
 )
 
 var localStorage, s3Storage bool
 var localStorageDir string
 
 func main() {
+
+	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
+	
+	fmt.Println("Got CID: ", c)
+
 	flag.BoolVar(&localStorage, "local", false, "Local storage")
 	flag.StringVar(&localStorageDir, "local-dir", "/tmp/", "Local storage directory")
 	flag.BoolVar(&s3Storage, "s3", false, "S3 storage")
