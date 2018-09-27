@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -13,17 +14,14 @@ type uploadFile struct {
 	Cid  string `json:"cid"`
 }
 
-type signature struct {
+type metadata struct {
 	Value        string `json:"value"`
 	Signature    string `json:"signature"`
 	Validity     string `json:"validity"`
 	ValidityType string `json:"validityType"`
 	Sequence     string `json:"sequence"`
-}
-
-type metadata struct {
-	RootCid   string `json:"rootcid"`
-	Timestamp string `json:"timestamp"`
+	PubKey       string `json:"pubkey"`
+	RootCid      string `json:"-"`
 }
 
 func mappingsHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,16 +38,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sig signature
-	err = json.Unmarshal([]byte(r.MultipartForm.Value["signature"][0]), &sig)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-
-	var meta metadata
-	err = json.Unmarshal([]byte(r.MultipartForm.Value["metadata"][0]), &meta)
+	// meta isn't assigned because it would cause "varible not used" compiler error
+	_, err = getMetadata([]byte(r.MultipartForm.Value["metadata"][0]))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
@@ -102,4 +92,15 @@ func contentsHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Disposition", "Attachment")
 		http.ServeFile(w, r, location)
 	}
+}
+
+func getMetadata(jsonString []byte) (metadata, error) {
+	var meta metadata
+	err := json.Unmarshal(jsonString, &meta)
+	if err != nil {
+		return metadata{}, err
+	}
+
+	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
+	return meta, nil
 }
