@@ -39,7 +39,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// meta isn't assigned because it would cause "varible not used" compiler error
-	_, err = getMetadata([]byte(r.MultipartForm.Value["metadata"][0]))
+	metaMultipart, isset := r.MultipartForm.Value["metadata"]
+	if !isset {
+		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+
+	_, err = getMetadata([]byte(metaMultipart[0]))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
