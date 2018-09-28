@@ -27,10 +27,11 @@ type mapResponse struct {
 }
 
 type parcel struct {
-	ID    string `json:"id"`
-	X     int    `json:"x"`
-	Y     int    `json:"y"`
-	Owner string `json:"owner"`
+	ID       string `json:"id"`
+	X        int    `json:"x"`
+	Y        int    `json:"y"`
+	Owner    string `json:"owner"`
+	EstateID string `json:"estate_id"`
 }
 
 type estate struct {
@@ -50,8 +51,8 @@ func getParcel(x, y int) (*parcel, error) {
 	return jsonResponse.Data, nil
 }
 
-func getEstate(id string) (*estate, error) {
-	url := fmt.Sprintf("https://api.decentraland.org/v1/estate/%s", id)
+func getEstate(id int) (*estate, error) {
+	url := fmt.Sprintf("https://api.decentraland.org/v1/estates/%d", id)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
