@@ -66,19 +66,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: meta isn't assigned because it would cause "varible not used" compiler error
-	_, err = getMetadata([]byte(metaMultipart[0]))
+	meta, err := getMetadata([]byte(metaMultipart[0]))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	// TODO: scene isn't assigned because it would cause "varible not used" compiler error
-	_, err = getScene(r.MultipartForm.File)
+	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+
+	canModify, err := userCanModify(meta.PubKey, scene)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	} else if !canModify {
+		http.Error(w, http.StatusText(401), 401)
 		return
 	}
 
