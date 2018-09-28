@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -24,6 +26,25 @@ type metadata struct {
 	RootCid      string `json:"-"`
 }
 
+type scene struct {
+	Display struct {
+		Title string `json:"title"`
+	} `json:"display"`
+	// Contact <T> `json:"contact"`
+	Owner string `json:"owner"`
+	Scene struct {
+		EstateID int      `json:"estateId"`
+		Parcels  []string `json:"parcels"`
+		Base     string   `json:"base"`
+	} `json:"scene"`
+	Communications struct {
+		Type       string `json:"type"`
+		Signalling string `json:"signalling"`
+	} `json:"communications"`
+	// Policy <T> `json:"policy"`
+	Main string `json:"main"`
+}
+
 func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
@@ -38,17 +59,26 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// meta isn't assigned because it would cause "varible not used" compiler error
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
+		log.Println(err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
+	// TODO: meta isn't assigned because it would cause "varible not used" compiler error
 	_, err = getMetadata([]byte(metaMultipart[0]))
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	// TODO: scene isn't assigned because it would cause "varible not used" compiler error
+	_, err = getScene(r.MultipartForm.File)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
@@ -109,4 +139,25 @@ func getMetadata(jsonString []byte) (metadata, error) {
 
 	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
 	return meta, nil
+}
+
+func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
+	for _, header := range files {
+		if header[0].Filename == "scene.json" {
+			sceneFile, err := header[0].Open()
+			if err != nil {
+				return nil, err
+			}
+
+			var sce scene
+			err = json.NewDecoder(sceneFile).Decode(&sce)
+			if err != nil {
+				return nil, err
+			}
+
+			return &sce, nil
+		}
+	}
+
+	return nil, errors.New("Missing scene.json")
 }
