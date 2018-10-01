@@ -7,8 +7,12 @@ services:
       - 8000:8000
     volumes:
       - .:/content-service
-      - $GOPATH/pkg/mod:/go/pkg/mod
+      - ./cache/:/go/pkg/mod
     environment:
       - GOPATH=/go
     working_dir: /content-service
-    command: go run main.go
+
+  redis:
+    image: redis:4.0.10
+    ports:
+      - "127.0.0.1:6379:6379"
