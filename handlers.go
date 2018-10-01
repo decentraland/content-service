@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -92,9 +91,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, fileHeaders := range r.MultipartForm.File {
+	for partName, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
-		fmt.Printf("filename: %v", fileHeader.Filename)
 
 		file, err := fileHeader.Open()
 		if err != nil {
@@ -113,6 +111,22 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
+
+		var filepath string
+		path := strings.Split(partName, "/")
+		fileCID := path[len(path)-1]
+		if len(path) > 1 {
+			filepath = strings.Join(path[:len(path)-1], "/") + "/" + fileHeader.Filename
+		} else {
+			filepath = fileHeader.Filename
+		}
+
+		err = client.HSet("content_"+meta.RootCid, filepath, fileCID).Err()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
 	}
 
 	for _, parcel := range scene.Scene.Parcels {
@@ -124,7 +138,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = client.HMSet(meta.RootCid, structs.Map(meta)).Err()
+	err = client.HMSet("metadata_"+meta.RootCid, structs.Map(meta)).Err()
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
