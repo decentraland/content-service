@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/fatih/structs"
 	"github.com/gorilla/mux"
 )
 
@@ -115,12 +116,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, parcel := range scene.Scene.Parcels {
-		err := client.Set(parcel, meta.RootCid, 0).Err()
+		err = client.Set(parcel, meta.RootCid, 0).Err()
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
+	}
+
+	err = client.HMSet(meta.RootCid, structs.Map(meta)).Err()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
 	}
 }
 
