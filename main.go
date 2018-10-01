@@ -7,17 +7,18 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
-	"github.com/go-redis/redis"
 )
 
 var localStorage, s3Storage bool
 var localStorageDir string
+var client *redis.Client
 
 func main() {
 	// redis connection example
-	client := redis.NewClient(&redis.Options{
+	client = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,

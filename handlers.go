@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -90,10 +91,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var savedFiles []uploadFile
-
 	for _, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
+		fmt.Printf("filename: %v", fileHeader.Filename)
 
 		file, err := fileHeader.Open()
 		if err != nil {
@@ -102,26 +102,25 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var name string
 		if s3Storage {
-			name, err = saveFileS3(file, fileHeader.Filename)
+			_, err = saveFileS3(file, fileHeader.Filename)
 		} else {
-			name, err = saveFile(file, fileHeader.Filename)
+			_, err = saveFile(file, fileHeader.Filename)
 		}
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-
-		savedFiles = append(savedFiles, uploadFile{fileHeader.Filename, name})
 	}
 
-	err = json.NewEncoder(w).Encode(savedFiles)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
+	for _, parcel := range scene.Scene.Parcels {
+		err := client.Set(parcel, meta.RootCid, 0).Err()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
 	}
 }
 
