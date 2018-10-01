@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -101,10 +102,24 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		filecontent, err := ioutil.ReadAll(file)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+
+		filecid, err := cidPref.Sum(filecontent)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+
 		if s3Storage {
-			_, err = saveFileS3(file, fileHeader.Filename)
+			_, err = saveFileS3(file, filecid.String())
 		} else {
-			_, err = saveFile(file, fileHeader.Filename)
+			_, err = saveFile(file, filecid.String())
 		}
 		if err != nil {
 			log.Println(err)

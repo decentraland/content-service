@@ -10,11 +10,13 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
+	mh "github.com/multiformats/go-multihash"
 )
 
 var localStorage, s3Storage bool
 var localStorageDir string
 var client *redis.Client
+var cidPref cid.Prefix
 
 func main() {
 	// redis connection example
@@ -28,6 +30,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// CID creation example
+	cidPref = cid.Prefix{
+		Version:  1,
+		Codec:    cid.Raw,
+		MhType:   mh.SHA2_256,
+		MhLength: -1, // default length
+	}
+	ci, _ := cidPref.Sum([]byte("Hello World!"))
+	fmt.Println("Created CID: ", ci)
 
 	// CID decoding coding example
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")

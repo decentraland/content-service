@@ -15,7 +15,7 @@ require (
 	github.com/minio/sha256-simd v0.0.0-20171213220625-ad98a36ba0da // indirect
 	github.com/mr-tron/base58 v0.0.0-20180922112544-9ad991d48a42 // indirect
 	github.com/multiformats/go-multibase v0.3.0 // indirect
-	github.com/multiformats/go-multihash v1.0.8 // indirect
+	github.com/multiformats/go-multihash v1.0.8
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b // indirect
