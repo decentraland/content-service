@@ -5,10 +5,6 @@
 - [Go 1.11](https://golang.org/dl/)
 - [Docker Compose](https://docs.docker.com/compose/)
 
-## Setup
-
-1. Set (if it's not already set) your `GOPATH` environment variable, you can do this like: `GOPATH=/home/user/go`
-
 ## Flags
 
 - `--local`: Use this flag to use local storage.
@@ -17,9 +13,21 @@
 
 ## Running
 
-To run simply you can simply do `make run`. This will start the HTTP server using port 8000 and using local storage.
+First start Redis
 
-If you have Go installed locally you can do `go run main.go <flags>`.
+```
+$ make ops
+```
+
+Then you can either build or build and run:
+
+```
+$ make build
+
+$ make run
+```
+
+This will start an instance of the content service server using port 8000.
 
 ## Endpoints
 
@@ -27,33 +35,17 @@ If you have Go installed locally you can do `go run main.go <flags>`.
 
 This endpoint recieves a request with `Content-Type:multipart/form-data`. Inside the request we will have: metadata signature, metadata, and the files. **Important**: The metadata part needs to be named `metadata` and the metadata signature part needs to be named `signature`.
 
-## Testing
+## Demo
 
-You can test manually using `curl`.
+To run the demo script you need to:
 
-To test `POST /mappings`:
+1. Have Redis up `$ make ops`
+1. Set your AWS environment variables: `AWS_REGION`, `AWS_ACCESS_KEY`, `AWS_SECRET_KEY`
+1. Start the demo server `$ make demo`
 
-```
-$> curl 'http://localhost:8000/mappings' -F 'f1=@main.go' -F 'f2=@go.mod' -F 'f3=@README.md'
-[
-  {
-    "name": "go.mod",
-    "cid": "https://content-service.s3.amazonaws.com/go.mod"
-  },
-  {
-    "name": "README.md",
-    "cid": "https://content-service.s3.amazonaws.com/README.md"
-  },
-  {
-    "name": "main.go",
-    "cid": "https://content-service.s3.amazonaws.com/main.go"
-  }
-]
-```
-
-To test `GET /contents/{cid}`:
+After, you can run the demo script as:
 
 ```
-$> curl 'http://localhost:8000/contents/main.go'
-<a href="https://content-service.s3.amazonaws.com/maing.go">Moved Permanently</a>.
+$ ./demo.sh`.
+<a href="https://content-service.s3.amazonaws.com/text.txt">Moved Permanently</a>.
 ```

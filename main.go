@@ -19,7 +19,7 @@ var client *redis.Client
 func main() {
 	// redis connection example
 	client = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     "content_service_redis:6379",
 		Password: "",
 		DB:       0,
 	})
