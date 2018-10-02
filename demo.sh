@@ -31,3 +31,5 @@ curl 'http://localhost:8000/contents/zb2rhhvg9yGb4fy8qF5K26Pvbx4H4xyo9SDEv9ag428
 curl 'http://localhost:8000/validate?x=-40&y=43'
 
 curl 'http://localhost:8000/validate?x=-40&y=4'
+
+curl 'http://localhost:8000/mappings?nw=-40,43&se=-39,43'
