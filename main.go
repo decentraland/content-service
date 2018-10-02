@@ -62,7 +62,7 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/mappings", mappingsHandler).Methods("GET").Queries("x1", "{x1}", "y1", "{y1}", "x2", "{x2}", "y2", "{y2}")
+	r.HandleFunc("/mappings", mappingsHandler).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 	r.HandleFunc("/mappings", uploadHandler).Methods("POST")
 	r.HandleFunc("/contents/{cid}", contentsHandler).Methods("GET")
 	r.HandleFunc("/validate", validateHandler).Methods("GET").Queries("x", "{x}", "y", "{y}")
