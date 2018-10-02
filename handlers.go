@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/fatih/structs"
+	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 )
 
@@ -19,13 +21,13 @@ type uploadFile struct {
 }
 
 type metadata struct {
-	Value        string `json:"value"`
-	Signature    string `json:"signature"`
-	Validity     string `json:"validity"`
-	ValidityType string `json:"validityType"`
-	Sequence     string `json:"sequence"`
-	PubKey       string `json:"pubkey"`
-	RootCid      string `json:"-"`
+	Value        string `json:"value" structs:"value"`
+	Signature    string `json:"signature" structs:"signature"`
+	Validity     string `json:"validity" structs:"validity"`
+	ValidityType string `json:"validityType" structs:"validityType"`
+	Sequence     string `json:"sequence" structs:"sequence"`
+	PubKey       string `json:"pubkey" structs:"pubkey"`
+	RootCid      string `json:"-" structs:"rootcid"`
 }
 
 type scene struct {
@@ -51,6 +53,35 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func validateHandler(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	parcelID := fmt.Sprintf("%+v,%+v", params["x"], params["y"])
+
+	parcelMeta, err := getParcelMetadata(parcelID)
+	if err == redis.Nil {
+		http.Error(w, http.StatusText(404), 404)
+		return
+	} else if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	metadataJSON, err := json.Marshal(parcelMeta)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err = w.Write(metadataJSON)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {

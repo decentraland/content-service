@@ -27,3 +27,7 @@ curl 'http://localhost:8000/mappings' \
  -F 'assets/zb2rhhvg9yGb4fy8qF5K26Pvbx4H4xyo9SDEv9ag4286NzQX7=@demo/assets/text.txt'
 
 curl 'http://localhost:8000/contents/zb2rhhvg9yGb4fy8qF5K26Pvbx4H4xyo9SDEv9ag4286NzQX7'
+
+curl 'http://localhost:8000/validate?x=-40&y=43'
+
+curl 'http://localhost:8000/validate?x=-40&y=4'
