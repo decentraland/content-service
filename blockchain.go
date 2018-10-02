@@ -37,6 +37,9 @@ type parcel struct {
 type estate struct {
 	ID    string `json:"id"`
 	Owner string `json:"owner"`
+	Data  struct {
+		Parcels []*parcel `json:"parcels"`
+	} `json:"data"`
 }
 
 func getParcel(x, y int) (*parcel, error) {
@@ -59,7 +62,15 @@ func getEstate(id int) (*estate, error) {
 	}
 
 	var jsonResponse estateResponse
-	json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, parcel := range jsonResponse.Data.Data.Parcels {
+		parcel.ID = fmt.Sprintf("%d,%d", parcel.X, parcel.Y)
+	}
+
 	return jsonResponse.Data, nil
 }
 
