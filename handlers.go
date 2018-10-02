@@ -95,16 +95,9 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	for partName, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
 
-		file, err := fileHeader.Open()
-		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-
 		filepath, fileCID := getPathAndCID(partName, fileHeader.Filename)
 
-		fileMatches, err := fileMatchesCID(file, fileCID)
+		fileMatches, err := fileMatchesCID(fileHeader, fileCID)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -113,6 +106,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(400), 400)
 			return
 		}
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			log.Println(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+		defer file.Close()
 
 		if s3Storage {
 			_, err = saveFileS3(file, fileCID)
@@ -195,7 +196,13 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	return nil, errors.New("Missing scene.json")
 }
 
-func fileMatchesCID(file multipart.File, CID string) (bool, error) {
+func fileMatchesCID(fileHeader *multipart.FileHeader, CID string) (bool, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
 	filecontent, err := ioutil.ReadAll(file)
 	if err != nil {
 		return false, err
