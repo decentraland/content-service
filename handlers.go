@@ -102,38 +102,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		filecontent, err := ioutil.ReadAll(file)
+		filepath, fileCID := getPathAndCID(partName, fileHeader.Filename)
+
+		fileMatches, err := fileMatchesCID(file, fileCID)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
 			return
-		}
-
-		filecid, err := cidPref.Sum(filecontent)
-		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+		} else if !fileMatches {
+			http.Error(w, http.StatusText(400), 400)
 			return
 		}
 
 		if s3Storage {
-			_, err = saveFileS3(file, filecid.String())
+			_, err = saveFileS3(file, fileCID)
 		} else {
-			_, err = saveFile(file, filecid.String())
+			_, err = saveFile(file, fileCID)
 		}
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
 			return
-		}
-
-		var filepath string
-		path := strings.Split(partName, "/")
-		fileCID := path[len(path)-1]
-		if len(path) > 1 {
-			filepath = strings.Join(path[:len(path)-1], "/") + "/" + fileHeader.Filename
-		} else {
-			filepath = fileHeader.Filename
 		}
 
 		err = client.HSet("content_"+meta.RootCid, filepath, fileCID).Err()
@@ -204,4 +193,33 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	}
 
 	return nil, errors.New("Missing scene.json")
+}
+
+func fileMatchesCID(file multipart.File, CID string) (bool, error) {
+	filecontent, err := ioutil.ReadAll(file)
+	if err != nil {
+		return false, err
+	}
+
+	fileCID, err := cidPref.Sum(filecontent)
+	if err != nil {
+		return false, err
+	}
+
+	return fileCID.String() == CID, nil
+}
+
+func getPathAndCID(part, filename string) (string, string) {
+	var filepath string
+
+	path := strings.Split(part, "/")
+	fileCID := path[len(path)-1]
+
+	if len(path) > 1 {
+		filepath = strings.Join(path[:len(path)-1], "/") + "/" + filename
+	} else {
+		filepath = filename
+	}
+
+	return filepath, fileCID
 }
