@@ -55,11 +55,15 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 
 	paramsInt, err := mapValuesToInt(params)
 
-	parcels, _, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
+	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
 		return
+	}
+
+	for _, estate := range estates {
+		parcels = append(parcels, estate.Data.Parcels...)
 	}
 
 	parcelsContent := make(map[string]map[string]string)
