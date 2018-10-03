@@ -14,6 +14,7 @@ import (
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-cid"
 )
 
 type uploadFile struct {
@@ -273,7 +274,12 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	return nil, errors.New("Missing scene.json")
 }
 
-func fileMatchesCID(fileHeader *multipart.FileHeader, CID string) (bool, error) {
+func fileMatchesCID(fileHeader *multipart.FileHeader, strCID string) (bool, error) {
+	CID, err := cid.Decode(strCID)
+	if err != nil {
+		return false, err
+	}
+
 	file, err := fileHeader.Open()
 	if err != nil {
 		return false, err
@@ -285,12 +291,12 @@ func fileMatchesCID(fileHeader *multipart.FileHeader, CID string) (bool, error) 
 		return false, err
 	}
 
-	fileCID, err := cidPref.Sum(filecontent)
+	fileCID, err := CID.Prefix().Sum(filecontent)
 	if err != nil {
 		return false, err
 	}
 
-	return fileCID.String() == CID, nil
+	return CID.Equals(fileCID), nil
 }
 
 func getPathAndCID(part, filename string) (string, string) {
