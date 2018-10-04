@@ -19,6 +19,7 @@ var client *redis.Client
 var cidPref cid.Prefix
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// redis connection example
 	client = redis.NewClient(&redis.Options{
 		Addr:     "content_service_redis:6379",
