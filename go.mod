@@ -9,6 +9,7 @@ require (
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/ipfs/go-cid v0.9.0
 	github.com/ipfs/go-datastore v3.2.0+incompatible // indirect
+	github.com/ipfs/go-ipfs v0.4.17
 	github.com/ipfs/go-ipfs-ds-help v0.1.2
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect

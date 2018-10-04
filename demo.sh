@@ -23,11 +23,11 @@ echo 'This is a text file' > demo/assets/text.txt
 
 
 curl 'http://localhost:8000/mappings' \
- -F 'metadata={"value":"/ipfs/iwjfoaoiaeefwe", "pubkey":"0x959e104e1a4db6317fa58f8295f586e1a978c297"}' \
- -F 'zb2rhiAqvxwecs4q6uB65He8kctUiBGpo5cGU2u5WUdyAd59w=@demo/scene.json' \
- -F 'assets/zb2rhhvg9yGb4fy8qF5K26Pvbx4H4xyo9SDEv9ag4286NzQX7=@demo/assets/text.txt'
+ -F 'metadata={"value":"/ipfs/QmZHXazb2PUGco1nTtxFYNywP5z9Ewqj2m5bGiW2g1G3bJ", "pubkey":"0x959e104e1a4db6317fa58f8295f586e1a978c297"}' \
+ -F 'QmQRnSrVGQL7p2QiE7ShsQspyc7asfdBY44LkmxM8aKHob=@demo/scene.json' \
+ -F 'assets/QmURx54X51QdYjgzme4QfHnEGKej4XCuwSzBxEAwyHwgoH=@demo/assets/text.txt'
 
-curl 'http://localhost:8000/contents/zb2rhhvg9yGb4fy8qF5K26Pvbx4H4xyo9SDEv9ag4286NzQX7'
+curl 'http://localhost:8000/contents/QmURx54X51QdYjgzme4QfHnEGKej4XCuwSzBxEAwyHwgoH'
 
 curl 'http://localhost:8000/validate?x=-40&y=43'
 

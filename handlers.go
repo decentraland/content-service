@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -15,6 +19,8 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipfs/core"
+	"github.com/ipfs/go-ipfs/core/coreunix"
 )
 
 type uploadFile struct {
@@ -150,6 +156,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	match, err := rootCIDMatches(meta.RootCid, r.MultipartForm.File)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	} else if !match {
+		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
@@ -326,4 +342,52 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 	}
 
 	return mapInt, nil
+}
+
+func getRootCID(files map[string][]*multipart.FileHeader) (string, error) {
+	for path, fileHeaders := range files {
+		fileHeader := fileHeaders[0]
+		dir := filepath.Join("/tmp/demo", filepath.Dir(path))
+		filePath := filepath.Join(dir, fileHeader.Filename)
+
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+
+		dst, err := os.Create(filePath)
+		if err != nil {
+			return "", err
+		}
+		defer dst.Close()
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			return "", err
+		}
+
+	}
+
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := core.NewNode(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return coreunix.AddR(node, "/tmp/demo")
+}
+
+func rootCIDMatches(rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
+	actualRootCID, err := getRootCID(files)
+	if err != nil {
+		return false, err
+	}
+
+	return rootCID == actualRootCID, nil
 }
