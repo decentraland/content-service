@@ -4,42 +4,30 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/go-redis/redis"
-	"github.com/gorilla/mux"
 )
 
-var server *httptest.Server
+var server *http.Server
+var serverURL string
 
 func TestMain(m *testing.M) {
-	// Start Redis client
-	client = redis.NewClient(&redis.Options{
-		Addr:     "content_service_redis:6379",
-		Password: "",
-		DB:       0,
-	})
-
 	// Start server
-	router := mux.NewRouter()
-	router.HandleFunc("/mappings", mappingsHandler).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
-	router.HandleFunc("/mappings", uploadHandler).Methods("POST")
-	router.HandleFunc("/contents/{cid}", contentsHandler).Methods("GET")
-	router.HandleFunc("/validate", validateHandler).Methods("GET").Queries("x", "{x}", "y", "{y}")
-	server = httptest.NewServer(router)
-	defer server.Close()
-
-	// Set s3 storage flag
-	s3Storage = true
+	setConfigParams()
+	serverURL = "localhost:8000"
+	router := getRouter()
+	server = &http.Server{Addr: ":8000", Handler: router}
+	err := server.ListenAndServe()
+	if err != nil {
+		panic("Cannot start test server")
+	}
 
 	code := m.Run()
 	os.Exit(code)
 }
 
 func ProcessRequest(t *testing.T, method string, route string, body io.Reader) (*http.Response, error) {
-	request, err := http.NewRequest(method, server.URL+route, body)
+	request, err := http.NewRequest(method, serverURL+route, body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +40,7 @@ func ProcessRequest(t *testing.T, method string, route string, body io.Reader) (
 }
 
 func TestHandleFakeCID(t *testing.T) {
-	t.Log("Test server url is", server.URL)
+	t.Log("Test server url is", serverURL)
 	t.Log("s3Storage is", s3Storage)
 	response, err := ProcessRequest(t, "GET", "/content/000", nil)
 
