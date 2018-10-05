@@ -24,7 +24,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/ipfs/go-cid v0.9.0
 	github.com/ipfs/go-datastore v3.2.0+incompatible // indirect
-	github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 // indirect
+	github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422
 	github.com/ipfs/go-ipfs-ds-help v0.1.2 // indirect
 	github.com/ipsn/go-ipfs v0.0.0-20181003223520-1ade9a5dc26e
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect

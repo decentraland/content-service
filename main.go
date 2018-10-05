@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-cid"
+	"github.com/ipsn/go-ipfs/core"
 	mh "github.com/multiformats/go-multihash"
 )
 
@@ -17,20 +19,29 @@ var localStorage, s3Storage bool
 var localStorageDir string
 var client *redis.Client
 var cidPref cid.Prefix
+var node *core.IpfsNode
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	// redis connection example
 	client = redis.NewClient(&redis.Options{
-		Addr:     "content_service_redis:6379",
+		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
-
 	err := client.Set("key", "value", 0).Err()
 	if err != nil {
 		panic(err)
 	}
+
+	// Initialize IPFS for CID calculations
+	ctx, _ := context.WithCancel(context.Background())
+	node, err = core.NewNode(ctx, nil)
+	if err != nil {
+		panic(err)
+	}
+
 	// CID creation example
 	cidPref = cid.Prefix{
 		Version:  1,

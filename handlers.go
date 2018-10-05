@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -18,9 +16,7 @@ import (
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	"github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
+	"github.com/ipsn/go-ipfs/core/coreunix"
 )
 
 type uploadFile struct {
@@ -290,29 +286,19 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	return nil, errors.New("Missing scene.json")
 }
 
-func fileMatchesCID(fileHeader *multipart.FileHeader, strCID string) (bool, error) {
-	CID, err := cid.Decode(strCID)
-	if err != nil {
-		return false, err
-	}
-
+func fileMatchesCID(fileHeader *multipart.FileHeader, receivedCID string) (bool, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		return false, err
 	}
 	defer file.Close()
 
-	filecontent, err := ioutil.ReadAll(file)
+	actualCID, err := coreunix.Add(node, file)
 	if err != nil {
 		return false, err
 	}
 
-	fileCID, err := CID.Prefix().Sum(filecontent)
-	if err != nil {
-		return false, err
-	}
-
-	return CID.Equals(fileCID), nil
+	return receivedCID == actualCID, nil
 }
 
 func getPathAndCID(part, filename string) (string, string) {
@@ -344,10 +330,12 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 	return mapInt, nil
 }
 
-func getRootCID(files map[string][]*multipart.FileHeader) (string, error) {
+func getRootCID(rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
+	rootDir := filepath.Join("/tmp", rootCID)
+
 	for path, fileHeaders := range files {
 		fileHeader := fileHeaders[0]
-		dir := filepath.Join("/tmp/demo", filepath.Dir(path))
+		dir := filepath.Join(rootDir, filepath.Dir(path))
 		filePath := filepath.Join(dir, fileHeader.Filename)
 
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -371,20 +359,13 @@ func getRootCID(files map[string][]*multipart.FileHeader) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
 	}
 
-	ctx, _ := context.WithCancel(context.Background())
-	node, err := core.NewNode(ctx, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return coreunix.AddR(node, "/tmp/demo")
+	return coreunix.AddR(node, rootDir)
 }
 
 func rootCIDMatches(rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
-	actualRootCID, err := getRootCID(files)
+	actualRootCID, err := getRootCID(rootCID, files)
 	if err != nil {
 		return false, err
 	}
