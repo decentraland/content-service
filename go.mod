@@ -1,7 +1,7 @@
 module github.com/decentraland/content-service
 
 require (
-	github.com/aws/aws-sdk-go v1.15.41
+	github.com/aws/aws-sdk-go v1.15.47
 	github.com/fatih/structs v1.0.0
 	github.com/go-redis/redis v6.14.1+incompatible
 	github.com/google/uuid v1.0.0 // indirect
@@ -17,6 +17,8 @@ require (
 	github.com/multiformats/go-multibase v0.3.0 // indirect
 	github.com/multiformats/go-multihash v1.0.8
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
+	github.com/spf13/pflag v1.0.2
+	github.com/spf13/viper v1.2.1
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b // indirect
 	golang.org/x/sys v0.0.0-20180926160741-c2ed4eda69e7 // indirect
