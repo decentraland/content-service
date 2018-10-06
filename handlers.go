@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	"github.com/ipfs/go-cid"
+	"github.com/ipsn/go-ipfs/core/coreunix"
 )
 
 type uploadFile struct {
@@ -153,6 +155,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	match, err := rootCIDMatches(meta.RootCid, r.MultipartForm.File)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	} else if !match {
+		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+
 	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
 		log.Println(err)
@@ -274,29 +286,19 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	return nil, errors.New("Missing scene.json")
 }
 
-func fileMatchesCID(fileHeader *multipart.FileHeader, strCID string) (bool, error) {
-	CID, err := cid.Decode(strCID)
-	if err != nil {
-		return false, err
-	}
-
+func fileMatchesCID(fileHeader *multipart.FileHeader, receivedCID string) (bool, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		return false, err
 	}
 	defer file.Close()
 
-	filecontent, err := ioutil.ReadAll(file)
+	actualCID, err := coreunix.Add(node, file)
 	if err != nil {
 		return false, err
 	}
 
-	fileCID, err := CID.Prefix().Sum(filecontent)
-	if err != nil {
-		return false, err
-	}
-
-	return CID.Equals(fileCID), nil
+	return receivedCID == actualCID, nil
 }
 
 func getPathAndCID(part, filename string) (string, string) {
@@ -326,4 +328,47 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 	}
 
 	return mapInt, nil
+}
+
+func getRootCID(rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
+	rootDir := filepath.Join("/tmp", rootCID)
+
+	for path, fileHeaders := range files {
+		fileHeader := fileHeaders[0]
+		dir := filepath.Join(rootDir, filepath.Dir(path))
+		filePath := filepath.Join(dir, fileHeader.Filename)
+
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+
+		dst, err := os.Create(filePath)
+		if err != nil {
+			return "", err
+		}
+		defer dst.Close()
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return coreunix.AddR(node, rootDir)
+}
+
+func rootCIDMatches(rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
+	actualRootCID, err := getRootCID(rootCID, files)
+	if err != nil {
+		return false, err
+	}
+
+	return rootCID == actualRootCID, nil
 }
