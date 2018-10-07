@@ -16,8 +16,27 @@ import (
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"github.com/ipsn/go-ipfs/core"
 	"github.com/ipsn/go-ipfs/core/coreunix"
 )
+
+// Create with NewServiceHandlerFactory()
+type serviceHandler struct {
+	config *Configuration
+	handleFunc func(*Configuration, http.ResponseWriter, *http.Request)
+}
+
+// serviceHandler implements http.Handler interface
+func (sh serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	sh.handleFunc(sh.config, w, r)
+}
+
+type handlerFactory func(func(*Configuration, http.ResponseWriter, *http.Request)) serviceHandler
+
+func NewServiceHandlerFactory(config *Configuration) handlerFactory {
+	return func(fn func(*Configuration, http.ResponseWriter, *http.Request)) 
+					{return serviceHandler{config: config, handleFunc: fn}}
+}
 
 type uploadFile struct {
 	Name string `json:"name"`
@@ -53,7 +72,7 @@ type scene struct {
 	Main string `json:"main"`
 }
 
-func mappingsHandler(w http.ResponseWriter, r *http.Request) {
+func mappingsHandler(config *Configuration, w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	paramsInt, err := mapValuesToInt(params)
@@ -71,7 +90,7 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 
 	parcelsContent := make(map[string]map[string]string)
 	for _, parcel := range parcels {
-		parcelContent, err := getParcelContent(parcel.ID)
+		parcelContent, err := getParcelContent(config.Redis.Client, parcel.ID)
 		// If parcel is not found ignore and keep going
 		if err == redis.Nil {
 			continue
@@ -101,12 +120,12 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateHandler(w http.ResponseWriter, r *http.Request) {
+func validateHandler(config *Configuration, w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	parcelID := fmt.Sprintf("%+v,%+v", params["x"], params["y"])
 
-	parcelMeta, err := getParcelMetadata(parcelID)
+	parcelMeta, err := getParcelMetadata(config.Redis.Client, parcelID)
 	if err == redis.Nil {
 		http.Error(w, http.StatusText(404), 404)
 		return
@@ -133,7 +152,7 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
+func uploadHandler(config *Configuration, w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
 		log.Println(err)
@@ -187,7 +206,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		filepath, fileCID := getPathAndCID(partName, fileHeader.Filename)
 
-		fileMatches, err := fileMatchesCID(fileHeader, fileCID)
+		fileMatches, err := fileMatchesCID(config.IpfsNode, fileHeader, fileCID)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -205,10 +224,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer file.Close()
 
-		if s3Storage {
+		if config.S3Storage {
 			_, err = saveFileS3(file, fileCID)
 		} else {
-			_, err = saveFile(file, fileCID)
+			_, err = saveFile(file, config.LocalStorage, fileCID)
 		}
 		if err != nil {
 			log.Println(err)
@@ -216,7 +235,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = client.HSet("content_"+meta.RootCid, filepath, fileCID).Err()
+		err = config.Redis.Client.HSet("content_"+meta.RootCid, filepath, fileCID).Err()
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -225,7 +244,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, parcel := range scene.Scene.Parcels {
-		err = client.Set(parcel, meta.RootCid, 0).Err()
+		err = config.Redis.Client.Set(parcel, meta.RootCid, 0).Err()
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
@@ -233,7 +252,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = client.HMSet("metadata_"+meta.RootCid, structs.Map(meta)).Err()
+	err = config.Redis.Client.HMSet("metadata_"+meta.RootCid, structs.Map(meta)).Err()
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
@@ -241,14 +260,14 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func contentsHandler(w http.ResponseWriter, r *http.Request) {
+func contentsHandler(config *Configuration, w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	if s3Storage {
+	if config.S3Storage {
 		location := getFileS3(params["cid"])
 		http.Redirect(w, r, location, 301)
 	} else {
-		location := getFile(params["cid"])
+		location := config.LocalStorage + params["cid"]
 		w.Header().Add("Content-Disposition", "Attachment")
 		http.ServeFile(w, r, location)
 	}
@@ -286,7 +305,7 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	return nil, errors.New("Missing scene.json")
 }
 
-func fileMatchesCID(fileHeader *multipart.FileHeader, receivedCID string) (bool, error) {
+func fileMatchesCID(node *core.IpfsNode, fileHeader *multipart.FileHeader, receivedCID string) (bool, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		return false, err
@@ -330,7 +349,7 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 	return mapInt, nil
 }
 
-func getRootCID(rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
+func getRootCID(node *core.IpfsNode, rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
 	rootDir := filepath.Join("/tmp", rootCID)
 
 	for path, fileHeaders := range files {
@@ -364,8 +383,8 @@ func getRootCID(rootCID string, files map[string][]*multipart.FileHeader) (strin
 	return coreunix.AddR(node, rootDir)
 }
 
-func rootCIDMatches(rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
-	actualRootCID, err := getRootCID(rootCID, files)
+func rootCIDMatches(node *core.IpfsNode, rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
+	actualRootCID, err := getRootCID(node, rootCID, files)
 	if err != nil {
 		return false, err
 	}

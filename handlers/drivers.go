@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"fmt"
@@ -11,11 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-func getFile(cid string) string {
-	return localStorageDir + cid
-}
-
-func saveFile(fileDescriptor multipart.File, filename string) (string, error) {
+func saveFile(fileDescriptor multipart.File, localStorageDir string, filename string) (string, error) {
 	dst, err := os.Create(localStorageDir + filename)
 	if err != nil {
 		return "", err
