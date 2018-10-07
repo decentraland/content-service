@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"log"
-	"net/http"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
-	"errors"
 	"strings"
 
 	"github.com/fatih/structs"
@@ -17,10 +18,10 @@ import (
 )
 
 type UploadHandler struct {
-	S3Storage bool
+	S3Storage    bool
 	LocalStorage string
-	RedisClient *redis.Client
-	IpfsNode *core.IpfsNode
+	RedisClient  *redis.Client
+	IpfsNode     *core.IpfsNode
 }
 
 func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +46,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	match, err := rootCIDMatches(meta.RootCid, r.MultipartForm.File)
+	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, r.MultipartForm.File)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
@@ -77,7 +78,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 		filepath, fileCID := getPathAndCID(partName, fileHeader.Filename)
 
-		fileMatches, err := fileMatchesCID(config.IpfsNode, fileHeader, fileCID)
+		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, fileCID)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
