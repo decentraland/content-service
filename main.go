@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -10,9 +9,7 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	"github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/core"
-	mh "github.com/multiformats/go-multihash"
 )
 
 func main() {
@@ -44,11 +41,6 @@ func main() {
 	// CID decoding coding example
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
 	fmt.Println("Got CID: ", c)
-
-	// flag.BoolVar(&localStorage, "local", false, "Local storage")
-	// flag.StringVar(&localStorageDir, "local-dir", "/tmp/", "Local storage directory")
-	// flag.BoolVar(&s3Storage, "s3", false, "S3 storage")
-	// flag.Parse()
 
 	router := GetRouter(config, client, ipfsNode)
 	log.Fatal(http.ListenAndServe(":8000", router))

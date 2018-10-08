@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -26,6 +27,13 @@ type Configuration struct {
 func GetConfig() *Configuration {
 	var config Configuration
 
+	flag.String("localstorage", "tmp/", "Local storage directory")
+	flag.Bool("s3storage", false, "Enable S3 storage")
+	flag.Parse()
+
+	viper.BindPFlag("localstorage", flag.Lookup("localstorage"))
+	viper.BindPFlag("s3storage", flag.Lookup("s3storage"))
+
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 
@@ -34,7 +42,7 @@ func GetConfig() *Configuration {
 	}
 	err := viper.Unmarshal(&config)
 	if err != nil {
-		log.Fatalf("Unable to decode config file into struct, %v", err)
+		log.Fatalf("Unable to decode config file into struct, %s", err)
 	}
 
 	if config.LocalStorage[len(config.LocalStorage)-1:] != "/" {
