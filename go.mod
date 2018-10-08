@@ -11,6 +11,7 @@ require (
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/coreos/go-semver v0.2.0 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20170701192655-dcfb0a7ac018 // indirect
+	github.com/ethereum/go-ethereum v1.8.16
 	github.com/fatih/structs v1.0.0
 	github.com/fd/go-nat v1.0.0 // indirect
 	github.com/go-redis/redis v6.14.1+incompatible

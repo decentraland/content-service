@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func userCanModify(pubkey string, scene *scene) (bool, error) {
@@ -67,4 +71,29 @@ func canModify(pubkey string, parcel *parcel) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func isSignatureValid(rootCid, hexSignature, hexAddress string) (bool, error) {
+	sigBytes, err := hexutil.Decode(hexSignature)
+	if err != nil {
+		return false, err
+	}
+	hash := crypto.Keccak256Hash([]byte(rootCid))
+	signatureNoRecoverID := sigBytes[:len(sigBytes)-1]
+
+	publicKeyBytes, err := crypto.Ecrecover(hash.Bytes(), sigBytes)
+	if err != nil {
+		return false, err
+	}
+
+	verified := crypto.VerifySignature(publicKeyBytes, hash.Bytes(), signatureNoRecoverID)
+
+	publicKey, err := crypto.UnmarshalPubkey(publicKeyBytes)
+	sigAddress := crypto.PubkeyToAddress(*publicKey)
+	ownerAddress, err := hexutil.Decode(hexAddress)
+	if err != nil {
+		return false, err
+	}
+
+	return verified && bytes.Equal(sigAddress.Bytes(), ownerAddress), nil
 }

@@ -160,6 +160,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	valid, err := isSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	} else if !valid {
+		http.Error(w, http.StatusText(401), 401)
+		return
+	}
+
 	filesJSON, isset := r.MultipartForm.Value["content"]
 	if !isset {
 		log.Println(err)
