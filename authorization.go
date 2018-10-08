@@ -11,14 +11,10 @@ func userCanModify(pubkey string, scene *scene) (bool, error) {
 		return false, err
 	}
 
-	estate, err := getEstate(scene.Scene.EstateID)
-	if err != nil {
-		return false, err
-	}
-
 	for _, parcel := range parcels {
-		if !canModify(pubkey, parcel, estate) {
-			return false, nil
+		match, err := canModify(pubkey, parcel)
+		if err != nil || !match {
+			return false, err
 		}
 	}
 
@@ -47,15 +43,28 @@ func getParcels(parcelsList []string) ([]*parcel, error) {
 	return parcels, nil
 }
 
-func canModify(pubkey string, parcel *parcel, estate *estate) bool {
-	// TODO: check if pubkey marches update operator for parcel or estate, we are waiting on Decentraland's API
+func canModify(pubkey string, parcel *parcel) (bool, error) {
 	if pubkey == parcel.Owner {
-		return true
-	} else if parcel.EstateID == estate.ID {
+		return true, nil
+	} else if pubkey == parcel.UpdateOperator {
+		return true, nil
+	} else if parcel.EstateID != "" {
+		estateID, err := strconv.Atoi(parcel.EstateID)
+		if err != nil {
+			return false, err
+		}
+
+		estate, err := getEstate(estateID)
+		if err != nil {
+			return false, err
+		}
+
 		if pubkey == estate.Owner {
-			return true
+			return true, nil
+		} else if pubkey == estate.UpdateOperator {
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
