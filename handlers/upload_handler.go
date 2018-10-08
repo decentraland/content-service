@@ -34,7 +34,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
-		log.Println(err)
+		log.Println("Metadata field not found.", err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -52,13 +52,14 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, http.StatusText(500), 500)
 		return
 	} else if !match {
+		log.Println("Root CID doesnt match")
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
 	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
-		log.Println(err)
+		log.Println("Scene file not found.", err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
