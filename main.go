@@ -18,23 +18,15 @@ import (
 func main() {
 	config := GetConfig()
 
-	// redis connection example
-	client := redis.NewClient(&redis.Options{
-		Addr:     config.Redis.Address,
-		Password: config.Redis.Password,
-		DB:       config.Redis.DB,
-	})
-
-	err := client.Set("key", "value", 0).Err()
+	// Initialize Redis client
+	client, err := initRedisClient(config)
 	if err != nil {
 		panic(err)
 	}
 
 	// Initialize IPFS for CID calculations
-	ctx, _ := context.WithCancel(context.Background())
-
 	var ipfsNode *core.IpfsNode
-	ipfsNode, err = core.NewNode(ctx, nil)
+	ipfsNode, err = initIpfsNode()
 	if err != nil {
 		panic(err)
 	}
@@ -60,6 +52,24 @@ func main() {
 
 	router := GetRouter(config, client, ipfsNode)
 	log.Fatal(http.ListenAndServe(":8000", router))
+}
+
+func initRedisClient(config *Configuration) (*redis.Client, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     config.Redis.Address,
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
+	})
+
+	err := client.Set("key", "value", 0).Err()
+
+	return client, err
+}
+
+func initIpfsNode() (*core.IpfsNode, error) {
+	ctx, _ := context.WithCancel(context.Background())
+
+	return core.NewNode(ctx, nil)
 }
 
 func GetRouter(config *Configuration, client *redis.Client, node *core.IpfsNode) *mux.Router {

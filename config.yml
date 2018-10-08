@@ -4,7 +4,7 @@ server:
 
 s3Storage: true
 
-localStorage: '/tmp'
+localStorage: 'tmp'
 
 redis:
   address: 'content_service_redis:6379'
