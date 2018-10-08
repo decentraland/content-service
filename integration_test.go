@@ -71,12 +71,6 @@ func TestContentsHandler(t *testing.T) {
 		t.Error("Contents handler should respond with status code 301. Recieved code: ", response.StatusCode)
 	}
 
-	// body, err2 := ioutil.ReadAll(response.Body)
-	// if err2 != nil {
-	// 	t.Error("Error reading body of response")
-	// 	return
-	// }
-
 	link := new(Link)
 	err3 := xml.NewDecoder(response.Body).Decode(link)
 	if err3 != nil {
@@ -148,12 +142,16 @@ func TestCoordinatesNotCached(t *testing.T) {
 	}
 }
 
-func TestValidateCoordinatesNotInCache(t *testing.T) {
-	x, y := -10, 10
+func validateCoordinates(x int, y int) (*http.Response, error) {
 	query := fmt.Sprintf("/validate?x=%d&y=%d", x, y)
 
 	client := getNoRedirectClient()
-	response, err := client.Get(server.URL + query)
+	return client.Get(server.URL + query)
+}
+
+func TestValidateCoordinatesNotInCache(t *testing.T) {
+	x, y := -10, 10
+	response, err := validateCoordinates(x, y)
 	if err != nil {
 		t.Fatal(err)
 	}

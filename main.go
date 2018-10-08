@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -9,7 +10,9 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/core"
+	mh "github.com/multiformats/go-multihash"
 )
 
 func main() {

@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 
-	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -26,13 +25,6 @@ type Configuration struct {
 // GetConfig populates a Configuration struct from a config file
 func GetConfig() *Configuration {
 	var config Configuration
-
-	flag.String("localstorage", "tmp/", "Local storage directory")
-	flag.Bool("s3storage", false, "Enable S3 storage")
-	flag.Parse()
-
-	viper.BindPFlag("localstorage", flag.Lookup("localstorage"))
-	viper.BindPFlag("s3storage", flag.Lookup("s3storage"))
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
