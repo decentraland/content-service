@@ -34,6 +34,11 @@ type metadata struct {
 	RootCid      string `json:"-" structs:"rootcid"`
 }
 
+type fileMetadata struct {
+	Cid  string `json:"cid"`
+	Name string `json:"name"`
+}
+
 type scene struct {
 	Display struct {
 		Title string `json:"title"`
@@ -155,7 +160,13 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	match, err := rootCIDMatches(meta.RootCid, r.MultipartForm.File)
+	filesJSON, isset := r.MultipartForm.Value["content"]
+	if !isset {
+		log.Println(err)
+		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+	match, err := rootCIDMatches(meta.RootCid, filesJSON[0], r.MultipartForm.File)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
@@ -330,8 +341,10 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 	return mapInt, nil
 }
 
-func getRootCID(rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
+func rootCIDMatches(rootCID, filesJSON string, files map[string][]*multipart.FileHeader) (bool, error) {
 	rootDir := filepath.Join("/tmp", rootCID)
+	var filesMeta []fileMetadata
+	err := json.Unmarshal([]byte(filesJSON), filesMeta)
 
 	for path, fileHeaders := range files {
 		fileHeader := fileHeaders[0]
@@ -340,32 +353,28 @@ func getRootCID(rootCID string, files map[string][]*multipart.FileHeader) (strin
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			return "", err
+			return false, err
 		}
 
 		dst, err := os.Create(filePath)
 		if err != nil {
-			return "", err
+			return false, err
 		}
 		defer dst.Close()
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			return "", err
+			return false, err
 		}
 		defer file.Close()
 
 		_, err = io.Copy(dst, file)
 		if err != nil {
-			return "", err
+			return false, err
 		}
 	}
 
-	return coreunix.AddR(node, rootDir)
-}
-
-func rootCIDMatches(rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
-	actualRootCID, err := getRootCID(rootCID, files)
+	actualRootCID, err := coreunix.AddR(node, rootDir)
 	if err != nil {
 		return false, err
 	}
