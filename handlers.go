@@ -43,7 +43,6 @@ type scene struct {
 	Display struct {
 		Title string `json:"title"`
 	} `json:"display"`
-	// Contact <T> `json:"contact"`
 	Owner string `json:"owner"`
 	Scene struct {
 		EstateID int      `json:"estateId"`
@@ -54,7 +53,6 @@ type scene struct {
 		Type       string `json:"type"`
 		Signalling string `json:"signalling"`
 	} `json:"communications"`
-	// Policy <T> `json:"policy"`
 	Main string `json:"main"`
 }
 
