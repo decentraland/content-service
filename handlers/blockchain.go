@@ -16,7 +16,7 @@ type estateResponse struct {
 	Data *estate `json:"data"`
 }
 
-type mapResponse struct {
+type MapResponse struct {
 	Ok   bool `json:"ok"`
 	Data struct {
 		Assets struct {
@@ -81,7 +81,7 @@ func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
 		return nil, nil, err
 	}
 
-	var jsonResponse mapResponse
+	var jsonResponse MapResponse
 	json.NewDecoder(resp.Body).Decode(&jsonResponse)
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
 }
