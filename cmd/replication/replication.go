@@ -25,7 +25,7 @@ type metadata struct {
 	ValidityType string `json:"validityType" structs:"validityType"`
 	Sequence     string `json:"sequence" structs:"sequence"`
 	PubKey       string `json:"pubkey" structs:"pubkey"`
-	RootCid      string `json:"-" structs:"rootcid"`
+	RootCid      string `json:"rootcid" structs:"rootcid"`
 }
 
 func main() {
@@ -57,8 +57,8 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		var parcelMetadata *metadata
-		err := json.NewDecoder(resp.Body).Decode(parcelMetadata)
+		var parcelMetadata metadata
+		err := json.NewDecoder(resp.Body).Decode(&parcelMetadata)
 		if err != nil {
 			panic(err)
 		}
@@ -73,14 +73,14 @@ func main() {
 			panic(err)
 		}
 
-		localPath := "backup/" + parcelMetadata.RootCid
 		for filePath, cid := range parcel.Contents {
-			err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+			localPath := filepath.Join("backup/", parcelMetadata.RootCid, filePath)
+			err := os.MkdirAll(filepath.Dir(localPath), os.ModePerm)
 			if err != nil {
 				panic(err)
 			}
 
-			file, err := os.Create(localPath + filePath)
+			file, err := os.Create(localPath)
 			if err != nil {
 				panic(err)
 			}
