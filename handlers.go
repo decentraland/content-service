@@ -56,6 +56,11 @@ type scene struct {
 	Main string `json:"main"`
 }
 
+type parcelContent struct {
+	ParcelID string            `json:"parcel_id"`
+	Contents map[string]string `json:"contents"`
+}
+
 func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
@@ -71,10 +76,9 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 	for _, estate := range estates {
 		parcels = append(parcels, estate.Data.Parcels...)
 	}
-
-	parcelsContent := make(map[string]map[string]string)
+	var mapContents []parcelContent
 	for _, parcel := range parcels {
-		parcelContent, err := getParcelContent(parcel.ID)
+		contents, err := getParcelContent(parcel.ID)
 		// If parcel is not found ignore and keep going
 		if err == redis.Nil {
 			continue
@@ -84,10 +88,10 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		parcelsContent[parcel.ID] = parcelContent
+		mapContents = append(mapContents, parcelContent{ParcelID: parcel.ID, Contents: contents})
 	}
 
-	contentsJSON, err := json.Marshal(parcelsContent)
+	contentsJSON, err := json.Marshal(mapContents)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
