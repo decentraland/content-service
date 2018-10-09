@@ -3,29 +3,17 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-<<<<<<< HEAD:handlers/upload_handler.go
-=======
-	"fmt"
->>>>>>> 649650bd3374ef16930082955d246ad24c0115d6:handlers.go
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
-<<<<<<< HEAD:handlers/upload_handler.go
-=======
-	"strconv"
->>>>>>> 649650bd3374ef16930082955d246ad24c0115d6:handlers.go
 	"strings"
 
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
-<<<<<<< HEAD:handlers/upload_handler.go
 	"github.com/ipsn/go-ipfs/core"
-=======
-	"github.com/gorilla/mux"
->>>>>>> 649650bd3374ef16930082955d246ad24c0115d6:handlers.go
 	"github.com/ipsn/go-ipfs/core/coreunix"
 )
 
@@ -36,84 +24,8 @@ type UploadHandler struct {
 	IpfsNode     *core.IpfsNode
 }
 
-<<<<<<< HEAD:handlers/upload_handler.go
 func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(0)
-=======
-type metadata struct {
-	Value        string `json:"value" structs:"value"`
-	Signature    string `json:"signature" structs:"signature"`
-	Validity     string `json:"validity" structs:"validity"`
-	ValidityType string `json:"validityType" structs:"validityType"`
-	Sequence     string `json:"sequence" structs:"sequence"`
-	PubKey       string `json:"pubkey" structs:"pubkey"`
-	RootCid      string `json:"-" structs:"rootcid"`
-}
-
-type fileMetadata struct {
-	Cid  string `json:"cid"`
-	Name string `json:"name"`
-}
-
-type scene struct {
-	Display struct {
-		Title string `json:"title"`
-	} `json:"display"`
-	Owner string `json:"owner"`
-	Scene struct {
-		EstateID int      `json:"estateId"`
-		Parcels  []string `json:"parcels"`
-		Base     string   `json:"base"`
-	} `json:"scene"`
-	Communications struct {
-		Type       string `json:"type"`
-		Signalling string `json:"signalling"`
-	} `json:"communications"`
-	Main string `json:"main"`
-}
-
-func mappingsHandler(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-
-	paramsInt, err := mapValuesToInt(params)
-
-	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-
-	for _, estate := range estates {
-		parcels = append(parcels, estate.Data.Parcels...)
-	}
-
-	parcelsContent := make(map[string]map[string]string)
-	for _, parcel := range parcels {
-		parcelContent, err := getParcelContent(parcel.ID)
-		// If parcel is not found ignore and keep going
-		if err == redis.Nil {
-			continue
-		} else if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
-
-		parcelsContent[parcel.ID] = parcelContent
-	}
-
-	contentsJSON, err := json.Marshal(parcelsContent)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err = w.Write(contentsJSON)
->>>>>>> 649650bd3374ef16930082955d246ad24c0115d6:handlers.go
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
@@ -145,42 +57,6 @@ func mappingsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-<<<<<<< HEAD:handlers/upload_handler.go
-=======
-	meta, err := getMetadata([]byte(metaMultipart[0]))
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
-
-	valid, err := isSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	} else if !valid {
-		http.Error(w, http.StatusText(401), 401)
-		return
-	}
-
-	filesJSON, isset := r.MultipartForm.Value["content"]
-	if !isset {
-		log.Println(err)
-		http.Error(w, http.StatusText(400), 400)
-		return
-	}
-	match, err := rootCIDMatches(meta.RootCid, filesJSON[0], r.MultipartForm.File)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	} else if !match {
-		http.Error(w, http.StatusText(400), 400)
-		return
-	}
-
->>>>>>> 649650bd3374ef16930082955d246ad24c0115d6:handlers.go
 	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
 		log.Println("Scene file not found.", err)
@@ -361,24 +237,6 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 	return nil, errors.New("Missing scene.json")
 }
 
-<<<<<<< HEAD:handlers/upload_handler.go
-=======
-func fileMatchesCID(fileHeader *multipart.FileHeader, receivedCID string) (bool, error) {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return false, err
-	}
-	defer file.Close()
-
-	actualCID, err := coreunix.Add(node, file)
-	if err != nil {
-		return false, err
-	}
-
-	return receivedCID == actualCID, nil
-}
-
->>>>>>> 649650bd3374ef16930082955d246ad24c0115d6:handlers.go
 func getPathAndCID(part, filename string) (string, string) {
 	var filepath string
 
@@ -407,45 +265,4 @@ func fileMatchesCID(node *core.IpfsNode, fileHeader *multipart.FileHeader, recei
 	}
 
 	return receivedCID == actualCID, nil
-}
-
-func rootCIDMatches(rootCID, filesJSON string, files map[string][]*multipart.FileHeader) (bool, error) {
-	rootDir := filepath.Join("/tmp", rootCID)
-	var filesMeta []fileMetadata
-	err := json.Unmarshal([]byte(filesJSON), filesMeta)
-
-	for path, fileHeaders := range files {
-		fileHeader := fileHeaders[0]
-		dir := filepath.Join(rootDir, filepath.Dir(path))
-		filePath := filepath.Join(dir, fileHeader.Filename)
-
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return false, err
-		}
-
-		dst, err := os.Create(filePath)
-		if err != nil {
-			return false, err
-		}
-		defer dst.Close()
-
-		file, err := fileHeader.Open()
-		if err != nil {
-			return false, err
-		}
-		defer file.Close()
-
-		_, err = io.Copy(dst, file)
-		if err != nil {
-			return false, err
-		}
-	}
-
-	actualRootCID, err := coreunix.AddR(node, rootDir)
-	if err != nil {
-		return false, err
-	}
-
-	return rootCID == actualRootCID, nil
 }
