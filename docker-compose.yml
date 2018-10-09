@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  golang:
+    image: golang:1.11.0
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/content-service
+      - ./cache/:/go/pkg/mod
+    environment:
+      - GOPATH=/go
+    working_dir: /content-service
+
+  redis:
+    image: redis:4.0.10
+    container_name: content_service_redis
+    ports:
+      - "127.0.0.1:6379:6379"
