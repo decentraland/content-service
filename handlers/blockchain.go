@@ -27,17 +27,19 @@ type MapResponse struct {
 }
 
 type parcel struct {
-	ID       string `json:"id"`
-	X        int    `json:"x"`
-	Y        int    `json:"y"`
-	Owner    string `json:"owner"`
-	EstateID string `json:"estate_id"`
+	ID             string `json:"id"`
+	X              int    `json:"x"`
+	Y              int    `json:"y"`
+	Owner          string `json:"owner"`
+	UpdateOperator string `json:"update_operator"`
+	EstateID       string `json:"estate_id"`
 }
 
 type estate struct {
-	ID    string `json:"id"`
-	Owner string `json:"owner"`
-	Data  struct {
+	ID             string `json:"id"`
+	Owner          string `json:"owner"`
+	UpdateOperator string `json:"update_operator"`
+	Data           struct {
 		Parcels []*parcel `json:"parcels"`
 	} `json:"data"`
 }

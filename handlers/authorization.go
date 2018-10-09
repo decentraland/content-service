@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func userCanModify(pubkey string, scene *scene) (bool, error) {
@@ -11,14 +15,10 @@ func userCanModify(pubkey string, scene *scene) (bool, error) {
 		return false, err
 	}
 
-	estate, err := getEstate(scene.Scene.EstateID)
-	if err != nil {
-		return false, err
-	}
-
 	for _, parcel := range parcels {
-		if !canModify(pubkey, parcel, estate) {
-			return false, nil
+		match, err := canModify(pubkey, parcel)
+		if err != nil || !match {
+			return false, err
 		}
 	}
 
@@ -47,15 +47,53 @@ func getParcels(parcelsList []string) ([]*parcel, error) {
 	return parcels, nil
 }
 
-func canModify(pubkey string, parcel *parcel, estate *estate) bool {
-	// TODO: check if pubkey marches update operator for parcel or estate, we are waiting on Decentraland's API
+func canModify(pubkey string, parcel *parcel) (bool, error) {
 	if pubkey == parcel.Owner {
-		return true
-	} else if parcel.EstateID == estate.ID {
+		return true, nil
+	} else if pubkey == parcel.UpdateOperator {
+		return true, nil
+	} else if parcel.EstateID != "" {
+		estateID, err := strconv.Atoi(parcel.EstateID)
+		if err != nil {
+			return false, err
+		}
+
+		estate, err := getEstate(estateID)
+		if err != nil {
+			return false, err
+		}
+
 		if pubkey == estate.Owner {
-			return true
+			return true, nil
+		} else if pubkey == estate.UpdateOperator {
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
+}
+
+func isSignatureValid(rootCid, hexSignature, hexAddress string) (bool, error) {
+	sigBytes, err := hexutil.Decode(hexSignature)
+	if err != nil {
+		return false, err
+	}
+	hash := crypto.Keccak256Hash([]byte(rootCid))
+	signatureNoRecoverID := sigBytes[:len(sigBytes)-1]
+
+	publicKeyBytes, err := crypto.Ecrecover(hash.Bytes(), sigBytes)
+	if err != nil {
+		return false, err
+	}
+
+	verified := crypto.VerifySignature(publicKeyBytes, hash.Bytes(), signatureNoRecoverID)
+
+	publicKey, err := crypto.UnmarshalPubkey(publicKeyBytes)
+	sigAddress := crypto.PubkeyToAddress(*publicKey)
+	ownerAddress, err := hexutil.Decode(hexAddress)
+	if err != nil {
+		return false, err
+	}
+
+	return verified && bytes.Equal(sigAddress.Bytes(), ownerAddress), nil
 }

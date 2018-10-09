@@ -34,12 +34,21 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
+	// Run tests with S3 Storage
+	config.S3Storage = true
 	router := GetRouter(config, redisClient, ipfsNode)
 	server = httptest.NewServer(router)
-	defer server.Close()
-
-	// Run tests
 	code := m.Run()
+	server.Close()
+
+	// Run tests with Local Storage
+	// config.S3Storage = false
+	// config.LocalStorage = "tmp/"
+	// router = GetRouter(config, redisClient, ipfsNode)
+	// server = httptest.NewServer(router)
+	// defer server.Close()
+	// code = m.Run()
+
 	os.Exit(code)
 }
 

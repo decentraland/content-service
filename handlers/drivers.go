@@ -40,6 +40,7 @@ func saveFileS3(fileDescriptor multipart.File, filename string) (string, error) 
 		ACL:    aws.String("public-read"),
 		Body:   fileDescriptor,
 	})
+
 	if err != nil {
 		fmt.Printf("failed to upload file, %v", err)
 		return "", err
