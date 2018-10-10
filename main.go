@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/decentraland/content-service/handlers"
 	cid "github.com/ipfs/go-cid"
@@ -22,14 +23,14 @@ func main() {
 	// Initialize Redis client
 	client, err := initRedisClient(config)
 	if err != nil {
-		panic(err)
+		log.Fatal("Error initializing Redis client")
 	}
 
 	// Initialize IPFS for CID calculations
 	var ipfsNode *core.IpfsNode
 	ipfsNode, err = initIpfsNode()
 	if err != nil {
-		panic(err)
+		log.Fatal("Error initializing IPFS node")		
 	}
 
 	// CID creation example
@@ -47,7 +48,9 @@ func main() {
 	fmt.Println("Got CID: ", c)
 
 	router := GetRouter(config, client, ipfsNode)
-	log.Fatal(http.ListenAndServe(":8000", router))
+
+	serverURL := getServerURL(config.Server.URL, config.Server.Port)
+	log.Fatal(http.ListenAndServe(serverURL, router))
 }
 
 func initRedisClient(config *Configuration) (*redis.Client, error) {
@@ -67,6 +70,22 @@ func initIpfsNode() (*core.IpfsNode, error) {
 
 	return core.NewNode(ctx, nil)
 }
+
+func getServerURL(serverURL string, port string) string {
+	baseURL, err := url.Parse(serverURL)
+	if err != nil {
+		log.Fatalf("Cannot parse server url: %s", serverURL)
+	}
+	if baseURL.Scheme == "" {
+		baseURL.Scheme = "http"
+	}
+	urlString := baseURL.String()
+	if port != "" {
+		urlString = fmt.Sprintf("%s:%s", urlString, port)
+	}
+	return urlString
+}
+
 
 func GetRouter(config *Configuration, client *redis.Client, node *core.IpfsNode) *mux.Router {
 	r := mux.NewRouter()
