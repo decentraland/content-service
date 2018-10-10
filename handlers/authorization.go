@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -73,20 +74,28 @@ func canModify(pubkey string, parcel *parcel) (bool, error) {
 	return false, nil
 }
 
-func isSignatureValid(rootCid, hexSignature, hexAddress string) (bool, error) {
+func isSignatureValid(msg, hexSignature, hexAddress string) (bool, error) {
+	// Add prefix to signature message: https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_sign
+	msgWithPrefix := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msg), msg)
+	msgHash := crypto.Keccak256Hash([]byte(msgWithPrefix))
+
 	sigBytes, err := hexutil.Decode(hexSignature)
 	if err != nil {
 		return false, err
 	}
-	hash := crypto.Keccak256Hash([]byte(rootCid))
-	signatureNoRecoverID := sigBytes[:len(sigBytes)-1]
 
-	publicKeyBytes, err := crypto.Ecrecover(hash.Bytes(), sigBytes)
+	// It appears go-ethereum lib hasn't updated to accept
+	// [27, 28] values, it only accepts [0, 1]
+	if sigBytes[64] == 27 || sigBytes[64] == 28 {
+		sigBytes[64] -= 27
+	}
+
+	publicKeyBytes, err := crypto.Ecrecover(msgHash.Bytes(), sigBytes)
 	if err != nil {
 		return false, err
 	}
 
-	verified := crypto.VerifySignature(publicKeyBytes, hash.Bytes(), signatureNoRecoverID)
+	verified := crypto.VerifySignature(publicKeyBytes, msgHash.Bytes(), sigBytes[:64])
 
 	publicKey, err := crypto.UnmarshalPubkey(publicKeyBytes)
 	sigAddress := crypto.PubkeyToAddress(*publicKey)

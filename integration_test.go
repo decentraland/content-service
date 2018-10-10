@@ -174,9 +174,9 @@ func TestValidateCoordinatesNotInCache(t *testing.T) {
 func TestUploadHandler(t *testing.T) {
 	const metadataFile = "testdata/metadata.json"
 	const contentsFile = "testdata/contents.json"
-	const sceneFile = "testdata/scene.json"
+	const dataFolder = "demo"
 
-	req, err := newfileUploadRequest(metadataFile, contentsFile, sceneFile)
+	req, err := newfileUploadRequest(metadataFile, contentsFile, dataFolder)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,19 +193,19 @@ func TestUploadHandler(t *testing.T) {
 	}
 }
 
-func newfileUploadRequest(metadataFile string, contentsFile string, uploadFile string) (*http.Request, error) {
-	file, err := os.Open(uploadFile)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
+func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder string) (*http.Request, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", filepath.Base(uploadFile))
 	if err != nil {
 		return nil, err
 	}
+
+	file, err := os.Open(uploadFile)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 	_, err = io.Copy(part, file)
 	if err != nil {
 		return nil, err
