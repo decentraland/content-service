@@ -3,12 +3,12 @@ server:
   port: '8000'
 
 s3Storage:
-  bucket: 'contents-service'
-  acl: 'public-read'
+  bucket: ''
+  acl: ''
 
-localStorage: 'tmp'
+localStorage: 'backup'
 
 redis:
-  address: 'content_service_redis:6379'
+  address: 'localhost:6666'
   password: ''
   DB: 0

@@ -58,7 +58,7 @@ var client *redis.Client
 func init() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
-
+	
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
@@ -66,7 +66,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("Unable to parse config file, %s", err)
 	}
-
+	
 	client = redis.NewClient(&redis.Options{
 		Addr:     config.Redis.Address,
 		Password: config.Redis.Password,
@@ -74,19 +74,19 @@ func init() {
 	})
 }
 
-func main() {
+func main() {	
 	serverURL := getServerURL(config.Server.URL, config.Server.Port)
-	url := serverURL + "/mappings?nw=-150,150&se=150,-150"
-	resp, err := http.Get(url)
+	mappingsURL := serverURL + "/mappings?nw=-10,10&se=10,-10"
+	resp, err := http.Get(mappingsURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get url %s", mappingsURL)
 	}
 	defer resp.Body.Close()
 
 	var parcelContents []parcelContent
 	err = json.NewDecoder(resp.Body).Decode(&parcelContents)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Cannot parse response\n", err)
 	}
 
 	for _, parcel := range parcelContents {
@@ -94,7 +94,7 @@ func main() {
 		validateURL := fmt.Sprintf(serverURL+"/validate?x=%s&y=%s", xy[0], xy[1])
 		resp, err3 := http.Get(validateURL)
 		if err3 != nil {
-			log.Fatal(err3)
+			log.Fatalf("Failed to get url %s", validateURL)
 		}
 		defer resp.Body.Close()
 
@@ -106,12 +106,12 @@ func main() {
 
 		err = client.Set(parcel.ParcelID, parcelMetadata.RootCid, 0).Err()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Failed to save rootCID to Redis client\n", err)
 		}
 
 		err = client.HMSet("metadata_"+parcelMetadata.RootCid, structs.Map(parcelMetadata)).Err()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Failed to save metadata to Redis client")
 		}
 
 		for filePath, cid := range parcel.Contents {
@@ -124,8 +124,8 @@ func main() {
 			} else {
 				localPath := filepath.Join(config.LocalStorage, parcelMetadata.RootCid, filePath)
 				err := saveFileLocal(localPath, downloadURL)
-				if err != nil {
-					log.Fatal(err)
+				if err != nil && err != io.EOF {
+					log.Fatalf("Cannot save file %s to local storage", localPath)
 				}
 			}
 
