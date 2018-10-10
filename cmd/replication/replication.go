@@ -76,7 +76,7 @@ func init() {
 
 func main() {	
 	serverURL := getServerURL(config.Server.URL, config.Server.Port)
-	mappingsURL := serverURL + "/mappings?nw=-10,10&se=10,-10"
+	mappingsURL := serverURL + "/mappings?nw=-150,150&se=150,-150"
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
 		log.Fatalf("Failed to get url %s", mappingsURL)
