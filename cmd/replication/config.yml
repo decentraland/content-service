@@ -1,0 +1,14 @@
+server:
+  url: 'localhost'
+  port: '8000'
+
+s3Storage:
+  bucket: 'contents-service'
+  acl: 'public-read'
+
+localStorage: 'tmp'
+
+redis:
+  address: 'content_service_redis:6379'
+  password: ''
+  DB: 0

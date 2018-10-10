@@ -4,14 +4,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
+	"github.com/spf13/viper"
 )
+
+type configuration struct {
+	Server struct {
+		URL  string
+		Port string
+	}
+	S3Storage struct {
+		Bucket string
+		ACL string
+	}
+	LocalStorage string
+
+	Redis struct {
+		Address  string
+		Password string
+		DB       int
+	}
+}
 
 type parcelContent struct {
 	ParcelID string            `json:"parcel_id"`
@@ -28,81 +52,146 @@ type metadata struct {
 	RootCid      string `json:"rootcid" structs:"rootcid"`
 }
 
-func main() {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "content_service_redis:6379",
-		Password: "",
-		DB:       0,
-	})
+var config configuration
+var client *redis.Client
 
-	url := "http://localhost:8000/mappings?nw=-150,150&se=150,-150"
+func init() {
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalf("Error reading config file, %s", err)
+	}
+	err := viper.Unmarshal(&config)
+	if err != nil {
+		log.Fatalf("Unable to parse config file, %s", err)
+	}
+
+	client = redis.NewClient(&redis.Options{
+		Addr:     config.Redis.Address,
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
+	})
+}
+
+func main() {
+	serverURL := getServerURL(config.Server.URL, config.Server.Port)
+	url := serverURL + "/mappings?nw=-150,150&se=150,-150"
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	var parcelContents []parcelContent
 	err = json.NewDecoder(resp.Body).Decode(&parcelContents)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	for _, parcel := range parcelContents {
 		xy := strings.Split(parcel.ParcelID, ",")
-		validateURL := fmt.Sprintf("http://localhost:8000/validate?x=%s&y=%s", xy[0], xy[1])
+		validateURL := fmt.Sprintf(serverURL+"/validate?x=%s&y=%s", xy[0], xy[1])
 		resp, err3 := http.Get(validateURL)
 		if err3 != nil {
-			panic(err3)
+			log.Fatal(err3)
 		}
 		defer resp.Body.Close()
 
 		var parcelMetadata metadata
 		err := json.NewDecoder(resp.Body).Decode(&parcelMetadata)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		err = client.Set(parcel.ParcelID, parcelMetadata.RootCid, 0).Err()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		err = client.HMSet("metadata_"+parcelMetadata.RootCid, structs.Map(parcelMetadata)).Err()
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		for filePath, cid := range parcel.Contents {
-			localPath := filepath.Join("backup/", parcelMetadata.RootCid, filePath)
-			err := os.MkdirAll(filepath.Dir(localPath), os.ModePerm)
-			if err != nil {
-				panic(err)
-			}
-
-			file, err := os.Create(localPath)
-			if err != nil {
-				panic(err)
-			}
-			defer file.Close()
-
-			contentsURL := "http://localhost:8000/contents?" + cid
-			resp, err2 := http.Get(contentsURL)
-			if err2 != nil {
-				panic(err2)
-			}
-			defer resp.Body.Close()
-
-			_, err3 := io.Copy(file, resp.Body)
-			if err3 != nil {
-				panic(err3)
+			downloadURL := serverURL + "/contents?" + cid
+			if config.S3Storage.Bucket != "" {
+				err := saveFileS3(filePath, downloadURL)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				localPath := filepath.Join(config.LocalStorage, parcelMetadata.RootCid, filePath)
+				err := saveFileLocal(localPath, downloadURL)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 
 			err = client.HSet("content_"+parcelMetadata.RootCid, filePath, cid).Err()
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 		}
 	}
 
+}
+
+func getServerURL(serverURL string, port string) string {
+	baseURL, err := url.Parse(serverURL)
+	if err != nil {
+		log.Fatalf("Cannot parse server url: %s", serverURL)
+	}
+	if baseURL.Scheme == "" {
+		baseURL.Scheme = "http"
+	}
+	urlString := baseURL.String()
+	if port != "" {
+		urlString = fmt.Sprintf("%s:%s", urlString, port)
+	}
+	return urlString
+}
+
+func saveFileS3(filePath string, downloadURL string) error {
+	resp, err := http.Get(downloadURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	sess := session.Must(session.NewSession())
+
+	uploader := s3manager.NewUploader(sess)
+
+	_, err2 := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(config.S3Storage.Bucket),
+		Key:    aws.String(filePath),
+		ACL:    aws.String(config.S3Storage.Bucket),
+		Body:   resp.Body,
+	})
+
+	return err2
+}
+
+func saveFileLocal(localPath string, downloadURL string) error {
+	err := os.MkdirAll(filepath.Dir(localPath), os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	file, err2 := os.Create(localPath)
+	if err2 != nil {
+		return err2
+	}
+	defer file.Close()
+
+	resp, err3 := http.Get(downloadURL)
+	if err3 != nil {
+		return err3
+	}
+	defer resp.Body.Close()
+
+	_, err4 := io.Copy(file, resp.Body)
+	return err4
 }
