@@ -1,4 +1,4 @@
-.PHONY: ops build run test demo
+.PHONY: ops build run test demo replicate
 
 ops:
 	docker-compose up
@@ -17,3 +17,5 @@ demo:
 		-e AWS_REGION=$(AWS_REGION) -e AWS_ACCESS_KEY=$(AWS_ACCESS_KEY) -e AWS_SECRET_KEY=$(AWS_SECRET_KEY) \
 		golang /bin/bash -c "go build && ./content-service --s3"
 
+replicate:
+	cd cmd/replication && go build && ./replication
