@@ -28,8 +28,8 @@ type metadata struct {
 	Value        string `json:"value" structs:"value"`
 	Signature    string `json:"signature" structs:"signature"`
 	Validity     string `json:"validity" structs:"validity"`
-	ValidityType string `json:"validityType" structs:"validityType"`
-	Sequence     string `json:"sequence" structs:"sequence"`
+	ValidityType int    `json:"validityType" structs:"validityType"`
+	Sequence     int    `json:"sequence" structs:"sequence"`
 	PubKey       string `json:"pubkey" structs:"pubkey"`
 	RootCid      string `json:"-" structs:"rootcid"`
 }
@@ -172,9 +172,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filesJSON, isset := r.MultipartForm.Value["content"]
+	filesJSON, isset := r.MultipartForm.Value[meta.RootCid]
 	if !isset {
-		log.Println(err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -190,7 +189,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
-		log.Println(err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -356,11 +354,18 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 func rootCIDMatches(rootCID, filesJSON string, files map[string][]*multipart.FileHeader) (bool, error) {
 	rootDir := filepath.Join("/tmp", rootCID)
 	var filesMeta []fileMetadata
-	err := json.Unmarshal([]byte(filesJSON), filesMeta)
+	err := json.Unmarshal([]byte(filesJSON), &filesMeta)
+	if err != nil {
+		return false, err
+	}
 
-	for path, fileHeaders := range files {
-		fileHeader := fileHeaders[0]
-		dir := filepath.Join(rootDir, filepath.Dir(path))
+	for _, meta := range filesMeta {
+		if meta.Name[len(meta.Name)-1:] == "/" {
+			continue
+		}
+
+		fileHeader := files[meta.Cid][0]
+		dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
 		filePath := filepath.Join(dir, fileHeader.Filename)
 
 		err := os.MkdirAll(dir, os.ModePerm)
