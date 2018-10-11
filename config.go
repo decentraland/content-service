@@ -29,10 +29,12 @@ func GetConfig() *Configuration {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 
-	if err := viper.ReadInConfig(); err != nil {
+	err := viper.ReadInConfig()
+	if err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
-	err := viper.Unmarshal(&config)
+
+	err = viper.Unmarshal(&config)
 	if err != nil {
 		log.Fatalf("Unable to decode config file into struct, %s", err)
 	}

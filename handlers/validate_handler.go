@@ -17,7 +17,7 @@ type ValidateHandler struct {
 func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	parcelID := fmt.Sprintf("%+v,%+v", params["x"], params["y"])
+	parcelID := fmt.Sprintf("%+s,%+s", params["x"], params["y"])
 
 	parcelMeta, err := getParcelMetadata(handler.RedisClient, parcelID)
 	if err == redis.Nil {
