@@ -104,7 +104,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			log.Println(err)
+			log.Printf("Failed to open file %s\n", filepath)
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
@@ -113,6 +113,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		if handler.S3Storage {
 			_, err = saveFileS3(file, fileCID)
 		} else {
+			// log.Printf("Trying to store %s\nAt local storage: %s", , handler.LocalStorage)
 			_, err = saveFile(file, handler.LocalStorage, fileCID)
 		}
 		if err != nil {
@@ -167,14 +168,14 @@ func getMetadata(jsonString []byte) (metadata, error) {
 	return meta, nil
 }
 
-type fileMetadata struct {
+type FileMetadata struct {
 	Cid  string `json:"cid"`
 	Name string `json:"name"`
 }
 
 func rootCIDMatches(node *core.IpfsNode, rootCID string, filesJSON string, files map[string][]*multipart.FileHeader) (bool, error) {
 	rootDir := filepath.Join("/tmp", rootCID)
-	var filesMeta []fileMetadata
+	var filesMeta []FileMetadata
 	err := json.Unmarshal([]byte(filesJSON), &filesMeta)
 	if err != nil {
 		return false, err
@@ -305,7 +306,6 @@ func getPathAndCID(part, filename string) (string, string) {
 	} else {
 		filepath = filename
 	}
-
 	return filepath, fileCID
 }
 

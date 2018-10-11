@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/decentraland/content-service/handlers"
 	"github.com/ipsn/go-ipfs/core"
 )
 
@@ -35,8 +36,9 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	// Run tests with S3 Storage
-	config.S3Storage = true
+	// Run tests with Local Storage
+	config.S3Storage = false
+	config.LocalStorage = "/tmp"
 	router := GetRouter(config, redisClient, ipfsNode)
 	server = httptest.NewServer(router)
 	code := m.Run()
@@ -68,6 +70,14 @@ func TestContentsHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
+
+	awsKeys := [3]string{"AWS_REGION", "AWS_ACCESS_KEY", "AWS_SECRET_KEY"}
+	for _, key := range awsKeys {
+		_, ok := os.LookupEnv(key)
+		if !ok {
+			t.Skip("S3 Storage disabled. Skipping test")
+		}
+	}
 
 	if response.StatusCode != http.StatusMovedPermanently {
 		t.Error("Contents handler should respond with status code 301. Recieved code: ", response.StatusCode)
@@ -116,7 +126,7 @@ func TestInvalidCoordinates(t *testing.T) {
 }
 
 func TestCoordinatesNotCached(t *testing.T) {
-	x1, y1, x2, y2 := -10, 10, 10, -10
+	x1, y1, x2, y2 := 120, 120, 120, 120
 	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 
 	client := getNoRedirectClient()
@@ -184,18 +194,40 @@ func TestUploadHandler(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Error("Upload unsuccessful. Got response code: ", response.StatusCode)
 	}
-}
 
-type contents struct {
-	CID  string `json:"cid"`
-	Name string `json:"name"`
+	// Test downloading test.txt
+	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
+	resp, err2 := client.Get(server.URL + "/contents/" + testFileCID)
+	if err != nil {
+		t.Fatal(err2)
+	}
+	testContents, err3 := ioutil.ReadAll(resp.Body)
+	if err3 != nil {
+		t.Fatal(err3)
+	}
+	if string(testContents) != "something\n" {
+		t.Errorf("Test file contents do not match.\nExpected 'something'\nGot %s", string(testContents))
+	}
+
+	// Test validate handler
+	x, y := 0, 0
+	response, err4 := validateCoordinates(x, y)
+	if err != nil {
+		t.Fatal(err4)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Error("Validate handler should respond with status code 200. Recieved code: ", response.StatusCode)
+	}
+
 }
 
 func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder string) (*http.Request, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	var contentsJSON []contents
+	var contentsJSON []handlers.FileMetadata
 	c, err := os.Open(contentsFile)
 	if err != nil {
 		return nil, err
@@ -210,17 +242,17 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 		if content.Name[len(content.Name)-1:] == "/" {
 			continue
 		}
-		dataPath := filepath.Join(dataFolder, content.Name)
 
-		part, err := writer.CreateFormFile(content.CID, dataPath)
+		part, err := writer.CreateFormFile(content.Cid, filepath.Base(content.Name))
 		if err != nil {
-			log.Printf("Unable to open %s", dataPath)
 			return nil, err
 		}
 
+		dataPath := filepath.Join(dataFolder, content.Name)
 		var f *os.File
 		f, err = os.Open(dataPath)
 		if err != nil {
+			log.Printf("Cannot open %s", dataPath)
 			return nil, err
 		}
 		_, err = io.Copy(part, f)
@@ -241,7 +273,8 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 	}
 
 	_ = writer.WriteField("metadata", string(metadataBytes))
-	_ = writer.WriteField("contents", string(contentsBytes))
+	const rootCID = "QmSVHEzaVUVhv8aqXFjssjra6GqgzuUxHsvHEQbiqrJ9pJ"
+	_ = writer.WriteField(rootCID, string(contentsBytes))
 
 	err = writer.Close()
 	if err != nil {
