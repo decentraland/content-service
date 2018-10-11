@@ -61,7 +61,7 @@ type Link struct {
 	Href string   `xml:"href,attr"`
 }
 
-func TestContentsHandler(t *testing.T) {
+func TestContentsHandlerS3Redirect(t *testing.T) {
 	const CID = "123456789"
 
 	client := getNoRedirectClient()
@@ -175,9 +175,9 @@ func TestValidateCoordinatesNotInCache(t *testing.T) {
 }
 
 func TestUploadHandler(t *testing.T) {
-	const metadataFile = "testdata/metadata.json"
-	const contentsFile = "testdata/contents.json"
-	const dataFolder = "demo"
+	const metadataFile = "test/data/metadata.json"
+	const contentsFile = "test/data/contents.json"
+	const dataFolder = "test/data/demo"
 
 	req, err := newfileUploadRequest(metadataFile, contentsFile, dataFolder)
 	if err != nil {
@@ -210,7 +210,7 @@ func TestUploadHandler(t *testing.T) {
 	}
 
 	// Test validate handler
-	x, y := 0, 0
+	x, y := 54, -136
 	response, err4 := validateCoordinates(x, y)
 	if err != nil {
 		t.Fatal(err4)
@@ -220,7 +220,6 @@ func TestUploadHandler(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Error("Validate handler should respond with status code 200. Recieved code: ", response.StatusCode)
 	}
-
 }
 
 func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder string) (*http.Request, error) {
@@ -273,7 +272,7 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 	}
 
 	_ = writer.WriteField("metadata", string(metadataBytes))
-	const rootCID = "QmSVHEzaVUVhv8aqXFjssjra6GqgzuUxHsvHEQbiqrJ9pJ"
+	const rootCID = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
 	_ = writer.WriteField(rootCID, string(contentsBytes))
 
 	err = writer.Close()

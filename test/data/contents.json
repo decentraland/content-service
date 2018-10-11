@@ -1,0 +1,30 @@
+[
+  {
+    "cid": "QmaiT7TzzKVjgJ6PJnovQn9DYrFcFyLnFaBseMdyLHCtX8",
+    "name": "assets/"
+  },
+  {
+    "cid": "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672",
+    "name": "assets/test.txt"
+  },
+  {
+    "cid": "QmbGdhmRstTdbNBKxqVbGpjiPxy2A5nqrDLuk9KFmQtwox",
+    "name": "build.json"
+  },
+  {
+    "cid": "QmTBetsUR4WC1fUB3oM7sDCBQZiHXrsp4LXarqTnHFZ9on",
+    "name": "package.json"
+  },
+  {
+    "cid": "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+    "name": "scene.json"
+  },
+  {
+    "cid": "QmSXv3Qgr8pjoYNXZqMhE5Lo9f8FXpYF5cN7vndXsYqJou",
+    "name": "scene.tsx"
+  },
+  {
+    "cid": "Qmdv1drP1dkNFKjX6YqL91Go4mY141ZSFQy311qidk9HJc",
+    "name": "tsconfig.json"
+  }
+]
