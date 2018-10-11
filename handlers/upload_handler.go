@@ -34,7 +34,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
-		log.Println("Metadata field not found.", err)
+		log.Println(err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -46,20 +46,33 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, r.MultipartForm.File)
+	valid, err := isSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	} else if !valid {
+		http.Error(w, http.StatusText(401), 401)
+		return
+	}
+
+	filesJSON, isset := r.MultipartForm.Value[meta.RootCid]
+	if !isset {
+		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, filesJSON[0], r.MultipartForm.File)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	} else if !match {
-		log.Println("Root CID doesnt match")
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
 	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
-		log.Println("Scene file not found.", err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -154,8 +167,52 @@ func getMetadata(jsonString []byte) (metadata, error) {
 	return meta, nil
 }
 
-func rootCIDMatches(node *core.IpfsNode, rootCID string, files map[string][]*multipart.FileHeader) (bool, error) {
-	actualRootCID, err := getRootCID(node, rootCID, files)
+type fileMetadata struct {
+	Cid  string `json:"cid"`
+	Name string `json:"name"`
+}
+
+func rootCIDMatches(node *core.IpfsNode, rootCID string, filesJSON string, files map[string][]*multipart.FileHeader) (bool, error) {
+	rootDir := filepath.Join("/tmp", rootCID)
+	var filesMeta []fileMetadata
+	err := json.Unmarshal([]byte(filesJSON), &filesMeta)
+	if err != nil {
+		return false, err
+	}
+
+	for _, meta := range filesMeta {
+		if meta.Name[len(meta.Name)-1:] == "/" {
+			continue
+		}
+
+		fileHeader := files[meta.Cid][0]
+		dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
+		filePath := filepath.Join(dir, fileHeader.Filename)
+
+		err := os.MkdirAll(dir, os.ModePerm)
+		if err != nil {
+			return false, err
+		}
+
+		dst, err := os.Create(filePath)
+		if err != nil {
+			return false, err
+		}
+		defer dst.Close()
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			return false, err
+		}
+		defer file.Close()
+
+		_, err = io.Copy(dst, file)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	actualRootCID, err := coreunix.AddR(node, rootDir)
 	if err != nil {
 		return false, err
 	}
@@ -163,39 +220,39 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, files map[string][]*mul
 	return rootCID == actualRootCID, nil
 }
 
-func getRootCID(node *core.IpfsNode, rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
-	rootDir := filepath.Join("/tmp", rootCID)
+// func getRootCID(node *core.IpfsNode, rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
+// 	rootDir := filepath.Join("/tmp", rootCID)
 
-	for path, fileHeaders := range files {
-		fileHeader := fileHeaders[0]
-		dir := filepath.Join(rootDir, filepath.Dir(path))
-		filePath := filepath.Join(dir, fileHeader.Filename)
+// 	for path, fileHeaders := range files {
+// 		fileHeader := fileHeaders[0]
+// 		dir := filepath.Join(rootDir, filepath.Dir(path))
+// 		filePath := filepath.Join(dir, fileHeader.Filename)
 
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
+// 		err := os.MkdirAll(dir, os.ModePerm)
+// 		if err != nil {
+// 			return "", err
+// 		}
 
-		dst, err := os.Create(filePath)
-		if err != nil {
-			return "", err
-		}
-		defer dst.Close()
+// 		dst, err := os.Create(filePath)
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		defer dst.Close()
 
-		file, err := fileHeader.Open()
-		if err != nil {
-			return "", err
-		}
-		defer file.Close()
+// 		file, err := fileHeader.Open()
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		defer file.Close()
 
-		_, err = io.Copy(dst, file)
-		if err != nil {
-			return "", err
-		}
-	}
+// 		_, err = io.Copy(dst, file)
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 	}
 
-	return coreunix.AddR(node, rootDir)
-}
+// 	return coreunix.AddR(node, rootDir)
+// }
 
 type scene struct {
 	Display struct {

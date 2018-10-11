@@ -42,14 +42,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	server.Close()
 
-	// Run tests with Local Storage
-	// config.S3Storage = false
-	// config.LocalStorage = "tmp/"
-	// router = GetRouter(config, redisClient, ipfsNode)
-	// server = httptest.NewServer(router)
-	// defer server.Close()
-	// code = m.Run()
-
 	os.Exit(code)
 }
 
@@ -219,10 +211,10 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 			continue
 		}
 		dataPath := filepath.Join(dataFolder, content.Name)
-		
+
 		part, err := writer.CreateFormFile(content.CID, dataPath)
 		if err != nil {
-			log.Errorf("Unable to open %s", dataPath)
+			log.Printf("Unable to open %s", dataPath)
 			return nil, err
 		}
 
