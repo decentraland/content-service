@@ -14,7 +14,9 @@ server:
   url: 'localhost'  # hostname of the server
   port: '8000'      # port to use
 
-s3Storage: true     # if true store in S3 else use local storage
+s3Storage:
+  bucket: ''        # Bucket to use in S3
+  acl: ''           # ACL for the bucket and files
 
 localStorage: 'tmp'   # local storage dir
 
@@ -24,7 +26,7 @@ redis:
  DB: 0
 ```
 
-**Note**: If you use `s3Storage: true` you need to set AWS environment variables: `AWS_REGION`, `AWS_ACCESS_KEY`, and `AWS_SECRET_KEY`.
+**Note**: If you use `s3Storage` you need to set AWS environment variables: `AWS_REGION`, `AWS_ACCESS_KEY`, and `AWS_SECRET_KEY`.
 
 ## Running
 
