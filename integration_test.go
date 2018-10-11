@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -193,35 +194,62 @@ func TestUploadHandler(t *testing.T) {
 	}
 }
 
+type contents struct {
+	CID  string `json:"cid"`
+	Name string `json:"name"`
+}
+
 func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder string) (*http.Request, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", filepath.Base(uploadFile))
+
+	var contentsJSON []contents
+	c, err := os.Open(contentsFile)
+	if err != nil {
+		return nil, err
+	}
+	defer c.Close()
+	err = json.NewDecoder(c).Decode(&contentsJSON)
 	if err != nil {
 		return nil, err
 	}
 
-	file, err := os.Open(uploadFile)
+	for _, content := range contentsJSON {
+		if content.Name[len(content.Name)-1:] == "/" {
+			continue
+		}
+		dataPath := filepath.Join(dataFolder, content.Name)
+		
+		part, err := writer.CreateFormFile(content.CID, dataPath)
+		if err != nil {
+			log.Errorf("Unable to open %s", dataPath)
+			return nil, err
+		}
+
+		var f *os.File
+		f, err = os.Open(dataPath)
+		if err != nil {
+			return nil, err
+		}
+		_, err = io.Copy(part, f)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var metadataBytes []byte
+	metadataBytes, err = ioutil.ReadFile(metadataFile)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-	_, err = io.Copy(part, file)
+	var contentsBytes []byte
+	contentsBytes, err = ioutil.ReadFile(contentsFile)
 	if err != nil {
 		return nil, err
 	}
 
-	metadata, err2 := ioutil.ReadFile(metadataFile)
-	if err2 != nil {
-		return nil, err2
-	}
-	contents, err3 := ioutil.ReadFile(contentsFile)
-	if err3 != nil {
-		return nil, err3
-	}
-
-	_ = writer.WriteField("metadata", string(metadata))
-	_ = writer.WriteField("contents", string(contents))
+	_ = writer.WriteField("metadata", string(metadataBytes))
+	_ = writer.WriteField("contents", string(contentsBytes))
 
 	err = writer.Close()
 	if err != nil {

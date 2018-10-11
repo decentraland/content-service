@@ -137,8 +137,8 @@ type metadata struct {
 	Value        string `json:"value" structs:"value"`
 	Signature    string `json:"signature" structs:"signature"`
 	Validity     string `json:"validity" structs:"validity"`
-	ValidityType string `json:"validityType" structs:"validityType"`
-	Sequence     string `json:"sequence" structs:"sequence"`
+	ValidityType int `json:"validityType" structs:"validityType"`
+	Sequence     int `json:"sequence" structs:"sequence"`
 	PubKey       string `json:"pubkey" structs:"pubkey"`
 	RootCid      string `json:"-" structs:"rootcid"`
 }
