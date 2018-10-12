@@ -72,18 +72,12 @@ func initIpfsNode() (*core.IpfsNode, error) {
 }
 
 func getServerURL(serverURL string, port string) string {
-	baseURL, err := url.Parse(serverURL)
+	serverString := fmt.Sprintf("%s:%s", serverURL, port)
+	baseURL, err := url.Parse(serverString)
 	if err != nil {
-		log.Fatalf("Cannot parse server url: %s", serverURL)
+		log.Fatalf("Cannot parse server url: %s", serverString)
 	}
-	if baseURL.Scheme == "" {
-		baseURL.Scheme = "http"
-	}
-	urlString := baseURL.String()
-	if port != "" {
-		urlString = fmt.Sprintf("%s:%s", urlString, port)
-	}
-	return urlString
+	return baseURL.Host
 }
 
 
