@@ -12,7 +12,11 @@ type Configuration struct {
 		URL  string
 		Port string
 	}
-	S3Storage    bool
+	S3Storage struct {
+		Bucket string
+		ACL    string
+		URL    string
+	}
 	LocalStorage string
 
 	Redis struct {

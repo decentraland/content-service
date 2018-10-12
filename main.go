@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/storage"
 	cid "github.com/ipfs/go-cid"
 
 	"github.com/go-redis/redis"
@@ -30,8 +31,10 @@ func main() {
 	var ipfsNode *core.IpfsNode
 	ipfsNode, err = initIpfsNode()
 	if err != nil {
-		log.Fatal("Error initializing IPFS node")		
+		log.Fatal("Error initializing IPFS node")
 	}
+
+	storage := initStorage(config)
 
 	// CID creation example
 	cidPref := cid.Prefix{
@@ -47,10 +50,18 @@ func main() {
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
 	fmt.Println("Got CID: ", c)
 
-	router := GetRouter(config, client, ipfsNode)
+	router := GetRouter(config, client, ipfsNode, storage)
 
 	serverURL := getServerURL(config.Server.URL, config.Server.Port)
 	log.Fatal(http.ListenAndServe(serverURL, router))
+}
+
+func initStorage(config *Configuration) storage.Storage {
+	if config.S3Storage.Bucket != "" {
+		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
+	} else {
+		return storage.NewLocal(config.LocalStorage)
+	}
 }
 
 func initRedisClient(config *Configuration) (*redis.Client, error) {
@@ -81,22 +92,20 @@ func getServerURL(serverURL string, port string) string {
 }
 
 
-func GetRouter(config *Configuration, client *redis.Client, node *core.IpfsNode) *mux.Router {
+func GetRouter(config *Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
 	r := mux.NewRouter()
 
 	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 
 	uploadHandler := handlers.UploadHandler{
-		S3Storage:    config.S3Storage,
-		LocalStorage: config.LocalStorage,
+		Storage: storage,
 		RedisClient:  client,
 		IpfsNode:     node,
 	}
 	r.Handle("/mappings", &uploadHandler).Methods("POST")
 
 	contentsHandler := handlers.ContentsHandler{
-		S3Storage:    config.S3Storage,
-		LocalStorage: config.LocalStorage,
+		Storage: storage,
 	}
 	r.Handle("/contents/{cid}", &contentsHandler).Methods("GET")
 

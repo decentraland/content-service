@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+
+	"github.com/decentraland/content-service/storage"
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
 	"github.com/ipsn/go-ipfs/core"
@@ -18,8 +20,7 @@ import (
 )
 
 type UploadHandler struct {
-	S3Storage    bool
-	LocalStorage string
+	Storage storage.Storage
 	RedisClient  *redis.Client
 	IpfsNode     *core.IpfsNode
 }
@@ -110,12 +111,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 		defer file.Close()
 
-		if handler.S3Storage {
-			_, err = saveFileS3(file, fileCID)
-		} else {
-			// log.Printf("Trying to store %s\nAt local storage: %s", , handler.LocalStorage)
-			_, err = saveFile(file, handler.LocalStorage, fileCID)
-		}
+		_, err = handler.Storage.SaveFile(fileCID, file)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, http.StatusText(500), 500)
