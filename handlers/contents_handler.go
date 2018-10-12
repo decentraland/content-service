@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
@@ -19,7 +18,7 @@ func (handler *ContentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		location := getFileS3(params["cid"])
 		http.Redirect(w, r, location, 301)
 	} else {
-		location := filepath.Join(handler.LocalStorage, params["cid"])
+		location := handler.LocalStorage + params["cid"]
 		w.Header().Add("Content-Disposition", "Attachment")
 		http.ServeFile(w, r, location)
 	}

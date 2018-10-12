@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -13,15 +12,9 @@ import (
 )
 
 func saveFile(fileDescriptor multipart.File, localStorageDir string, filename string) (string, error) {
-	err := os.MkdirAll(localStorageDir, os.ModePerm)
+	dst, err := os.Create(localStorageDir + filename)
 	if err != nil {
 		return "", err
-	}
-
-	localPath := filepath.Join(localStorageDir, filename)
-	dst, err2 := os.Create(localPath)
-	if err2 != nil {
-		return "", err2
 	}
 
 	_, err = io.Copy(dst, fileDescriptor)
