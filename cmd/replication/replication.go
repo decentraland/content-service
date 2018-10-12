@@ -10,7 +10,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"flag"
 
+	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/handlers"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -19,64 +22,31 @@ import (
 	"github.com/spf13/viper"
 )
 
-type configuration struct {
-	Server struct {
-		URL  string
-		Port string
-	}
-	S3Storage struct {
-		Bucket string
-		ACL string
-	}
-	LocalStorage string
-
-	Redis struct {
-		Address  string
-		Password string
-		DB       int
-	}
-}
-
 type parcelContent struct {
 	ParcelID string            `json:"parcel_id"`
 	Contents map[string]string `json:"contents"`
 }
 
-type metadata struct {
-	Value        string `json:"value" structs:"value"`
-	Signature    string `json:"signature" structs:"signature"`
-	Validity     string `json:"validity" structs:"validity"`
-	ValidityType string `json:"validityType" structs:"validityType"`
-	Sequence     string `json:"sequence" structs:"sequence"`
-	PubKey       string `json:"pubkey" structs:"pubkey"`
-	RootCid      string `json:"rootcid" structs:"rootcid"`
-}
-
-var config configuration
+var config *config.Configuration
 var client *redis.Client
 
 func init() {
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file, %s", err)
-	}
-	err := viper.Unmarshal(&config)
-	if err != nil {
-		log.Fatalf("Unable to parse config file, %s", err)
-	}
+	conf := service.GetConfig("config")
 	
 	client = redis.NewClient(&redis.Options{
-		Addr:     config.Redis.Address,
-		Password: config.Redis.Password,
-		DB:       config.Redis.DB,
+		Addr:     conf.Redis.Address,
+		Password: conf.Redis.Password,
+		DB:       conf.Redis.DB,
 	})
 }
 
-func main() {	
-	serverURL := getServerURL(config.Server.URL, config.Server.Port)
-	mappingsURL := serverURL + "/mappings?nw=-150,150&se=150,-150"
+func main() {
+	args := flag.Args()
+	if len(args) != 4 {
+		log.Fatal("Please provide fourmapping coordinates.\n\nUsage: ./replication nw1 nw2 se1 se2")
+	}
+	serverURL := getServerURL(conf.Server.URL, conf.Server.Port)
+	mappingsURL := fmt.Sprintf("%s/mappings?nw=%s,%s&se=%s,%s", serverURL, args[0], args[1], args[2], args[3])
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
 		log.Fatalf("Failed to get url %s", mappingsURL)
@@ -98,7 +68,7 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		var parcelMetadata metadata
+		var parcelMetadata handlers.Metadata
 		err := json.NewDecoder(resp.Body).Decode(&parcelMetadata)
 		if err != nil {
 			log.Fatal(err)
@@ -116,13 +86,13 @@ func main() {
 
 		for filePath, cid := range parcel.Contents {
 			downloadURL := serverURL + "/contents?" + cid
-			if config.S3Storage.Bucket != "" {
+			if conf.S3Storage.Bucket != "" {
 				err := saveFileS3(filePath, downloadURL)
 				if err != nil {
 					log.Fatal(err)
 				}
 			} else {
-				localPath := filepath.Join(config.LocalStorage, parcelMetadata.RootCid, filePath)
+				localPath := filepath.Join(conf.LocalStorage, parcelMetadata.RootCid, filePath)
 				err := saveFileLocal(localPath, downloadURL)
 				if err != nil && err != io.EOF {
 					log.Fatalf("Cannot save file %s to local storage", localPath)
@@ -165,9 +135,9 @@ func saveFileS3(filePath string, downloadURL string) error {
 	uploader := s3manager.NewUploader(sess)
 
 	_, err2 := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(config.S3Storage.Bucket),
+		Bucket: aws.String(conf.S3Storage.Bucket),
 		Key:    aws.String(filePath),
-		ACL:    aws.String(config.S3Storage.Bucket),
+		ACL:    aws.String(conf.S3Storage.Bucket),
 		Body:   resp.Body,
 	})
 

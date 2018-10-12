@@ -1,6 +1,8 @@
-package main
+package handlers
 
-func getParcelMetadata(parcelID string) (map[string]string, error) {
+import "github.com/go-redis/redis"
+
+func getParcelMetadata(client *redis.Client, parcelID string) (map[string]string, error) {
 	parcelCID, err := client.Get(parcelID).Result()
 	if err != nil {
 		return nil, err
@@ -14,7 +16,7 @@ func getParcelMetadata(parcelID string) (map[string]string, error) {
 	return parcelMeta, nil
 }
 
-func getParcelContent(parcelID string) (map[string]string, error) {
+func getParcelContent(client *redis.Client, parcelID string) (map[string]string, error) {
 	parcelCID, err := client.Get(parcelID).Result()
 	if err != nil {
 		return nil, err
