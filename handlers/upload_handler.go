@@ -221,40 +221,6 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, filesJSON string, files
 	return rootCID == actualRootCID, nil
 }
 
-// func getRootCID(node *core.IpfsNode, rootCID string, files map[string][]*multipart.FileHeader) (string, error) {
-// 	rootDir := filepath.Join("/tmp", rootCID)
-
-// 	for path, fileHeaders := range files {
-// 		fileHeader := fileHeaders[0]
-// 		dir := filepath.Join(rootDir, filepath.Dir(path))
-// 		filePath := filepath.Join(dir, fileHeader.Filename)
-
-// 		err := os.MkdirAll(dir, os.ModePerm)
-// 		if err != nil {
-// 			return "", err
-// 		}
-
-// 		dst, err := os.Create(filePath)
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		defer dst.Close()
-
-// 		file, err := fileHeader.Open()
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		defer file.Close()
-
-// 		_, err = io.Copy(dst, file)
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 	}
-
-// 	return coreunix.AddR(node, rootDir)
-// }
-
 type scene struct {
 	Display struct {
 		Title string `json:"title"`
