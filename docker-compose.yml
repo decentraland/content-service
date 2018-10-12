@@ -7,8 +7,8 @@ services:
       - 8000:8000
     volumes:
       - .:/content-service
-      - ./cache/:/go/pkg/mod
-      - /tmp/cache/go-build:/root/.cache/go-build
+      - ./cache/mod/:/go/pkg/mod
+      - ./cache/go-build/:/root/.cache/go-build
     environment:
       - GOPATH=/go
       - GOCACHE=/root/.cache/go-build
