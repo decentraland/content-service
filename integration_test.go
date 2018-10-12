@@ -94,7 +94,7 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 }
 
 func TestInvalidCoordinates(t *testing.T) {
-	x1, y1, x2, y2 := -999, 999, -999, 999
+	x1, y1, x2, y2 := 45, 45, 44, 46
 	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 
 	client := getNoRedirectClient()
@@ -269,7 +269,7 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 	}
 
 	_ = writer.WriteField("metadata", string(metadataBytes))
-	const rootCID = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
+	rootCID := getRootCID(metadataFile)
 	_ = writer.WriteField(rootCID, string(contentsBytes))
 
 	err = writer.Close()
@@ -283,4 +283,18 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	return req, err4
+}
+
+func getRootCID(metadataFile string) string {
+	var meta handlers.Metadata
+	m, err := os.Open(metadataFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer m.Close()
+	err = json.NewDecoder(m).Decode(&meta)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return meta.Value
 }

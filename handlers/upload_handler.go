@@ -147,7 +147,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-type metadata struct {
+type Metadata struct {
 	Value        string `json:"value" structs:"value"`
 	Signature    string `json:"signature" structs:"signature"`
 	Validity     string `json:"validity" structs:"validity"`
@@ -157,11 +157,11 @@ type metadata struct {
 	RootCid      string `json:"-" structs:"rootcid"`
 }
 
-func getMetadata(jsonString []byte) (metadata, error) {
-	var meta metadata
+func getMetadata(jsonString []byte) (Metadata, error) {
+	var meta Metadata
 	err := json.Unmarshal(jsonString, &meta)
 	if err != nil {
-		return metadata{}, err
+		return Metadata{}, err
 	}
 
 	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
