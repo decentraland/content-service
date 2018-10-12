@@ -23,7 +23,7 @@ var server *httptest.Server
 
 func TestMain(m *testing.M) {
 	// Start server
-	config := GetConfig()
+	config := GetConfig("config_test")
 
 	redisClient, err := initRedisClient(config)
 	if err != nil {
@@ -36,13 +36,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	// Run tests with Local Storage
-	config.S3Storage = false
-	config.LocalStorage = "/tmp"
 	router := GetRouter(config, redisClient, ipfsNode)
 	server = httptest.NewServer(router)
+	defer server.Close()
 	code := m.Run()
-	server.Close()
 
 	os.Exit(code)
 }

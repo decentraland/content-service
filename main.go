@@ -18,7 +18,7 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	config := GetConfig()
+	config := GetConfig("config")
 
 	// Initialize Redis client
 	client, err := initRedisClient(config)

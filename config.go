@@ -23,10 +23,10 @@ type Configuration struct {
 }
 
 // GetConfig populates a Configuration struct from a config file
-func GetConfig() *Configuration {
+func GetConfig(name string) *Configuration {
 	var config Configuration
 
-	viper.SetConfigName("config")
+	viper.SetConfigName(name)
 	viper.AddConfigPath(".")
 
 	err := viper.ReadInConfig()
