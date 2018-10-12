@@ -36,7 +36,9 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	router := GetRouter(config, redisClient, ipfsNode)
+	storage := initStorage(config)
+
+	router := GetRouter(config, redisClient, ipfsNode, storage)
 	server = httptest.NewServer(router)
 	defer server.Close()
 	code := m.Run()
