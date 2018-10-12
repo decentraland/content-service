@@ -14,6 +14,7 @@ import (
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/storage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -53,6 +54,13 @@ func main() {
 	}
 	defer resp.Body.Close()
 
+	var store *storage.Storage
+	if conf.S3Storage.Bucket == "" {
+		storage = storage.NewS3(conf.S3Storage.Bucket, conf.S3Storage.ACL, "")
+	} else {
+		storage = storage.NewLocal(conf.LocalStorage)
+	}
+
 	var parcelContents []parcelContent
 	err = json.NewDecoder(resp.Body).Decode(&parcelContents)
 	if err != nil {
@@ -86,18 +94,7 @@ func main() {
 
 		for filePath, cid := range parcel.Contents {
 			downloadURL := serverURL + "/contents?" + cid
-			if conf.S3Storage.Bucket != "" {
-				err := saveFileS3(filePath, downloadURL)
-				if err != nil {
-					log.Fatal(err)
-				}
-			} else {
-				localPath := filepath.Join(conf.LocalStorage, parcelMetadata.RootCid, filePath)
-				err := saveFileLocal(localPath, downloadURL)
-				if err != nil && err != io.EOF {
-					log.Fatalf("Cannot save file %s to local storage", localPath)
-				}
-			}
+			store.SaveFile(downloadURL)
 
 			err = client.HSet("content_"+parcelMetadata.RootCid, filePath, cid).Err()
 			if err != nil {
@@ -109,59 +106,10 @@ func main() {
 }
 
 func getServerURL(serverURL string, port string) string {
-	baseURL, err := url.Parse(serverURL)
+	serverString := fmt.Sprintf("%s:%s", serverURL, port)
+	baseURL, err := url.Parse(serverString)
 	if err != nil {
-		log.Fatalf("Cannot parse server url: %s", serverURL)
+		log.Fatalf("Cannot parse server url: %s", serverString)
 	}
-	if baseURL.Scheme == "" {
-		baseURL.Scheme = "http"
-	}
-	urlString := baseURL.String()
-	if port != "" {
-		urlString = fmt.Sprintf("%s:%s", urlString, port)
-	}
-	return urlString
-}
-
-func saveFileS3(filePath string, downloadURL string) error {
-	resp, err := http.Get(downloadURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	sess := session.Must(session.NewSession())
-
-	uploader := s3manager.NewUploader(sess)
-
-	_, err2 := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(conf.S3Storage.Bucket),
-		Key:    aws.String(filePath),
-		ACL:    aws.String(conf.S3Storage.Bucket),
-		Body:   resp.Body,
-	})
-
-	return err2
-}
-
-func saveFileLocal(localPath string, downloadURL string) error {
-	err := os.MkdirAll(filepath.Dir(localPath), os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	file, err2 := os.Create(localPath)
-	if err2 != nil {
-		return err2
-	}
-	defer file.Close()
-
-	resp, err3 := http.Get(downloadURL)
-	if err3 != nil {
-		return err3
-	}
-	defer resp.Body.Close()
-
-	_, err4 := io.Copy(file, resp.Body)
-	return err4
+	return baseURL.Host
 }
