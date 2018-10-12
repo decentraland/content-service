@@ -2,48 +2,39 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+	"net/url"
+
+	"github.com/decentraland/content-service/handlers"
+	cid "github.com/ipfs/go-cid"
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
-	"github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/core"
 	mh "github.com/multiformats/go-multihash"
 )
 
-var localStorage, s3Storage bool
-var localStorageDir string
-var client *redis.Client
-var cidPref cid.Prefix
-var node *core.IpfsNode
-
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	config := GetConfig("config")
 
-	// redis connection example
-	client = redis.NewClient(&redis.Options{
-		Addr:     "content_service_redis:6379",
-		Password: "",
-		DB:       0,
-	})
-	err := client.Set("key", "value", 0).Err()
+	// Initialize Redis client
+	client, err := initRedisClient(config)
 	if err != nil {
-		panic(err)
+		log.Fatal("Error initializing Redis client")
 	}
 
 	// Initialize IPFS for CID calculations
-	ctx, _ := context.WithCancel(context.Background())
-	node, err = core.NewNode(ctx, nil)
+	var ipfsNode *core.IpfsNode
+	ipfsNode, err = initIpfsNode()
 	if err != nil {
-		panic(err)
+		log.Fatal("Error initializing IPFS node")		
 	}
 
 	// CID creation example
-	cidPref = cid.Prefix{
+	cidPref := cid.Prefix{
 		Version:  1,
 		Codec:    cid.Raw,
 		MhType:   mh.SHA2_256,
@@ -56,28 +47,60 @@ func main() {
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
 	fmt.Println("Got CID: ", c)
 
-	flag.BoolVar(&localStorage, "local", false, "Local storage")
-	flag.StringVar(&localStorageDir, "local-dir", "/tmp/", "Local storage directory")
-	flag.BoolVar(&s3Storage, "s3", false, "S3 storage")
-	flag.Parse()
+	router := GetRouter(config, client, ipfsNode)
 
-	if !localStorage && !s3Storage {
-		localStorage = true
-	} else if localStorage && s3Storage {
-		fmt.Println("You must set only ONE storage")
-		os.Exit(1)
+	serverURL := getServerURL(config.Server.URL, config.Server.Port)
+	log.Fatal(http.ListenAndServe(serverURL, router))
+}
+
+func initRedisClient(config *Configuration) (*redis.Client, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     config.Redis.Address,
+		Password: config.Redis.Password,
+		DB:       config.Redis.DB,
+	})
+
+	err := client.Set("key", "value", 0).Err()
+
+	return client, err
+}
+
+func initIpfsNode() (*core.IpfsNode, error) {
+	ctx, _ := context.WithCancel(context.Background())
+
+	return core.NewNode(ctx, nil)
+}
+
+func getServerURL(serverURL string, port string) string {
+	serverString := fmt.Sprintf("%s:%s", serverURL, port)
+	baseURL, err := url.Parse(serverString)
+	if err != nil {
+		log.Fatalf("Cannot parse server url: %s", serverString)
 	}
+	return baseURL.Host
+}
 
-	if localStorageDir[len(localStorageDir)-1:] != "/" {
-		localStorageDir = localStorageDir + "/"
-	}
 
+func GetRouter(config *Configuration, client *redis.Client, node *core.IpfsNode) *mux.Router {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/mappings", mappingsHandler).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
-	r.HandleFunc("/mappings", uploadHandler).Methods("POST")
-	r.HandleFunc("/contents/{cid}", contentsHandler).Methods("GET")
-	r.HandleFunc("/validate", validateHandler).Methods("GET").Queries("x", "{x}", "y", "{y}")
+	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 
-	log.Fatal(http.ListenAndServe(":8000", r))
+	uploadHandler := handlers.UploadHandler{
+		S3Storage:    config.S3Storage,
+		LocalStorage: config.LocalStorage,
+		RedisClient:  client,
+		IpfsNode:     node,
+	}
+	r.Handle("/mappings", &uploadHandler).Methods("POST")
+
+	contentsHandler := handlers.ContentsHandler{
+		S3Storage:    config.S3Storage,
+		LocalStorage: config.LocalStorage,
+	}
+	r.Handle("/contents/{cid}", &contentsHandler).Methods("GET")
+
+	r.Handle("/validate", &handlers.ValidateHandler{RedisClient: client}).Methods("GET").Queries("x", "{x}", "y", "{y}")
+
+	return r
 }
