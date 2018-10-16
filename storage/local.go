@@ -14,8 +14,6 @@ type Local struct {
 func NewLocal(dir string) (*Local, error) {
 	sto := new(Local)
 	sto.Dir = dir
-
-	err := os.MkdirAll(sto.Dir, os.ModePerm)
 	return sto, err
 }
 
