@@ -2,19 +2,16 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
-	cid "github.com/ipfs/go-cid"
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipsn/go-ipfs/core"
-	mh "github.com/multiformats/go-multihash"
 )
 
 func main() {
@@ -34,35 +31,25 @@ func main() {
 		log.Fatal("Error initializing IPFS node")
 	}
 
-	storage := initStorage(configParams)
+	sto := storage.NewStorage(configParams)
 
-	// CID creation example
-	cidPref := cid.Prefix{
-		Version:  1,
-		Codec:    cid.Raw,
-		MhType:   mh.SHA2_256,
-		MhLength: -1, // default length
-	}
-	ci, _ := cidPref.Sum([]byte("Hello World!"))
-	fmt.Println("Created CID: ", ci)
-
-	// CID decoding coding example
-	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
-	fmt.Println("Got CID: ", c)
-
-	router := GetRouter(configParams, client, ipfsNode, storage)
+	router := GetRouter(configParams, client, ipfsNode, sto)
 
 	serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
 	log.Fatal(http.ListenAndServe(serverURL, router))
 }
 
-func initStorage(config *config.Configuration) storage.Storage {
-	if config.S3Storage.Bucket != "" {
-		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
-	} else {
-		return storage.NewLocal(config.LocalStorage)
-	}
-}
+// func initStorage(config *config.Configuration) storage.Storage {
+// 	if config.S3Storage.Bucket != "" {
+// 		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
+// 	} else {
+// 		err := os.MkdirAll(config.LocalStorage, os.ModePerm)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		return storage.NewLocal(config.LocalStorage)
+// 	}
+// }
 
 func initRedisClient(config *config.Configuration) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{

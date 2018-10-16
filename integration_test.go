@@ -15,7 +15,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	conf "github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/ipsn/go-ipfs/core"
 )
@@ -24,9 +25,9 @@ var server *httptest.Server
 
 func TestMain(m *testing.M) {
 	// Start server
-	config := conf.GetConfig("config_test")
+	conf := config.GetConfig("config_test")
 
-	redisClient, err := initRedisClient(config)
+	redisClient, err := initRedisClient(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,9 +38,9 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	storage := initStorage(config)
+	storage := storage.NewStorage(conf)
 
-	router := GetRouter(config, redisClient, ipfsNode, storage)
+	router := GetRouter(conf, redisClient, ipfsNode, storage)
 	server = httptest.NewServer(router)
 	defer server.Close()
 	code := m.Run()
