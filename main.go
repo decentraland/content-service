@@ -39,18 +39,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(serverURL, router))
 }
 
-// func initStorage(config *config.Configuration) storage.Storage {
-// 	if config.S3Storage.Bucket != "" {
-// 		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
-// 	} else {
-// 		err := os.MkdirAll(config.LocalStorage, os.ModePerm)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		return storage.NewLocal(config.LocalStorage)
-// 	}
-// }
-
 func initRedisClient(config *config.Configuration) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     config.Redis.Address,
