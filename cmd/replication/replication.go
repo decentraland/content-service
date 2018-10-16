@@ -3,24 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"flag"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
-	"github.com/spf13/viper"
 )
 
 type parcelContent struct {
@@ -54,12 +47,7 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	var store *storage.Storage
-	if conf.S3Storage.Bucket == "" {
-		storage = storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
-	} else {
-		storage = storage.NewLocal(config.LocalStorage)
-	}
+	sto := storage.NewStorage(conf)
 
 	var parcelContents []parcelContent
 	err = json.NewDecoder(resp.Body).Decode(&parcelContents)
@@ -94,7 +82,13 @@ func main() {
 
 		for filePath, cid := range parcel.Contents {
 			downloadURL := serverURL + "/contents?" + cid
-			store.SaveFile(downloadURL)
+			resp, err := http.Get(downloadURL)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			sto.SaveFile(filePath, resp.Body)
 
 			err = client.HSet("content_"+parcelMetadata.RootCid, filePath, cid).Err()
 			if err != nil {
@@ -102,7 +96,6 @@ func main() {
 			}
 		}
 	}
-
 }
 
 func getServerURL(serverURL string, port string) string {

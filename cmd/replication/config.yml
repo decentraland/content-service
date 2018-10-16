@@ -5,6 +5,7 @@ server:
 s3Storage:
   bucket: ''
   acl: ''
+  url: ''
 
 localStorage: 'backup'
 
