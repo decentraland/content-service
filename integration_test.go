@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/ipsn/go-ipfs/core"
 )
@@ -23,9 +25,9 @@ var server *httptest.Server
 
 func TestMain(m *testing.M) {
 	// Start server
-	config := GetConfig("config_test")
+	conf := config.GetConfig("config_test")
 
-	redisClient, err := initRedisClient(config)
+	redisClient, err := initRedisClient(conf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,9 +38,9 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	storage := initStorage(config)
+	storage := storage.NewStorage(conf)
 
-	router := GetRouter(config, redisClient, ipfsNode, storage)
+	router := GetRouter(conf, redisClient, ipfsNode, storage)
 	server = httptest.NewServer(router)
 	defer server.Close()
 	code := m.Run()
@@ -83,10 +85,9 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 	}
 
 	link := new(Link)
-	err3 := xml.NewDecoder(response.Body).Decode(link)
-	if err3 != nil {
-		t.Error("Error parsing response body")
-		return
+	err = xml.NewDecoder(response.Body).Decode(link)
+	if err != nil {
+		t.Fatal("Error parsing response body")
 	}
 
 	expected := "https://content-service.s3.amazonaws.com/" + CID
@@ -114,9 +115,9 @@ func TestInvalidCoordinates(t *testing.T) {
 		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
-	body, err2 := ioutil.ReadAll(response.Body)
-	if err2 != nil {
-		t.Error(err2)
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Error(err)
 	}
 	bodyString := string(body)
 	if bodyString != "{}" {
@@ -143,9 +144,9 @@ func TestCoordinatesNotCached(t *testing.T) {
 		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
-	body, err2 := ioutil.ReadAll(response.Body)
-	if err2 != nil {
-		t.Error(err2)
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
 	}
 	bodyString := string(body)
 	if bodyString != "{}" {
@@ -183,10 +184,10 @@ func TestUploadHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := getNoRedirectClient()
-	response, err2 := client.Do(req)
-	if err2 != nil {
-		t.Fatal(err2)
+	client := server.Client()
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
 	}
 	defer response.Body.Close()
 
@@ -196,23 +197,33 @@ func TestUploadHandler(t *testing.T) {
 
 	// Test downloading test.txt
 	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
-	resp, err2 := client.Get(server.URL + "/contents/" + testFileCID)
+	resp, err := client.Get(server.URL + "/contents/" + testFileCID)
 	if err != nil {
-		t.Fatal(err2)
+		t.Fatal(err)
 	}
-	testContents, err3 := ioutil.ReadAll(resp.Body)
-	if err3 != nil {
-		t.Fatal(err3)
+	
+	if resp.StatusCode == http.StatusMovedPermanently {
+		redirectURL := resp.Header.Get("Location")
+		resp, err = client.Get(redirectURL)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
+
+	testContents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if string(testContents) != "something\n" {
 		t.Errorf("Test file contents do not match.\nExpected 'something'\nGot %s", string(testContents))
 	}
 
 	// Test validate handler
 	x, y := 54, -136
-	response, err4 := validateCoordinates(x, y)
+	response, err = validateCoordinates(x, y)
 	if err != nil {
-		t.Fatal(err4)
+		t.Fatal(err)
 	}
 	defer response.Body.Close()
 
@@ -279,12 +290,12 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 		return nil, err
 	}
 
-	req, err4 := http.NewRequest("POST", server.URL+"/mappings", body)
-	if err4 != nil {
-		return nil, err4
+	req, err := http.NewRequest("POST", server.URL+"/mappings", body)
+	if err != nil {
+		return nil, err
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return req, err4
+	return req, err
 }
 
 func getRootCID(metadataFile string) string {

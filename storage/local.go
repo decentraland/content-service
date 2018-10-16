@@ -17,6 +17,10 @@ func NewLocal(dir string) *Local {
 	return sto
 }
 
+func (sto *Local) CreateLocalDir() error {
+	return os.MkdirAll(sto.Dir, os.ModePerm)
+}
+
 func (sto *Local) GetFile(cid string) string {
 	return sto.Dir + cid
 }
