@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	conf "github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
 	cid "github.com/ipfs/go-cid"
@@ -19,10 +19,10 @@ import (
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	config := conf.GetConfig("config")
+	configParams := config.GetConfig("config")
 
 	// Initialize Redis client
-	client, err := initRedisClient(config)
+	client, err := initRedisClient(configParams)
 	if err != nil {
 		log.Fatal("Error initializing Redis client")
 	}
@@ -34,7 +34,7 @@ func main() {
 		log.Fatal("Error initializing IPFS node")
 	}
 
-	storage := initStorage(config)
+	storage := initStorage(configParams)
 
 	// CID creation example
 	cidPref := cid.Prefix{
@@ -50,13 +50,13 @@ func main() {
 	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
 	fmt.Println("Got CID: ", c)
 
-	router := GetRouter(config, client, ipfsNode, storage)
+	router := GetRouter(configParams, client, ipfsNode, storage)
 
-	serverURL := conf.GetServerURL(config.Server.URL, config.Server.Port)
+	serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
 	log.Fatal(http.ListenAndServe(serverURL, router))
 }
 
-func initStorage(config *conf.Configuration) storage.Storage {
+func initStorage(config *config.Configuration) storage.Storage {
 	if config.S3Storage.Bucket != "" {
 		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
 	} else {
@@ -64,7 +64,7 @@ func initStorage(config *conf.Configuration) storage.Storage {
 	}
 }
 
-func initRedisClient(config *conf.Configuration) (*redis.Client, error) {
+func initRedisClient(config *config.Configuration) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     config.Redis.Address,
 		Password: config.Redis.Password,
@@ -82,7 +82,7 @@ func initIpfsNode() (*core.IpfsNode, error) {
 	return core.NewNode(ctx, nil)
 }
 
-func GetRouter(config *conf.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
+func GetRouter(config *config.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
 	r := mux.NewRouter()
 
 	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
