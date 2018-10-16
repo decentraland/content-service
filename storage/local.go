@@ -22,8 +22,14 @@ func (sto *Local) GetFile(cid string) string {
 }
 
 func (sto *Local) SaveFile(filename string, fileDesc multipart.File) (string, error) {
+	err := os.MkdirAll(sto.Dir, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
 	path := filepath.Join(sto.Dir, filename)
-	dst, err := os.Create(path)
+	var dst *os.File
+	dst, err = os.Create(path)
 	if err != nil {
 		return "", err
 	}
