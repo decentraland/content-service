@@ -2,7 +2,7 @@ package storage
 
 import (
 	"fmt"
-	"mime/multipart"
+	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -27,7 +27,7 @@ func (sto *S3) GetFile(cid string) string {
 	return sto.URL + cid
 }
 
-func (sto *S3) SaveFile(filename string, fileDesc multipart.File) (string, error) {
+func (sto *S3) SaveFile(filename string, fileDesc io.ReadCloser) (string, error) {
 	sess := session.Must(session.NewSession())
 
 	uploader := s3manager.NewUploader(sess)

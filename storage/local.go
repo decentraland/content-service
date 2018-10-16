@@ -2,7 +2,6 @@ package storage
 
 import (
 	"io"
-	"mime/multipart"
 	"os"
 	"path/filepath"
 )
@@ -25,7 +24,7 @@ func (sto *Local) GetFile(cid string) string {
 	return sto.Dir + cid
 }
 
-func (sto *Local) SaveFile(filename string, fileDesc multipart.File) (string, error) {
+func (sto *Local) SaveFile(filename string, fileDesc io.ReadCloser) (string, error) {
 	path := filepath.Join(sto.Dir, filename)
 	dst, err := os.Create(path)
 	if err != nil {

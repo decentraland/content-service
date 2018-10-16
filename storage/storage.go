@@ -1,15 +1,15 @@
 package storage
 
 import (
+	"io"
 	"log"
-	"mime/multipart"
 
 	"github.com/decentraland/content-service/config"
 )
 
 type Storage interface {
 	GetFile(cid string) string
-	SaveFile(filename string, fileDesc multipart.File) (string, error)
+	SaveFile(filename string, fileDesc io.ReadCloser) (string, error)
 }
 
 func NewStorage(config *config.Configuration) Storage {
