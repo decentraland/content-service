@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	conf "github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/ipsn/go-ipfs/core"
 )
@@ -23,7 +24,7 @@ var server *httptest.Server
 
 func TestMain(m *testing.M) {
 	// Start server
-	config := GetConfig("config_test")
+	config := conf.GetConfig("config_test")
 
 	redisClient, err := initRedisClient(config)
 	if err != nil {
@@ -183,7 +184,7 @@ func TestUploadHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := getNoRedirectClient()
+	client := server.Client()
 	response, err2 := client.Do(req)
 	if err2 != nil {
 		t.Fatal(err2)
@@ -197,13 +198,23 @@ func TestUploadHandler(t *testing.T) {
 	// Test downloading test.txt
 	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
 	resp, err2 := client.Get(server.URL + "/contents/" + testFileCID)
-	if err != nil {
+	if err2 != nil {
 		t.Fatal(err2)
 	}
+	
+	if resp.StatusCode == http.StatusMovedPermanently {
+		redirectURL := resp.Header.Get("Location")
+		resp, err2 = client.Get(redirectURL)
+		if err2 != nil {
+			t.Fatal(err2)
+		}
+	}
+
 	testContents, err3 := ioutil.ReadAll(resp.Body)
 	if err3 != nil {
 		t.Fatal(err3)
 	}
+
 	if string(testContents) != "something\n" {
 		t.Errorf("Test file contents do not match.\nExpected 'something'\nGot %s", string(testContents))
 	}
@@ -211,7 +222,7 @@ func TestUploadHandler(t *testing.T) {
 	// Test validate handler
 	x, y := 54, -136
 	response, err4 := validateCoordinates(x, y)
-	if err != nil {
+	if err4 != nil {
 		t.Fatal(err4)
 	}
 	defer response.Body.Close()
