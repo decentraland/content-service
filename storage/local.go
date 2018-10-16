@@ -11,10 +11,10 @@ type Local struct {
 	Dir string
 }
 
-func NewLocal(dir string) (*Local, error) {
+func NewLocal(dir string) *Local {
 	sto := new(Local)
 	sto.Dir = dir
-	return sto, err
+	return sto
 }
 
 func (sto *Local) GetFile(cid string) string {

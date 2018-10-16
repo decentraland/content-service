@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"net/http"
 	"net/url"
 
@@ -44,7 +45,7 @@ func initStorage(config *Configuration) storage.Storage {
 	if config.S3Storage.Bucket != "" {
 		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
 	} else {
-		err := os.MkdirAll(sto.Dir, os.ModePerm)
+		err := os.MkdirAll(config.LocalStorage, os.ModePerm)
 		if err != nil {
 			log.Fatal(err)
 		}
