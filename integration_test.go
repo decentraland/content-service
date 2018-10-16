@@ -84,10 +84,9 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 	}
 
 	link := new(Link)
-	err3 := xml.NewDecoder(response.Body).Decode(link)
-	if err3 != nil {
-		t.Error("Error parsing response body")
-		return
+	err = xml.NewDecoder(response.Body).Decode(link)
+	if err != nil {
+		t.Fatal("Error parsing response body")
 	}
 
 	expected := "https://content-service.s3.amazonaws.com/" + CID
@@ -115,9 +114,9 @@ func TestInvalidCoordinates(t *testing.T) {
 		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
-	body, err2 := ioutil.ReadAll(response.Body)
-	if err2 != nil {
-		t.Error(err2)
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Error(err)
 	}
 	bodyString := string(body)
 	if bodyString != "{}" {
@@ -144,9 +143,9 @@ func TestCoordinatesNotCached(t *testing.T) {
 		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
-	body, err2 := ioutil.ReadAll(response.Body)
-	if err2 != nil {
-		t.Error(err2)
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
 	}
 	bodyString := string(body)
 	if bodyString != "{}" {
@@ -185,9 +184,9 @@ func TestUploadHandler(t *testing.T) {
 	}
 
 	client := server.Client()
-	response, err2 := client.Do(req)
-	if err2 != nil {
-		t.Fatal(err2)
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
 	}
 	defer response.Body.Close()
 
@@ -197,22 +196,22 @@ func TestUploadHandler(t *testing.T) {
 
 	// Test downloading test.txt
 	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
-	resp, err2 := client.Get(server.URL + "/contents/" + testFileCID)
-	if err2 != nil {
-		t.Fatal(err2)
+	resp, err := client.Get(server.URL + "/contents/" + testFileCID)
+	if err != nil {
+		t.Fatal(err)
 	}
 	
 	if resp.StatusCode == http.StatusMovedPermanently {
 		redirectURL := resp.Header.Get("Location")
-		resp, err2 = client.Get(redirectURL)
-		if err2 != nil {
-			t.Fatal(err2)
+		resp, err = client.Get(redirectURL)
+		if err != nil {
+			t.Fatal(err)
 		}
 	}
 
-	testContents, err3 := ioutil.ReadAll(resp.Body)
-	if err3 != nil {
-		t.Fatal(err3)
+	testContents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if string(testContents) != "something\n" {
@@ -221,9 +220,9 @@ func TestUploadHandler(t *testing.T) {
 
 	// Test validate handler
 	x, y := 54, -136
-	response, err4 := validateCoordinates(x, y)
-	if err4 != nil {
-		t.Fatal(err4)
+	response, err = validateCoordinates(x, y)
+	if err != nil {
+		t.Fatal(err)
 	}
 	defer response.Body.Close()
 
@@ -290,12 +289,12 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 		return nil, err
 	}
 
-	req, err4 := http.NewRequest("POST", server.URL+"/mappings", body)
-	if err4 != nil {
-		return nil, err4
+	req, err := http.NewRequest("POST", server.URL+"/mappings", body)
+	if err != nil {
+		return nil, err
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return req, err4
+	return req, err
 }
 
 func getRootCID(metadataFile string) string {
