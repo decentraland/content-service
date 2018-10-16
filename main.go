@@ -35,8 +35,8 @@ func main() {
 
 	router := GetRouter(configParams, client, ipfsNode, sto)
 
-	serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
-	log.Fatal(http.ListenAndServe(serverURL, router))
+	// serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
+	log.Fatal(http.ListenAndServe(":8000", router))
 }
 
 func initRedisClient(config *config.Configuration) (*redis.Client, error) {
