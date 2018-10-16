@@ -1,5 +1,5 @@
 server:
-  url: 'localhost'
+  hostname: 'localhost'
   port: '8000'
 
 s3Storage:
