@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"log"
-	"net/url"
 
 	"github.com/spf13/viper"
 )
@@ -11,8 +10,8 @@ import (
 // Configuration holds global config parameters
 type Configuration struct {
 	Server struct {
-		URL  string
-		Port string
+		Hostname string
+		Port     string
 	}
 	S3Storage struct {
 		Bucket string
@@ -52,12 +51,10 @@ func GetConfig(name string) *Configuration {
 	return &config
 }
 
-func GetServerURL(serverURL string, port string) string {
-	serverString := fmt.Sprintf("%s:%s", serverURL, port)
-	baseURL, err := url.Parse(serverString)
-	if err != nil {
-		log.Fatalf("Cannot parse server url: %s", serverString)
+func GetServerAddress(hostname string, port string) string {
+	if hostname == "localhost" {
+		return fmt.Sprintf(":%s", port)
 	}
 
-	return baseURL.Host
+	return fmt.Sprintf("%s:%s", hostname, port)
 }
