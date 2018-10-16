@@ -9,12 +9,10 @@ import (
 
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
-	cid "github.com/ipfs/go-cid"
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipsn/go-ipfs/core"
-	mh "github.com/multiformats/go-multihash"
 )
 
 func main() {
@@ -35,20 +33,6 @@ func main() {
 	}
 
 	storage := initStorage(config)
-
-	// CID creation example
-	cidPref := cid.Prefix{
-		Version:  1,
-		Codec:    cid.Raw,
-		MhType:   mh.SHA2_256,
-		MhLength: -1, // default length
-	}
-	ci, _ := cidPref.Sum([]byte("Hello World!"))
-	fmt.Println("Created CID: ", ci)
-
-	// CID decoding coding example
-	c, _ := cid.Decode("zdvgqEMYmNeH5fKciougvQcfzMcNjF3Z1tPouJ8C7pc3pe63k")
-	fmt.Println("Got CID: ", c)
 
 	router := GetRouter(config, client, ipfsNode, storage)
 
