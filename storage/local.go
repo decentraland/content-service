@@ -11,10 +11,12 @@ type Local struct {
 	Dir string
 }
 
-func NewLocal(dir string) *Local {
+func NewLocal(dir string) (*Local, error) {
 	sto := new(Local)
 	sto.Dir = dir
-	return sto
+
+	err := os.MkdirAll(sto.Dir, os.ModePerm)
+	return sto, err
 }
 
 func (sto *Local) GetFile(cid string) string {
@@ -22,14 +24,8 @@ func (sto *Local) GetFile(cid string) string {
 }
 
 func (sto *Local) SaveFile(filename string, fileDesc multipart.File) (string, error) {
-	err := os.MkdirAll(sto.Dir, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
-
 	path := filepath.Join(sto.Dir, filename)
-	var dst *os.File
-	dst, err = os.Create(path)
+	dst, err := os.Create(path)
 	if err != nil {
 		return "", err
 	}

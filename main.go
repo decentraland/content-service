@@ -44,7 +44,11 @@ func initStorage(config *Configuration) storage.Storage {
 	if config.S3Storage.Bucket != "" {
 		return storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
 	} else {
-		return storage.NewLocal(config.LocalStorage)
+		sto, err := storage.NewLocal(config.LocalStorage)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return sto
 	}
 }
 
