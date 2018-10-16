@@ -42,6 +42,10 @@ func getParcels(parcelsList []string) ([]*parcel, error) {
 		}
 
 		land, err := getParcel(int(x), int(y))
+		if err != nil {
+			return parcels, err
+		}
+
 		parcels = append(parcels, land)
 	}
 
