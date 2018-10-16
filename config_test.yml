@@ -2,10 +2,10 @@ server:
   url: 'localhost'
   port: '8000'
 
-# s3Storage:
-#   bucket: 'content-service'
-#   acl: 'public-read'
-#   url: 'https://content-service.s3.amazonaws.com/'
+s3Storage:
+  bucket: ''
+  acl: ''
+  url: ''
 
 localStorage: 'tmp'
 
