@@ -28,11 +28,11 @@ type parcelContent struct {
 	Contents map[string]string `json:"contents"`
 }
 
-var config *config.Configuration
+var conf *config.Configuration
 var client *redis.Client
 
 func init() {
-	conf := service.GetConfig("config")
+	conf := config.GetConfig("config")
 	
 	client = redis.NewClient(&redis.Options{
 		Addr:     conf.Redis.Address,
@@ -44,7 +44,7 @@ func init() {
 func main() {
 	args := flag.Args()
 	if len(args) != 4 {
-		log.Fatal("Please provide fourmapping coordinates.\n\nUsage: ./replication nw1 nw2 se1 se2")
+		log.Fatal("Please provide four mapping coordinates.\n\nUsage: ./replication nw1 nw2 se1 se2")
 	}
 	serverURL := getServerURL(conf.Server.URL, conf.Server.Port)
 	mappingsURL := fmt.Sprintf("%s/mappings?nw=%s,%s&se=%s,%s", serverURL, args[0], args[1], args[2], args[3])
@@ -56,9 +56,9 @@ func main() {
 
 	var store *storage.Storage
 	if conf.S3Storage.Bucket == "" {
-		storage = storage.NewS3(conf.S3Storage.Bucket, conf.S3Storage.ACL, "")
+		storage = storage.NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
 	} else {
-		storage = storage.NewLocal(conf.LocalStorage)
+		storage = storage.NewLocal(config.LocalStorage)
 	}
 
 	var parcelContents []parcelContent
