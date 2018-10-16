@@ -7,9 +7,11 @@ services:
       - 8000:8000
     volumes:
       - .:/content-service
-      - ./cache/:/go/pkg/mod
+      - ./cache/mod/:/go/pkg/mod
+      - ./cache/go-build/:/root/.cache/go-build
     environment:
       - GOPATH=/go
+      - GOCACHE=/root/.cache/go-build
     working_dir: /content-service
 
   redis:
