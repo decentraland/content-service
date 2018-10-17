@@ -48,8 +48,7 @@ func main() {
 
 	sto := storage.NewStorage(conf)
 
-	serverURL := config.GetServerAddress(conf.Server.Hostname, conf.Server.Port)
-	mappingsURL := fmt.Sprintf("http://%s/mappings?nw=%s,%s&se=%s,%s", serverURL, x1, y1, x2, y2)
+	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", conf.Server.URL, x1, y1, x2, y2)
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
 		log.Fatal(err)
@@ -64,7 +63,7 @@ func main() {
 
 	for _, parcel := range parcelContents {
 		xy := strings.Split(parcel.ParcelID, ",")
-		validateURL := fmt.Sprintf("http://%s/validate?x=%s&y=%s", serverURL, xy[0], xy[1])
+		validateURL := fmt.Sprintf("%svalidate?x=%s&y=%s", conf.Server.URL, xy[0], xy[1])
 		resp, err3 := http.Get(validateURL)
 		if err3 != nil {
 			log.Fatal(err)
@@ -88,7 +87,7 @@ func main() {
 		}
 
 		for filePath, cid := range parcel.Contents {
-			downloadURL := fmt.Sprintf("http://%s/contents?%s", serverURL, cid)
+			downloadURL := fmt.Sprintf("%scontents?%s", conf.Server.URL, cid)
 			resp, err := http.Get(downloadURL)
 			if err != nil {
 				log.Fatal(err)

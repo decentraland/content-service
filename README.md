@@ -77,7 +77,6 @@ This endpoint recieves a request with `Content-Type:multipart/form-data` with th
 
 - Files: the rest of the parts correspond to the uploaded files, they will be named `<file CID>` and have the `filename` header set to file's name.
 
-
 ### GET /mappings
 
 This endpoint gets all the scenes from an area delimited by a northwest coordinate and a southeast coordinate. It expects the following query paramaters:
@@ -204,3 +203,13 @@ $> curl 'http://localhost:8000/mappings?nw=53,-135&se=55,-137'
   }
 ]
 ```
+
+## Replication
+
+To replicate a `content-service` run:
+
+```
+$ make replicate
+```
+
+You will recieve a prompt to input the map coordinates for the NW and SE parcels.
