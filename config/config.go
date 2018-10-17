@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"log"
-	"net/url"
 
 	"github.com/spf13/viper"
 )
@@ -53,11 +52,5 @@ func GetConfig(name string) *Configuration {
 }
 
 func GetServerURL(serverURL string, port string) string {
-	serverString := fmt.Sprintf("%s:%s", serverURL, port)
-	baseURL, err := url.Parse(serverString)
-	if err != nil {
-		log.Fatalf("Cannot parse server url: %s", serverString)
-	}
-
-	return baseURL.Host
+	return fmt.Sprintf("%s:%s", serverURL, port)
 }

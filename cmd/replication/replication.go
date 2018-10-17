@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
-	"flag"
+	"os"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -16,16 +15,11 @@ import (
 	"github.com/go-redis/redis"
 )
 
-type parcelContent struct {
-	ParcelID string            `json:"parcel_id"`
-	Contents map[string]string `json:"contents"`
-}
-
 var conf *config.Configuration
 var client *redis.Client
 
 func init() {
-	conf := config.GetConfig("config")
+	conf = config.GetConfig("config")
 	
 	client = redis.NewClient(&redis.Options{
 		Addr:     conf.Redis.Address,
@@ -35,12 +29,12 @@ func init() {
 }
 
 func main() {
-	args := flag.Args()
+	args := os.Args[1:]
 	if len(args) != 4 {
 		log.Fatal("Please provide four mapping coordinates.\n\nUsage: ./replication nw1 nw2 se1 se2")
 	}
-	serverURL := getServerURL(conf.Server.URL, conf.Server.Port)
-	mappingsURL := fmt.Sprintf("%s/mappings?nw=%s,%s&se=%s,%s", serverURL, args[0], args[1], args[2], args[3])
+	serverURL := fmt.Sprintf("%s:%s", conf.Server.URL, conf.Server.Port)
+	mappingsURL := fmt.Sprintf("http://%s/mappings?nw=%s,%s&se=%s,%s", serverURL, args[0], args[1], args[2], args[3])
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
 		log.Fatalf("Failed to get url %s", mappingsURL)
@@ -49,7 +43,7 @@ func main() {
 
 	sto := storage.NewStorage(conf)
 
-	var parcelContents []parcelContent
+	var parcelContents []handlers.ParcelContent
 	err = json.NewDecoder(resp.Body).Decode(&parcelContents)
 	if err != nil {
 		log.Fatal("Cannot parse response\n", err)
@@ -57,7 +51,7 @@ func main() {
 
 	for _, parcel := range parcelContents {
 		xy := strings.Split(parcel.ParcelID, ",")
-		validateURL := fmt.Sprintf(serverURL+"/validate?x=%s&y=%s", xy[0], xy[1])
+		validateURL := fmt.Sprintf("http://%s/validate?x=%s&y=%s", serverURL, xy[0], xy[1])
 		resp, err3 := http.Get(validateURL)
 		if err3 != nil {
 			log.Fatalf("Failed to get url %s", validateURL)
@@ -81,7 +75,7 @@ func main() {
 		}
 
 		for filePath, cid := range parcel.Contents {
-			downloadURL := serverURL + "/contents?" + cid
+			downloadURL := fmt.Sprintf("http://%s/contents?%s", serverURL, cid)
 			resp, err := http.Get(downloadURL)
 			if err != nil {
 				log.Fatal(err)
@@ -96,13 +90,4 @@ func main() {
 			}
 		}
 	}
-}
-
-func getServerURL(serverURL string, port string) string {
-	serverString := fmt.Sprintf("%s:%s", serverURL, port)
-	baseURL, err := url.Parse(serverString)
-	if err != nil {
-		log.Fatalf("Cannot parse server url: %s", serverString)
-	}
-	return baseURL.Host
 }

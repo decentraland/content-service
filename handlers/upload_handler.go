@@ -150,7 +150,7 @@ type Metadata struct {
 	ValidityType int `json:"validityType" structs:"validityType"`
 	Sequence     int `json:"sequence" structs:"sequence"`
 	PubKey       string `json:"pubkey" structs:"pubkey"`
-	RootCid      string `json:"-" structs:"rootcid"`
+	RootCid      string `json:"root_cid" structs:"root_cid"`
 }
 
 func getMetadata(jsonString []byte) (Metadata, error) {

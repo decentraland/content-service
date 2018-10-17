@@ -35,7 +35,8 @@ func main() {
 
 	router := GetRouter(configParams, client, ipfsNode, sto)
 
-	// serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
+	serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
+	log.Println(serverURL)
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
 
