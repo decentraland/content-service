@@ -1,8 +1,12 @@
 package handlers
 
-import "github.com/go-redis/redis"
+import (
+	"strconv"
 
-func getParcelMetadata(client *redis.Client, parcelID string) (map[string]string, error) {
+	"github.com/go-redis/redis"
+)
+
+func getParcelMetadata(client *redis.Client, parcelID string) (map[string]interface{}, error) {
 	parcelCID, err := client.Get(parcelID).Result()
 	if err != nil {
 		return nil, err
@@ -13,7 +17,19 @@ func getParcelMetadata(client *redis.Client, parcelID string) (map[string]string
 		return nil, err
 	}
 
-	return parcelMeta, nil
+	metadata := make(map[string]interface{})
+	for key, value := range parcelMeta {
+		if key == "validityType" || key == "sequence" {
+			intValue, err := strconv.Atoi(value)
+			if err != nil {
+				return nil, err
+			}
+			metadata[key] = intValue
+		} else {
+			metadata[key] = value
+		}
+	}
+	return metadata, nil
 }
 
 func getParcelContent(client *redis.Client, parcelID string) (map[string]string, error) {
