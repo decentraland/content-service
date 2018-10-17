@@ -29,16 +29,27 @@ func init() {
 }
 
 func main() {
+	var x1, y1, x2, y2 string
 	args := os.Args[1:]
-	if len(args) != 4 {
-		fmt.Println("Please provide the coordinates of the NW corner and the SE corner of the map.\nUsage:  ./replication x1 y1 x2 y2")
-		os.Exit(1)
+	if len(args) == 4 {
+		x1, y1, x2, y2 = args[0], args[1], args[2], args[3]
+	} else {
+		fmt.Println("Input NW coordinates")
+		fmt.Print("x1 = ")
+		fmt.Scanln(&x1)
+		fmt.Print("y1 = ")
+		fmt.Scanln(&y1)
+		fmt.Println("Input SE coordinates")
+		fmt.Print("x2 = ")
+		fmt.Scanln(&x2)
+		fmt.Print("y2 = ")
+		fmt.Scanln(&y2)
 	}
-	
+
 	sto := storage.NewStorage(conf)
 
 	serverURL := config.GetServerAddress(conf.Server.Hostname, conf.Server.Port)
-	mappingsURL := fmt.Sprintf("http://%s/mappings?nw=%s,%s&se=%s,%s", serverURL, args[0], args[1], args[2], args[3])
+	mappingsURL := fmt.Sprintf("http://%s/mappings?nw=%s,%s&se=%s,%s", serverURL, x1, y1, x2, y2)
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
 		log.Fatal(err)
