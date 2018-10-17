@@ -10,8 +10,8 @@ import (
 // Configuration holds global config parameters
 type Configuration struct {
 	Server struct {
-		URL  string
-		Port string
+		Hostname string
+		Port     string
 	}
 	S3Storage struct {
 		Bucket string
@@ -51,10 +51,10 @@ func GetConfig(name string) *Configuration {
 	return &config
 }
 
-func GetServerURL(serverURL string, port string) string {
-	if port != "" {
-		return fmt.Sprintf("http://%s:%s", serverURL, port)
-	} else {
-		return fmt.Sprintf("http://%s:80", serverURL)
+func GetServerAddress(hostname string, port string) string {
+	if hostname == "localhost" {
+		return fmt.Sprintf(":%s", port)
 	}
+
+	return fmt.Sprintf("%s:%s", hostname, port)
 }

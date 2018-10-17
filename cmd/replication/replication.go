@@ -31,22 +31,24 @@ func init() {
 func main() {
 	args := os.Args[1:]
 	if len(args) != 4 {
-		log.Fatal("Please provide four mapping coordinates.\n\nUsage: ./replication nw1 nw2 se1 se2")
+		fmt.Println("Please provide the coordinates of the NW corner and the SE corner of the map.\nUsage:  ./replication x1 y1 x2 y2")
+		os.Exit(1)
 	}
-	serverURL := fmt.Sprintf("%s:%s", conf.Server.URL, conf.Server.Port)
+	
+	sto := storage.NewStorage(conf)
+
+	serverURL := config.GetServerAddress(conf.Server.Hostname, conf.Server.Port)
 	mappingsURL := fmt.Sprintf("http://%s/mappings?nw=%s,%s&se=%s,%s", serverURL, args[0], args[1], args[2], args[3])
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
-		log.Fatalf("Failed to get url %s", mappingsURL)
+		log.Fatal(err)
 	}
 	defer resp.Body.Close()
-
-	sto := storage.NewStorage(conf)
 
 	var parcelContents []handlers.ParcelContent
 	err = json.NewDecoder(resp.Body).Decode(&parcelContents)
 	if err != nil {
-		log.Fatal("Cannot parse response\n", err)
+		log.Fatal(err)
 	}
 
 	for _, parcel := range parcelContents {
@@ -54,7 +56,7 @@ func main() {
 		validateURL := fmt.Sprintf("http://%s/validate?x=%s&y=%s", serverURL, xy[0], xy[1])
 		resp, err3 := http.Get(validateURL)
 		if err3 != nil {
-			log.Fatalf("Failed to get url %s", validateURL)
+			log.Fatal(err)
 		}
 		defer resp.Body.Close()
 
@@ -66,12 +68,12 @@ func main() {
 
 		err = client.Set(parcel.ParcelID, parcelMetadata.RootCid, 0).Err()
 		if err != nil {
-			log.Fatal("Failed to save rootCID to Redis client\n", err)
+			log.Fatal(err)
 		}
 
 		err = client.HMSet("metadata_"+parcelMetadata.RootCid, structs.Map(parcelMetadata)).Err()
 		if err != nil {
-			log.Fatal("Failed to save metadata to Redis client")
+			log.Fatal(err)
 		}
 
 		for filePath, cid := range parcel.Contents {

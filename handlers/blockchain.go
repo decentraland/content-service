@@ -52,7 +52,11 @@ func getParcel(x, y int) (*parcel, error) {
 	}
 
 	var jsonResponse parcelResponse
-	json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	if err != nil {
+		return nil, err
+	}
+
 	return jsonResponse.Data, nil
 }
 
@@ -85,5 +89,9 @@ func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
 
 	var jsonResponse MapResponse
 	json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
 }
