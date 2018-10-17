@@ -18,4 +18,4 @@ demo:
 		golang /bin/bash -c "go build && ./content-service --s3"
 
 replicate:
-	cd cmd/replication && go build && ./replication
+	docker-compose run --rm --name content_service_replicate -p 8001:8000 golang /bin/bash -c "cd cmd/replication && go build && ./replication"

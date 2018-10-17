@@ -1,5 +1,5 @@
 server:
-  hostname: 'localhost'
+  hostname: 'content_service_golang'
   port: '8000'
 
 s3Storage:
@@ -10,6 +10,6 @@ s3Storage:
 localStorage: 'backup'
 
 redis:
-  address: 'localhost:6666'
+  address: 'content_backup_redis:6379'
   password: ''
   DB: 0
