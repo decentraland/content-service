@@ -52,5 +52,9 @@ func GetConfig(name string) *Configuration {
 }
 
 func GetServerURL(serverURL string, port string) string {
-	return fmt.Sprintf("%s:%s", serverURL, port)
+	if port != "" {
+		return fmt.Sprintf("http://%s:%s", serverURL, port)
+	} else {
+		return fmt.Sprintf("http://%s:80", serverURL)
+	}
 }

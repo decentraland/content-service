@@ -37,7 +37,7 @@ func main() {
 
 	serverURL := config.GetServerURL(configParams.Server.URL, configParams.Server.Port)
 	log.Println(serverURL)
-	log.Fatal(http.ListenAndServe(":8000", router))
+	log.Fatal(http.ListenAndServe(serverURL, router))
 }
 
 func initRedisClient(config *config.Configuration) (*redis.Client, error) {
