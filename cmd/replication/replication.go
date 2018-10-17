@@ -94,7 +94,7 @@ func main() {
 			}
 			defer resp.Body.Close()
 
-			_, err = sto.SaveFile(filePath, resp.Body)
+			_, err = sto.SaveFile(cid, resp.Body)
 			if err != nil {
 				log.Fatal(err)
 			}
