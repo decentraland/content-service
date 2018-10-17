@@ -84,7 +84,10 @@ func main() {
 			}
 			defer resp.Body.Close()
 
-			sto.SaveFile(filePath, resp.Body)
+			_, err = sto.SaveFile(filePath, resp.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			err = client.HSet("content_"+parcelMetadata.RootCid, filePath, cid).Err()
 			if err != nil {
