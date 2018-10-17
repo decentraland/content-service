@@ -11,12 +11,13 @@ In the base dir you can find the `config.yml` as follows:
 
 ```
 server:
-  url: 'localhost'  # hostname of the server
-  port: '8000'      # port to use
+  port: '8000'                  # port to use for server
+  url: 'http://localhost:8000'  # server URL (used in the replication script)
 
 s3Storage:
   bucket: ''        # Bucket to use in S3
   acl: ''           # ACL for the bucket and files
+  url: ''           # URL for the bucket
 
 localStorage: 'tmp'   # local storage dir
 
@@ -55,13 +56,23 @@ This endpoint recieves a request with `Content-Type:multipart/form-data` with th
 - Metadata: is named `metadata` and has a JSON:
 
 ```
-{"value": <root CID>, "signature": <signed root CID>, "pubKey": <eth address>, "validityType": <int>, "validity": <timestamp>, "sequence": <int>}
+{
+  "value": <root CID>,
+  "signature": <signed root CID>,
+  "pubKey": <eth address>,
+  "validityType": <int>,
+  "validity": <timestamp>,
+  "sequence": <int>
+}
 ```
 
 - Content: is named `<root CID>` and has a JSON:
 
 ```
-[{"cid": <file CID>, "name": <file path>}, ...]
+[
+  {"cid": <file CID>, "name": <file path>},
+  ...
+]
 ```
 
 - Files: the rest of the parts correspond to the uploaded files, they will be named `<file CID>` and have the `filename` header set to file's name.
@@ -166,10 +177,30 @@ $> curl 'http://localhost:8000/validate?x=-0&y=0'
 Not Found
 
 $> curl 'http://localhost:8000/validate?x=54&y=-136'
-{"pubkey":"0xa08a656ac52c0b32902a76e122d2973b022caa0e","rootcid":"QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn","sequence":"2","signature":"0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b","validity":"2018-12-12T14:49:14.074000000Z","validityType":"0","value":"QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"}
+{
+  "pubkey": "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+  "rootcid": "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+  "sequence": "2",
+  "signature": "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+  "validity": "2018-12-12T14:49:14.074000000Z",
+  "validityType": "0",
+  "value": "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
+}
 ```
 
 ```bash
 $> curl 'http://localhost:8000/mappings?nw=53,-135&se=55,-137'
-[{"parcel_id":"54,-136","contents":{"build.json":"QmbGdhmRstTdbNBKxqVbGpjiPxy2A5nqrDLuk9KFmQtwox","package.json":"QmTBetsUR4WC1fUB3oM7sDCBQZiHXrsp4LXarqTnHFZ9on","scene.json":"QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4","scene.tsx":"QmSXv3Qgr8pjoYNXZqMhE5Lo9f8FXpYF5cN7vndXsYqJou","test.txt":"QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672","tsconfig.json":"Qmdv1drP1dkNFKjX6YqL91Go4mY141ZSFQy311qidk9HJc"}}]
+[
+  {
+    "parcel_id": "54,-136",
+    "contents": {
+      "build.json": "QmbGdhmRstTdbNBKxqVbGpjiPxy2A5nqrDLuk9KFmQtwox",
+      "package.json": "QmTBetsUR4WC1fUB3oM7sDCBQZiHXrsp4LXarqTnHFZ9on",
+      "scene.json": "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+      "scene.tsx": "QmSXv3Qgr8pjoYNXZqMhE5Lo9f8FXpYF5cN7vndXsYqJou",
+      "test.txt": "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672",
+      "tsconfig.json": "Qmdv1drP1dkNFKjX6YqL91Go4mY141ZSFQy311qidk9HJc"
+    }
+  }
+]
 ```
