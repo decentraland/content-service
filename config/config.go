@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/viper"
@@ -10,8 +9,8 @@ import (
 // Configuration holds global config parameters
 type Configuration struct {
 	Server struct {
-		Hostname string
-		Port     string
+		Port string
+		URL  string
 	}
 	S3Storage struct {
 		Bucket string
@@ -48,13 +47,9 @@ func GetConfig(name string) *Configuration {
 		config.LocalStorage = config.LocalStorage + "/"
 	}
 
-	return &config
-}
-
-func GetServerAddress(hostname string, port string) string {
-	if hostname == "localhost" {
-		return fmt.Sprintf(":%s", port)
+	if config.Server.URL[len(config.Server.URL)-1:] != "/" {
+		config.Server.URL = config.Server.URL + "/"
 	}
 
-	return fmt.Sprintf("%s:%s", hostname, port)
+	return &config
 }

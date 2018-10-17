@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"fmt"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -35,7 +36,7 @@ func main() {
 
 	router := GetRouter(configParams, client, ipfsNode, sto)
 
-	serverURL := config.GetServerAddress(configParams.Server.Hostname, configParams.Server.Port)
+	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
 	log.Fatal(http.ListenAndServe(serverURL, router))
 }
 
