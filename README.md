@@ -206,10 +206,12 @@ $> curl 'http://localhost:8000/mappings?nw=53,-135&se=55,-137'
 
 ## Replication
 
-To replicate a `content-service` run:
+To replicate a `content-service` server run:
 
 ```
 $ make replicate
 ```
 
 You will recieve a prompt to input the map coordinates for the NW and SE parcels.
+
+This program connects to the server url provided in `config.yml`. It stores the data files in the dir specified by `localstorage` and populates the Redis instance defined in the `redis` field.
