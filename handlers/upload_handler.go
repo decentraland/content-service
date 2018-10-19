@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -60,45 +59,41 @@ type scene struct {
 func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
-		log.Println(err)
-		http.Error(w, http.StatusText(400), 400)
+		handle400(w, 400, "Missing metadata part in multipart")
 		return
 	}
 
 	meta, err := getMetadata([]byte(metaMultipart[0]))
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
 	valid, err := isSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	} else if !valid {
-		http.Error(w, http.StatusText(401), 401)
+		handle400(w, 401, "Signature is invalid")
 		return
 	}
 
 	filesJSON, isset := r.MultipartForm.Value[meta.RootCid]
 	if !isset {
-		http.Error(w, http.StatusText(400), 400)
+		handle400(w, 400, "Missing contents part in multipart ")
 		return
 	}
 
 	var filesMeta []FileMetadata
 	err = json.Unmarshal([]byte(filesJSON[0]), &filesMeta)
 	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
@@ -109,27 +104,29 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, filesMeta, r.MultipartForm.File)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	} else if !match {
-		http.Error(w, http.StatusText(400), 400)
+		handle400(w, 400, "Generated root CID does not match given root CID")
 		return
 	}
 
 	scene, err := getScene(r.MultipartForm.File)
 	if err != nil {
-		http.Error(w, http.StatusText(400), 400)
+		if err.Error() == "Missing scene.json" {
+			handle400(w, 400, err.Error())
+		} else {
+			handle500(w, err)
+		}
 		return
 	}
 
 	canModify, err := userCanModify(meta.PubKey, scene)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	} else if !canModify {
-		http.Error(w, http.StatusText(401), 401)
+		handle400(w, 401, "Given address is not authorized to modify given parcels")
 		return
 	}
 
@@ -138,33 +135,30 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, fileCID)
 		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+			handle500(w, err)
 			return
 		} else if !fileMatches {
+			handle400(w, 400, "Given file CID does not match its generated CID")
 			http.Error(w, http.StatusText(400), 400)
 			return
 		}
 
 		file, err := fileHeader.Open()
 		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+			handle500(w, err)
 			return
 		}
 		defer file.Close()
 
 		_, err = handler.Storage.SaveFile(fileCID, file)
 		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+			handle500(w, err)
 			return
 		}
 
 		err = handler.RedisClient.HSet("content_"+meta.RootCid, filesPath[fileCID], fileCID).Err()
 		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+			handle500(w, err)
 			return
 		}
 	}
@@ -172,16 +166,14 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	for _, parcel := range scene.Scene.Parcels {
 		err = handler.RedisClient.Set(parcel, meta.RootCid, 0).Err()
 		if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+			handle500(w, err)
 			return
 		}
 	}
 
 	err = handler.RedisClient.HMSet("metadata_"+meta.RootCid, structs.Map(meta)).Err()
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 }

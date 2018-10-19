@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -26,8 +25,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
@@ -42,8 +40,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		if err == redis.Nil {
 			continue
 		} else if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+			handle500(w, err)
 			return
 		}
 
@@ -52,8 +49,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	contentsJSON, err := json.Marshal(mapContents)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
@@ -61,8 +57,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(200)
 	_, err = w.Write(contentsJSON)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 }
