@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-
 	"github.com/decentraland/content-service/storage"
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
@@ -19,9 +18,9 @@ import (
 )
 
 type UploadHandler struct {
-	Storage storage.Storage
-	RedisClient  *redis.Client
-	IpfsNode     *core.IpfsNode
+	Storage     storage.Storage
+	RedisClient *redis.Client
+	IpfsNode    *core.IpfsNode
 }
 
 type FileMetadata struct {
@@ -33,8 +32,8 @@ type Metadata struct {
 	Value        string `json:"value" structs:"value"`
 	Signature    string `json:"signature" structs:"signature"`
 	Validity     string `json:"validity" structs:"validity"`
-	ValidityType int `json:"validityType" structs:"validityType"`
-	Sequence     int `json:"sequence" structs:"sequence"`
+	ValidityType int    `json:"validityType" structs:"validityType"`
+	Sequence     int    `json:"sequence" structs:"sequence"`
 	PubKey       string `json:"pubkey" structs:"pubkey"`
 	RootCid      string `json:"root_cid" structs:"root_cid"`
 }
