@@ -7,12 +7,8 @@ import (
 )
 
 func getParcelMetadata(client *redis.Client, parcelID string) (map[string]interface{}, error) {
-	parcelCID, err := client.Get(parcelID).Result()
-	if err != nil {
-		return nil, err
-	}
 
-	parcelMeta, err := client.HGetAll("metadata_" + parcelCID).Result()
+	parcelMeta, err := getParcelInformationFromCollection(client, parcelID, "metadata_")
 	if err != nil {
 		return nil, err
 	}
@@ -33,16 +29,19 @@ func getParcelMetadata(client *redis.Client, parcelID string) (map[string]interf
 }
 
 func getParcelContent(client *redis.Client, parcelID string) (map[string]string, error) {
+	return getParcelInformationFromCollection(client, parcelID, "content_")
+}
+
+func getParcelInformationFromCollection(client *redis.Client, parcelID string, collection string) (map[string]string, error) {
 	parcelCID, err := client.Get(parcelID).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	parcelContent, err := client.HGetAll("content_" + parcelCID).Result()
+	parcelContent, err := client.HGetAll(collection + parcelCID).Result()
 	if err != nil {
 		return nil, err
 	}
-
 
 	return parcelContent, nil
 }
