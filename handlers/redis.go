@@ -38,10 +38,11 @@ func getParcelContent(client *redis.Client, parcelID string) (map[string]string,
 		return nil, err
 	}
 
-	parcelMeta, err := client.HGetAll("content_" + parcelCID).Result()
+	parcelContent, err := client.HGetAll("content_" + parcelCID).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	return parcelMeta, nil
+
+	return parcelContent, nil
 }
