@@ -1,6 +1,6 @@
 server:
-  hostname: 'localhost'
   port: '8000'
+  url: 'http://localhost:8000/'
 
 s3Storage:
   bucket: 'content-service'
@@ -10,6 +10,6 @@ s3Storage:
 localStorage: 'tmp'
 
 redis:
-  address: 'content_service_redis:6379'
+  address: 'localhost:6379'
   password: ''
   DB: 0

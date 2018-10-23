@@ -15,9 +15,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/decentraland/content-service/storage"
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/storage"
 	"github.com/ipsn/go-ipfs/core"
 )
 
@@ -201,7 +201,7 @@ func TestUploadHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if resp.StatusCode == http.StatusMovedPermanently {
 		redirectURL := resp.Header.Get("Location")
 		resp, err = client.Get(redirectURL)
