@@ -2,7 +2,7 @@ FROM golang:1.11.0
 
 RUN mkdir /content-service
 WORKDIR /content-service
-COPY * .
+COPY * /content-service
 
 EXPOSE 8000
 
