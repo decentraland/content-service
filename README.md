@@ -1,10 +1,5 @@
 # Content Service
 
-## Requirements
-
-- [Go 1.11](https://golang.org/dl/)
-- [Docker Compose](https://docs.docker.com/compose/)
-
 ## Configuration
 
 In the base dir you can find the `config.yml` as follows:
@@ -29,25 +24,25 @@ redis:
 
 **Note**: If you use `s3Storage` you need to set AWS environment variables: `AWS_REGION`, `AWS_ACCESS_KEY`, and `AWS_SECRET_KEY`.
 
+## Testing locally
+
+To run the service in your desktop yout must:
+```
+docker build -t 245402993223.dkr.ecr.us-east-1.amazonaws.com/content-redis:latest .
+docker run -d --name content-service-redis -p 6379:6379 --rm redis:4.0.11
+docker run -d --name content-service-golang -p 8000:8000 --rm 245402993223.dkr.ecr.us-east-1.amazonaws.com/content-service:latest
+```
+
 ## Running
 
-First start Redis
+This service runs inside Fargate.
 
-```
-$ make ops
-```
-
-Then you can either build or build and run:
-
-```
-$ make build
-
-$ make run
-```
-
-This (`make run`) will start an instance of the content service server.
 
 ## Endpoints
+Locally: http://localhost:8000
+In Development: `https://content-service.decentraland.zone`
+In Production:  `https://content-service.decentraland.org`
+
 
 ### POST /mappings
 
