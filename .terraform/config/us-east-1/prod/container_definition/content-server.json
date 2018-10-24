@@ -1,0 +1,28 @@
+[
+  {
+    "environment": [{
+      "name": "hostname",
+      "value": "communications-server"
+    },
+    {
+      "name": "name",
+      "value": "communications-server"
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/fargate/service/communications-server/communications-server-prod",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "portMappings": [{
+      "containerPort": 9090,
+      "hostPort": 9090
+    }],
+    "essential": true,
+    "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/communications-server:latest",
+    "memoryReservation": 256,
+    "name": "communications-server"
+  }
+]
