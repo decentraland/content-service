@@ -3,13 +3,13 @@ server:
   url: 'http://localhost:8000/'
 
 s3Storage:
-  bucket: ''
-  acl: ''
-  url: ''
+  bucket: 'content-service'
+  acl: 'public-read'
+  url: 'https://content-service.s3.amazonaws.com/'
 
 localStorage: 'tmp'
 
 redis:
-  address: 'content_service_redis:6379'
+  address: '172.17.0.1:6379'
   password: ''
   DB: 0

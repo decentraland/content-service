@@ -2,27 +2,27 @@
   {
     "environment": [{
       "name": "hostname",
-      "value": "communications-server"
+      "value": "content-service"
     },
     {
       "name": "name",
-      "value": "communications-server"
+      "value": "content-service"
     }],
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/fargate/service/communications-server/communications-server-prod",
+        "awslogs-group": "/fargate/service/content-service/content-service-prod",
         "awslogs-region": "us-east-1",
         "awslogs-stream-prefix": "ecs"
       }
     },
     "portMappings": [{
-      "containerPort": 9090,
-      "hostPort": 9090
+      "containerPort": 8000,
+      "hostPort": 8000
     }],
     "essential": true,
-    "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/communications-server:latest",
+    "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/content-service:latest",
     "memoryReservation": 256,
-    "name": "communications-server"
+    "name": "content-service"
   }
 ]

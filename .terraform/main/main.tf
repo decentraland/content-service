@@ -1,17 +1,17 @@
-#-- terraform/content-server/main.tf
+#-- terraform/content-service/main.tf
 provider "aws" {
   region = "${var.region}"
 }
 
 resource "aws_alb" "this" {
   name            = "${var.alb_name}-${var.env}"
-  subnets         = ["${data.terraform_remote_state.subnets.public_subnets_ids}"]
+  subnets         = ["${data.terraform_remote_state.subnets.app_subnets_ids}"]
   security_groups = "${var.security_groups}"
 }
 
 resource "aws_alb_target_group" "this" {
   name        = "${var.tg_name}-${var.env}"
-  port        = 9090
+  port        = "${var.alb_container_port}"
   protocol    = "HTTP"
   vpc_id      = "${data.terraform_remote_state.vpc.vpc_id}"
   target_type = "ip"
@@ -45,12 +45,12 @@ resource "aws_ecs_task_definition" "this" {
   requires_compatibilities = ["FARGATE"]
   cpu = 256
   memory = 2048
-  container_definitions = "${file("../config/${var.region}/${var.env}/container_definition/content-server.json")}"
+  container_definitions = "${file("../config/${var.region}/${var.env}/container_definition/content-service.json")}"
   execution_role_arn = "${var.execution_role_arn}"
 }
 
 resource "aws_ecs_service" "this" {
-  name            = "content-server-${var.env}"
+  name            = "content-service-${var.env}"
   cluster         = "${var.cluster}-${var.env}"
   task_definition = "${aws_ecs_task_definition.this.family}:${aws_ecs_task_definition.this.revision}"
   launch_type     = "FARGATE"
@@ -75,10 +75,10 @@ resource "aws_ecs_service" "this" {
 }
 
 resource "aws_cloudwatch_log_group" "this" {
-  name              = "/fargate/service/content-server/content-server-${var.env}"
+  name              = "/fargate/service/content-service/content-service-${var.env}"
   retention_in_days = "14"
   tags {
-    Name        = "content-server-${var.env}"
+    Name        = "content-service-${var.env}"
     Environment = "${var.env}"
     Creator     = "terraform"
   }

@@ -20,6 +20,6 @@ data "terraform_remote_state" "subnets" {
 
 terraform {
   backend "s3" {
-    key = "terraform/jenkins/content-server.tfstate"
+    key = "terraform/jenkins/content-service.tfstate"
   }
 }
