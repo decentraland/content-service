@@ -22,7 +22,7 @@ fi
 #    exit 2;
 #fi
 
-case $BRANCH in;
+case $BRANCH in
   master|dev)
             terraform apply -auto-approve \
             -var-file=../config/$REGION/${ENV}/default.backend \
