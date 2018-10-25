@@ -85,7 +85,7 @@ node {
 
               *)
                       cd ${PROJECT}
-                      git checkout development
+                      git checkout $Branch
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
