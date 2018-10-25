@@ -1,5 +1,6 @@
 node {
   stage('Git clone/update') {
+        slackSend "Build Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
         sshagent(credentials : ['content-service']) {
         sh '''
             #Check the content of the payload and extract the Branch
