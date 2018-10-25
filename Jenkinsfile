@@ -6,7 +6,7 @@ node {
     stage('Git clone/update') {
           sshagent(credentials : ['content-service']) {
           sh '''
-              #Check the content of the payload and extract the Branch
+              #Check the  content of the payload and extract the Branch
               Branch=`echo $Branch | awk -F"/" '{print $NF}'`
               git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
               git checkout $Branch
