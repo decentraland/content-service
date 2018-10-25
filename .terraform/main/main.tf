@@ -64,7 +64,7 @@ resource "aws_ecs_service" "this" {
 
   load_balancer {
     target_group_arn = "${aws_alb_target_group.this.id}"
-    container_name   = "${aws_ecs_service.this.name}"
+    container_name   = "${var.alb_container_name}-${var.env}"
     container_port   = "${var.alb_container_port}"
   }
 
