@@ -67,8 +67,8 @@
       }
     },
     "portMappings": [{
-      "containerPort": 8000,
-      "hostPort": 8000
+      "containerPort": 6379,
+      "hostPort": 6379
     }],
     "essential": true,
     "image": "redis:4.0.11",

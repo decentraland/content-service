@@ -35,7 +35,7 @@ case $BRANCH in
            echo " ------------------------------------- "
            echo "| Not deploy, only plan!!....         |"
             echo " ------------------------------------ "
-            terraform plan -auto-approve \
+            terraform plan \
             -var-file=../config/$REGION/${ENV}/default.backend \
             -var-file=../config/$REGION/${ENV}/default.tfvars
   ;;
