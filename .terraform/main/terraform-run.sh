@@ -1,6 +1,7 @@
 #!/bin/bash
 REGION=$1
 ENV=$2
+BRANCH=$3
 
 rm -rfv .terraform terraform.tfstate.backup
 
@@ -21,6 +22,16 @@ fi
 #    exit 2;
 #fi
 
-terraform apply -auto-approve \
-    -var-file=../config/$REGION/${ENV}/default.backend \
-    -var-file=../config/$REGION/${ENV}/default.tfvars
+case $BRANCH in;
+  master|dev)
+            terraform apply -auto-approve \
+            -var-file=../config/$REGION/${ENV}/default.backend \
+            -var-file=../config/$REGION/${ENV}/default.tfvars
+  ;;
+
+  *)
+            terraform apply -auto-approve \
+            -var-file=../config/$REGION/${ENV}/default.backend \
+            -var-file=../config/$REGION/${ENV}/default.tfvars
+  ;;
+esac
