@@ -2,11 +2,11 @@
   {
     "environment": [{
       "name": "hostname",
-      "value": "content_service_golang"
+      "value": "content-service-golang-dev"
     },
     {
       "name": "name",
-      "value": "content_service_golang"
+      "value": "content-service-golang-dev"
     },
     {
       "name": "AWS_REGION",
@@ -35,6 +35,6 @@
     "essential": true,
     "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/content_service_golang:latest",
     "memoryReservation": 256,
-    "name": "content_service_golang"
+    "name": "content-service-golang-dev"
   }
 ]
