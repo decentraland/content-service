@@ -1,0 +1,3 @@
+encrypt = "true"
+bucket = "decentraland-dev-us-east-1"
+region = "us-east-1"

@@ -3,9 +3,9 @@ server:
   url: 'http://localhost:8000/'
 
 s3Storage:
-  bucket: 'content-service'
-  acl: 'public-read'
-  url: 'https://content-service.s3.amazonaws.com/'
+  bucket: ''
+  acl: ''
+  url: ''
 
 localStorage: 'tmp'
 

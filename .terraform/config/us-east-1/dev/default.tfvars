@@ -1,9 +1,9 @@
 region = "us-east-1"
-env = "prod"
+env = "dev"
 cluster = "cl-worldteam"
-execution_role_arn = "arn:aws:iam::245402993223:role/ecsTaskExecutionRole"
-certificate_arn = "arn:aws:acm:us-east-1:245402993223:certificate/c5e285a2-c0e3-4a33-b93e-e4541eda4ea6"
-security_groups = ["sg-079c5e0cc8c3bf6c4"]
+execution_role_arn = "arn:aws:iam::872049612737:role/ecsTaskExecutionRole"
+certificate_arn = "arn:aws:acm:us-east-1:872049612737:certificate/ab0afbe5-9f13-4edc-80ef-1cc7967339eb"
+security_groups = ["sg-042ee236e279c74a3"]
 assign_public_ip = false
 alb_name = "alb-content-service"
 tg_name = "tg-content-service"

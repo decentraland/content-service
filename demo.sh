@@ -46,7 +46,7 @@ echo -n '{
   },
   "communications": {
     "type": "webrtc",
-    "signalling": "https://rendezvous.decentraland.org"
+    "signalling": "https://alb-rendezvous-dev-796159337.us-east-1.elb.amazonaws.com"
   },
   "policy": {
     "fly": true,
@@ -101,4 +101,3 @@ echo '{
   },
   "exclude": ["node_modules"]
 }' > demo/tsconfig.json
-
