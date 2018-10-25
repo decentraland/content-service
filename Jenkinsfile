@@ -74,7 +74,7 @@ node {
             echo "| Launching deploy job....         |"
             echo " ------------------------------------------ "
           '''
-          build job: 'content-service-cd', parameters: [string(name: 'BRANCH', value: "${Branch}")]
+          build job: 'content-service-cd', parameters: [string(name: 'Branch' value: "${Branch}")]
     }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tBranch: *${Branch}* \n\tStatus: *Finished OK*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
   } catch (caughtError) { //End of Try
