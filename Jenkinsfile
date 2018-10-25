@@ -56,7 +56,7 @@ node {
             echo " ------------------------------------------ "
             echo "| Waiting for container startup....         |"
             echo " ------------------------------------------ "
-            sleep 120
+            sleep 60
             docker logs content_service_golang
             echo " ------------------------------------ "
             echo "| Executing demo routine....         |"
@@ -71,16 +71,13 @@ node {
               docker stop content_service_redis content_service_golang
               exit 2
             fi
-            echo " ------------------------------------------ "
-            echo "| Waiting for container to finish....         |"
-            echo " ------------------------------------------ "
             docker stop content_service_redis content_service_golang
           '''
     }
     stage('Image push') {
           sh '''
             echo " ------------------------------------------ "
-            echo "| WPushing to registry....                 |"
+            echo "| Waiting for container to finish....         |"
             echo " ------------------------------------------ "
             docker push ${ECREGISTRY}/${PROJECT}:latest
             docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
@@ -125,7 +122,7 @@ node {
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tBranch: *${Branch}* \n\tStatus: *Finished OK*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
   } catch (caughtError) { //End of Try
     err = caughtError
-    slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: '#FF0000', message: "Project - *${env.PROJECT}* \n\tError: *Look into Jenkins*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
+    slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: '#FF0000', message: "Project - *${env.PROJECT}* \n\tError: ${err}\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     currentBuild.result = "FAILURE"
   }
 }
