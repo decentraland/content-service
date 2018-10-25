@@ -69,6 +69,14 @@ node {
             docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
           '''
     }
+    stage('Launching Deploy') {
+          sh '''
+            echo " ------------------------------------------ "
+            echo "| Launching deploy job....         |"
+            echo " ------------------------------------------ "
+          '''
+          build job: 'content-service-cd', parameters: [[$class: 'StringParameterValue', name: 'BRANCH_NAME', value: "${env.BRANCH_NAME}"]]
+    }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStatus: *Finished OK*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
   } catch (caughtError) { //End of Try
     err = caughtError
