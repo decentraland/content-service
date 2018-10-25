@@ -46,7 +46,7 @@ echo -n '{
   },
   "communications": {
     "type": "webrtc",
-    "signalling": "https://alb-rendezvous-dev-796159337.us-east-1.elb.amazonaws.com"
+    "signalling": "https://rendezvous.decentraland.today"
   },
   "policy": {
     "fly": true,
