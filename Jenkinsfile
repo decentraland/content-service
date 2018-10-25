@@ -32,7 +32,7 @@ node {
             fi
             RUNNING_CONTAINERS=`docker ps -a | awk '{ print $1 }' | grep -v CONTAINER | wc -l`
             if test ${RUNNING_CONTAINERS} -ne 0; then
-              docker ps -a | awk '{ print $1 }' | grep -v CONTAINER | xargs docker rm
+              docker ps -a | awk '{ print $1 }' | grep -v CONTAINER | xargs docker rm -f
             fi
           '''
     }
@@ -66,7 +66,7 @@ node {
             echo " ------------------------------------------ "
             sleep 30
             docker push ${ECREGISTRY}/${PROJECT}:latest
-            docker rmi ${ECREGISTRY}/${PROJECT}:latest
+            docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
           '''
     }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStatus: *Finished OK*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
