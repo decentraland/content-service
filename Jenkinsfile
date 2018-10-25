@@ -9,12 +9,13 @@ node {
               #Check the  content of the payload and extract the Branch
               Branch=`echo $Branch | awk -F"/" '{print $NF}'`
               git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
+              git fetch
+              git pull
               git checkout $Branch
               if test $? -ne 0; then
                 echo "Unable to checkout $Branch."
                 fi
-              git fetch
-              git pull'''
+              '''
             }
     }
     stage('Image building') {
