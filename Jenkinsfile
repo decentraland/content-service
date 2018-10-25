@@ -31,7 +31,7 @@ node {
           fi
         '''
   }
-  stage('Testing') {
+  stage('Tes ting') {
         sh '''
           echo "Here goes the test"
         '''
@@ -42,34 +42,5 @@ node {
           docker rmi ${ECREGISTRY}/${PROJECT}:latest
         '''
         }
-  }
-  stage('Container deploy') {
-        sh '''
-          Branch=`echo $Branch | awk -F"/" '{print $NF}'`
-          REGION="us-east-1"
-
-          #Depending on the Branch is where to Deploy
-          case $Branch in
-            master)
-              ENV="prod"
-              test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
-              ln -s ${JENKINS_HOME}/.aws-${ENV} ${JENKINS_HOME}/.aws
-              cd ${PROJECT}
-              git checkout $Branch
-              cd .terraform/main
-              ./terraform-run.sh ${REGION} ${ENV}
-            ;;
-
-            *)
-            ENV="dev"
-            test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
-            ln -s ${JENKINS_HOME}/.aws-${ENV} ${JENKINS_HOME}/.aws
-            cd ${PROJECT}
-            git checkout $Branch
-            cd .terraform/main
-            ./terraform-run.sh ${REGION} ${ENV}
-            ;;
-          esac
-        '''
   }
 }
