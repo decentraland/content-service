@@ -83,7 +83,7 @@ node {
                       ./terraform-run.sh us-east-1 prod
               ;;
 
-              development)
+              *)
                       cd ${PROJECT}
                       git checkout development
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
