@@ -22,7 +22,7 @@ node {
               git pull'''
             }
           } catch (FlowInterruptedException interruptEx) {
-            slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStep: Git *clone/update*\n\tError: *Error ${e}*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
+            slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'bad', message: "Project - *${env.PROJECT}* \n\tStep: Git *clone/update*\n\tError: *Error ${e}*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
             releaseResources()
             throw interruptEx
           }
