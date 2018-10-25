@@ -36,5 +36,43 @@
     "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/content_service_golang:latest",
     "memoryReservation": 256,
     "name": "content-service-golang-dev"
+  },
+  {
+    "environment": [{
+      "name": "hostname",
+      "value": "content-service-redis-dev"
+    },
+    {
+      "name": "name",
+      "value": "content-service-redis-dev"
+    },
+    {
+      "name": "AWS_REGION",
+      "value": "us-east-1"
+    },
+    {
+      "name": "AWS_ACCESS_KEY",
+      "value": "AKIAJWN42GFHWVY5LPIQ"
+    },
+    {
+      "name": "AWS_SECRET_KEY",
+      "value": "K583KyxsnHMpT8Yle2cPKj3BY6w1QCvHbuYULGO7"
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/fargate/service/content_service_golang/content_service_redis-dev",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "ecs"
+      }
+    },
+    "portMappings": [{
+      "containerPort": 8000,
+      "hostPort": 8000
+    }],
+    "essential": true,
+    "image": "redis:4.0.11",
+    "memoryReservation": 256,
+    "name": "content-service-redis-dev"
   }
 ]

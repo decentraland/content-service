@@ -22,14 +22,19 @@ fi
 #    exit 2;
 #fi
 
+
+
 case $BRANCH in
-  master|dev)
+  master|development)
             terraform apply -auto-approve \
             -var-file=../config/$REGION/${ENV}/default.backend \
             -var-file=../config/$REGION/${ENV}/default.tfvars
   ;;
 
   *)
+           echo " ------------------------------------- "
+           echo "| Not deploy, only plan!!....         |"
+            echo " ------------------------------------ "
             terraform plan -auto-approve \
             -var-file=../config/$REGION/${ENV}/default.backend \
             -var-file=../config/$REGION/${ENV}/default.tfvars

@@ -1,7 +1,7 @@
 FROM golang:1.11.0
 
 RUN mkdir /content-service
-RUN apt-get update && apt-get -y install redis-tools
+RUN apt-get update && apt-get -y install redis-tools vim
 WORKDIR /content-service
 COPY . /content-service/
 
