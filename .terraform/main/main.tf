@@ -5,7 +5,7 @@ provider "aws" {
 
 resource "aws_alb" "this" {
   name            = "${var.alb_name}-${var.env}"
-  subnets         = ["${data.terraform_remote_state.subnets.public_subnets_ids}"]
+  subnets         = ["${data.terraform_remote_state.subnets.app_subnets_ids}"]
   security_groups = "${var.security_groups}"
 }
 
@@ -58,7 +58,7 @@ resource "aws_ecs_service" "this" {
 
   network_configuration {
     security_groups = "${var.security_groups}"
-    subnets         = ["${data.terraform_remote_state.subnets.app_subnets_ids}"]
+    subnets         = ["${data.terraform_remote_state.subnets.public_subnets_ids}"]
     assign_public_ip = "${var.assign_public_ip}"
   }
 
