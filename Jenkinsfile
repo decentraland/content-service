@@ -1,21 +1,20 @@
+def err = null
+
 node {
+  try {
   stage('Git clone/update') {
         slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStep: Git *clone/update*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
-        try {
-          sshagent(credentials : ['content-service']) {
-            sh '''
-              #Check the content of the payload and extract the Branch
-              Branch="dummy"
-              git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
-              git checkout $Branch
-              if test $? -ne 0; then
-                echo "Unable to checkout $Branch."
-                fi
-              git fetch
-              git pull'''
-            }
-          } catch (Error e) {
-            slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'bad', message: "Project - *${env.PROJECT}* \n\tStep: Git *clone/update*\n\tError: *Error ${e}*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
+        sshagent(credentials : ['content-service']) {
+        sh '''
+            #Check the content of the payload and extract the Branch
+            Branch="dummy"
+            git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
+            git checkout $Branch
+            if test $? -ne 0; then
+              echo "Unable to checkout $Branch."
+              fi
+            git fetch
+            git pull'''
           }
   }
   stage('Image building') {
@@ -49,4 +48,8 @@ node {
           docker rmi ${ECREGISTRY}/${PROJECT}:latest
         '''
         }
+}
+} catch (caughtError) { //End of Try
+    err = caughtError
+    currentBuild.result = "FAILURE"
 }
