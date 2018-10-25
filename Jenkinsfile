@@ -71,13 +71,16 @@ node {
               docker stop content_service_redis content_service_golang
               exit 2
             fi
+            echo " ------------------------------------------ "
+            echo "| Waiting for container to finish....         |"
+            echo " ------------------------------------------ "
             docker stop content_service_redis content_service_golang
           '''
     }
     stage('Image push') {
           sh '''
             echo " ------------------------------------------ "
-            echo "| Waiting for container to finish....         |"
+            echo "| WPushing to registry....                 |"
             echo " ------------------------------------------ "
             docker push ${ECREGISTRY}/${PROJECT}:latest
             docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
