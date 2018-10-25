@@ -58,5 +58,4 @@ node {
           docker rmi ${ECREGISTRY}/${PROJECT}:latest
         '''
         }
-  }
 }
