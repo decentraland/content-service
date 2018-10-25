@@ -53,10 +53,11 @@ node {
               exit 2
             fi
             echo " ------------------------------------------ "
-            echo "| Waiting for container statup....         |"
+            echo "| Waiting for container startup....         |"
             echo " ------------------------------------------ "
-            sleep 120
+            sleep 30
             docker logs content_service_golang
+            docker stop content_service_redis content_service_golang
           '''
     }
     stage('Image push') {
@@ -75,7 +76,7 @@ node {
             echo "| Launching deploy job....         |"
             echo " ------------------------------------------ "
           '''
-          build job: 'content-service-cd', parameters: [[$class: 'StringParameterValue', name: 'BRANCH_NAME', value: "${env.BRANCH_NAME}"]]
+          build job: 'content-service-cd', parameters: [[$class: 'StringParameterValue', name: 'BRANCH_NAME', value: $Branch]]
     }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStatus: *Finished OK*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
   } catch (caughtError) { //End of Try
