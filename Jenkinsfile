@@ -61,6 +61,10 @@ node {
     }
     stage('Image push') {
           sh '''
+            echo " ------------------------------------------ "
+            echo "| Waiting for container to finish....         |"
+            echo " ------------------------------------------ "
+            sleep 30
             docker push ${ECREGISTRY}/${PROJECT}:latest
             docker rmi ${ECREGISTRY}/${PROJECT}:latest
           '''
