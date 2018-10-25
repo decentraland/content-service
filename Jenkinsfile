@@ -1,6 +1,6 @@
 node {
   stage('Git clone/update') {
-        slackSend "Build Started - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+        slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: 'Building', teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
         sshagent(credentials : ['content-service']) {
         sh '''
             #Check the content of the payload and extract the Branch
