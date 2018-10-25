@@ -50,7 +50,7 @@ resource "aws_ecs_task_definition" "this" {
 }
 
 resource "aws_ecs_service" "this" {
-  name            = "content-service-${var.env}"
+  name            = "${var.alb_container_name}-${var.env}"
   cluster         = "${var.cluster}-${var.env}"
   task_definition = "${aws_ecs_task_definition.this.family}:${aws_ecs_task_definition.this.revision}"
   launch_type     = "FARGATE"
@@ -64,7 +64,7 @@ resource "aws_ecs_service" "this" {
 
   load_balancer {
     target_group_arn = "${aws_alb_target_group.this.id}"
-    container_name   = "${var.alb_container_name}"
+    container_name   = "${aws_ecs_service.this.name}"
     container_port   = "${var.alb_container_port}"
   }
 

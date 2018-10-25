@@ -10,7 +10,7 @@ terraform init \
   -var-file=../config/${REGION}/${ENV}/default.tfvars
 
 if test $? -ne 0; then
-  echo "Unable ter perform terraform init"
+  echo "Unable to perform terraform init"
   exit 2;
 fi
 
