@@ -1,10 +1,3 @@
-import org.jenkinsci.plugins.workflow.steps.FlowInterruptedException
-
-def releaseResources() {
-    echo "Releasing resources"
-    sleep 10
-}
-
 node {
   stage('Git clone/update') {
         slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStep: Git *clone/update*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
@@ -21,10 +14,8 @@ node {
               git fetch
               git pull'''
             }
-          } catch (FlowInterruptedException interruptEx) {
+          } catch (Error e) {
             slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'bad', message: "Project - *${env.PROJECT}* \n\tStep: Git *clone/update*\n\tError: *Error ${e}*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
-            releaseResources()
-            throw interruptEx
           }
   }
   stage('Image building') {
