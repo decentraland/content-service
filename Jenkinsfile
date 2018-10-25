@@ -73,8 +73,26 @@ node {
             echo " ------------------------------------------ "
             echo "| Launching deploy job....         |"
             echo " ------------------------------------------ "
+            case $Branch in
+              master)
+                      cd ${PROJECT}
+                      git checkout master
+                      test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
+                      ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
+                      cd .terraform/main
+                      ./terraform-run.sh us-east-1 prod
+              ;;
+
+              development)
+                      cd ${PROJECT}
+                      git checkout development
+                      test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
+                      ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
+                      cd .terraform/main
+                      ./terraform-run.sh us-east-1 prod
+              ;;
+            esac
           '''
-          build job: 'content-service-cd', parameters: [string(name: 'Branch' value: ${Branch})]
     }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tBranch: *${Branch}* \n\tStatus: *Finished OK*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
   } catch (caughtError) { //End of Try
