@@ -75,7 +75,7 @@ resource "aws_ecs_service" "this" {
 }
 
 resource "aws_cloudwatch_log_group" "this" {
-  name              = "/fargate/service/content-service/content-service-${var.env}"
+  name              = "/fargate/service/content-service-${var.env}"
   retention_in_days = "14"
   tags {
     Name        = "content-service-${var.env}"
