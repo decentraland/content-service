@@ -7,7 +7,7 @@ node {
           sshagent(credentials : ['content-service']) {
           sh '''
               #Check the content of the payload and extract the Branch
-              Branch="dummy"
+              Branch=`echo $Branch | awk -F"/" '{print $NF}'`
               git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
               git checkout $Branch
               if test $? -ne 0; then
@@ -18,7 +18,6 @@ node {
             }
     }
     stage('Image building') {
-      slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project - *${env.PROJECT}* \n\tStep: Git *Image Building*\n\tJob: *${env.JOB_NAME}*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
       sh '''
             aws ecr get-login --no-include-email | bash
             cd ${PROJECT}
