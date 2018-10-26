@@ -104,7 +104,7 @@ node {
     stage('Launching Deploy') {
           sh '''
             echo " ------------------------------------------ "
-            echo "| Launching deploy job....         |"
+            echo "| Launching deploy job....                 |"
             echo " ------------------------------------------ "
             Branch=`echo $Branch | awk -F"/" '{print $NF}'`
             aws ecr get-login --no-include-email | bash
