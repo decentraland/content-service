@@ -78,6 +78,7 @@ node {
             echo " ------------------------------------ "
             echo "| Attempting to download....         |"
             echo " ------------------------------------ "
+            wget http://localhost:8000/contents/QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672 -O /dev/null
             if test $? -ne 0; then
               echo "ERROR!!, `curl http://localhost:8000/contents/QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672`"
               docker stop content_service_redis content_service_golang
