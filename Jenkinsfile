@@ -20,6 +20,12 @@ node {
     }
     stage('Image building') {
       sh '''
+            case $Branch in
+              master) ECREGISTRY=${ECRESGISTRYPROD}
+              ;;
+              *) ECREGISTRY=${ECRESGISTRYDEV}
+              ;;
+            esac
             aws ecr get-login --no-include-email | bash
             cd ${PROJECT}
             docker build -t ${ECREGISTRY}/${PROJECT}:latest .
@@ -39,6 +45,12 @@ node {
     }
     stage('Testing') {
           sh '''
+            case $Branch in
+              master) ECREGISTRY=${ECRESGISTRYPROD}
+              ;;
+              *) ECREGISTRY=${ECRESGISTRYDEV}
+              ;;
+            esac
             cd ${PROJECT}
             echo " ------------------------------------------ "
             echo "| Starting redis....         |"
@@ -76,6 +88,12 @@ node {
     }
     stage('Image push') {
           sh '''
+            case $Branch in
+              master) ECREGISTRY=${ECRESGISTRYPROD}
+              ;;
+              *) ECREGISTRY=${ECRESGISTRYDEV}
+              ;;
+            esac
             echo " ------------------------------------------ "
             echo "| Waiting for container to finish....         |"
             echo " ------------------------------------------ "
