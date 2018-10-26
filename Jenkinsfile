@@ -89,6 +89,7 @@ node {
             echo "| Launching deploy job....         |"
             echo " ------------------------------------------ "
             Branch=`echo $Branch | awk -F"/" '{print $NF}'`
+            aws ecr get-login --no-include-email | bash
             case $Branch in
               master)
                       cd ${PROJECT}

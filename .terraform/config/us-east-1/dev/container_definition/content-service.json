@@ -33,7 +33,7 @@
       "hostPort": 8000
     }],
     "essential": true,
-    "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/content_service_golang:latest",
+    "image": "245402993223.dkr.ecr.us-east-1.amazonaws.com/content-service:latest",
     "memoryReservation": 256,
     "name": "content-service-golang-dev"
   },
