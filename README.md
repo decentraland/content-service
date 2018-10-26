@@ -30,8 +30,11 @@ This service runs inside Fargate.
 
 
 ## Endpoints
-Locally: http://localhost:8000
+
+Locally: `http://localhost:8000`
+
 In Development: `https://content-service.decentraland.zone`
+
 In Production:  `https://content-service.decentraland.org`
 
 
