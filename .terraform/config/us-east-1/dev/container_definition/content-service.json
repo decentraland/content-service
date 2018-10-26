@@ -23,9 +23,9 @@
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/fargate/service/content-service-dev/content-service-golang-dev",
+        "awslogs-group": "/fargate/service/content-service-dev",
         "awslogs-region": "us-east-1",
-        "awslogs-stream-prefix": "ecs"
+        "awslogs-stream-prefix": "content-service-golang"
       }
     },
     "portMappings": [{
@@ -61,9 +61,9 @@
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/fargate/service/content-service-dev/content-service-redis-dev",
+        "awslogs-group": "/fargate/service/content-service-dev",
         "awslogs-region": "us-east-1",
-        "awslogs-stream-prefix": "ecs"
+        "awslogs-stream-prefix": "content-service-golang"
       }
     },
     "portMappings": [{
