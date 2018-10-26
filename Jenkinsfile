@@ -21,9 +21,9 @@ node {
     stage('Image building') {
       sh '''
             case $Branch in
-              master) ECREGISTRY=${ECRESGISTRYPROD}
+              master) ECREGISTRY=${ECREGISTRYPROD}
               ;;
-              *) ECREGISTRY=${ECRESGISTRYDEV}
+              *) ECREGISTRY=${ECREGISTRYDEV}
               ;;
             esac
             aws ecr get-login --no-include-email | bash
@@ -46,9 +46,9 @@ node {
     stage('Testing') {
           sh '''
             case $Branch in
-              master) ECREGISTRY=${ECRESGISTRYPROD}
+              master) ECREGISTRY=${ECREGISTRYPROD}
               ;;
-              *) ECREGISTRY=${ECRESGISTRYDEV}
+              *) ECREGISTRY=${ECREGISTRYDEV}
               ;;
             esac
             cd ${PROJECT}
@@ -89,9 +89,9 @@ node {
     stage('Image push') {
           sh '''
             case $Branch in
-              master) ECREGISTRY=${ECRESGISTRYPROD}
+              master) ECREGISTRY=${ECREGISTRYPROD}
               ;;
-              *) ECREGISTRY=${ECRESGISTRYDEV}
+              *) ECREGISTRY=${ECREGISTRYDEV}
               ;;
             esac
             echo " ------------------------------------------ "
