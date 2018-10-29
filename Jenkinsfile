@@ -6,7 +6,10 @@ node {
     stage('Build Image') {
           sshagent(credentials : ['content-service']) {
           sh '''
-          PROJECT=${JOB_BASE_NAME}
+          #Retrieveing the job name. This is used as the first part of the image name
+          PROJECT=`echo ${JOB_NAME} | awk -F\/ '{ print $1 }'`
+
+          #Verifying from which registry shall pull the Image, depending on the branch
           case ${BRANCH_NAME} in
             master) ECREGISTRY="245402993223.dkr.ecr.us-east-1.amazonaws.com"
             ;;
@@ -15,6 +18,9 @@ node {
           esac
           aws ecr get-login --no-include-email | bash
           cd ${PROJECT}
+
+          #So far, the last image is tagged as latest.
+          #This must change to commit number
           docker build -t ${ECREGISTRY}/${PROJECT}:latest .
           '''
           }
