@@ -7,7 +7,7 @@ node {
           sshagent(credentials : ['content-service']) {
           sh '''
           #Retrieveing the job name. This is used as the first part of the image name
-          PROJECT=`echo ${JOB_NAME} | awk -F\/ '{ print $1 }'`
+          PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
 
           #Verifying from which registry shall pull the Image, depending on the branch
           case ${BRANCH_NAME} in
