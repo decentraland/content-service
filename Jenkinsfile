@@ -17,10 +17,11 @@ node {
             ;;
           esac
           aws ecr get-login --no-include-email | bash
-
+          ls
+          pwd
           #So far, the last image is tagged as latest.
           #This must change to commit number
-          docker build -t ${ECREGISTRY}/${PROJECT}:latest .
+          #docker build -t ${ECREGISTRY}/${PROJECT}:latest .
           '''
           }
     }
