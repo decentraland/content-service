@@ -16,12 +16,19 @@ node {
             *) ECREGISTRY="872049612737.dkr.ecr.us-east-1.amazonaws.com"
             ;;
           esac
+          git clone ${GIT_URL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
+          git fetch
+          git pull
+          git checkout ${BRANCH_NAME}
+          if test $? -ne 0; then
+            echo "Unable to checkout ${BRANCH_NAME}."
+            fi
           aws ecr get-login --no-include-email | bash
-          ls
-          pwd
           #So far, the last image is tagged as latest.
           #This must change to commit number
           #docker build -t ${ECREGISTRY}/${PROJECT}:latest .
+          pwd
+          ls
           '''
           }
     }
