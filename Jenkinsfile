@@ -81,7 +81,7 @@ node {
             echo " ------------------------------------------ "
             echo "| Waiting for container startup....         |"
             echo " ------------------------------------------ "
-            sleep 90
+            sleep 120
             docker logs content_service_golang
             echo " ------------------------------------ "
             echo "| Executing demo routine....         |"
