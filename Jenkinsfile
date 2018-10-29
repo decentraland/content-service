@@ -1,6 +1,4 @@
 def err = null
-def ECREGISTRYDEV = "872049612737.dkr.ecr.us-east-1.amazonaws.com"
-def ECREGISTRYPROD = "245402993223.dkr.ecr.us-east-1.amazonaws.com"
 
 node {
   try {
@@ -8,10 +6,11 @@ node {
     stage('Build Image') {
           sshagent(credentials : ['content-service']) {
           sh '''
+          PROJECT=${JOB_BASE_NAME}
           case ${BRANCH_NAME} in
-            master) ECREGISTRY=${ECREGISTRYPROD}
+            master) ECREGISTRY="245402993223.dkr.ecr.us-east-1.amazonaws.com"
             ;;
-            *) ECREGISTRY=${ECREGISTRYDEV}
+            *) ECREGISTRY="872049612737.dkr.ecr.us-east-1.amazonaws.com"
             ;;
           esac
           aws ecr get-login --no-include-email | bash
