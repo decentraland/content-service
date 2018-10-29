@@ -8,8 +8,8 @@ node {
           sh '''
           #Retrieveing the job name. This is used as the first part of the image name
           PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
-          GIT_URL="git@github.com:decentraland"
-          
+          REPOURL="git@github.com:decentraland"
+
           #Verifying from which registry shall pull the Image, depending on the branch
           case ${BRANCH_NAME} in
             master) ECREGISTRY="245402993223.dkr.ecr.us-east-1.amazonaws.com"
@@ -17,7 +17,7 @@ node {
             *) ECREGISTRY="872049612737.dkr.ecr.us-east-1.amazonaws.com"
             ;;
           esac
-          git clone ${GIT_URL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
+          git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
           git fetch
           git pull
           git checkout ${BRANCH_NAME}
