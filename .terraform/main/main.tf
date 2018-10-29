@@ -17,7 +17,7 @@ resource "aws_alb_target_group" "this" {
   target_type = "ip"
 
   health_check {
-    healthy_threshold   = "1"
+    healthy_threshold   = "2"
     interval            = "30"
     protocol            = "HTTP"
     matcher             = "200"
