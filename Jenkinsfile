@@ -3,7 +3,7 @@ def err = null
 node {
   try {
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Started...*  \n\tBuild Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
-    stage('Build Image') {
+    stage('Clone repo') {
           sshagent(credentials : ['content-service']) {
           sh '''
           #Retrieveing the job name. This is used as the first part of the image name
@@ -21,15 +21,31 @@ node {
           git fetch
           git pull
           git checkout ${BRANCH_NAME}
-          if test $? -ne 0; then
-            echo "Unable to checkout ${BRANCH_NAME}."
-            fi
+          '''
+    }
+    stage('Build Image') {
+          sshagent(credentials : ['content-service']) {
+          sh '''
+          #Retrieveing the job name. This is used as the first part of the image name
+          PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
+          REPOURL="git@github.com:decentraland"
+
+          #Verifying from which registry shall pull the Image, depending on the branch
+          test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
+          case ${BRANCH_NAME} in
+            master) ECREGISTRY="245402993223.dkr.ecr.us-east-1.amazonaws.com"
+            ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
+            ;;
+            *) ECREGISTRY="872049612737.dkr.ecr.us-east-1.amazonaws.com"
+            ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
+            ;;
+          esac
+
           aws ecr get-login --no-include-email | bash
           #So far, the last image is tagged as latest.
           #This must change to commit number
-          #docker build -t ${ECREGISTRY}/${PROJECT}:latest .
-          pwd
-          ls
+          cd ${PROJECT}
+          docker build -t ${ECREGISTRY}/${PROJECT}:latest .
           '''
           }
     }
