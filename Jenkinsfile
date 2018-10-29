@@ -22,6 +22,7 @@ node {
           git pull
           git checkout ${BRANCH_NAME}
           '''
+        }
     }
     stage('Build Image') {
           sshagent(credentials : ['content-service']) {
