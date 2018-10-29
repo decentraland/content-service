@@ -218,3 +218,4 @@ $ make replicate
 You will recieve a prompt to input the map coordinates for the NW and SE parcels.
 
 This program connects to the server url provided in `config.yml`. It stores the data files in the dir specified by `localstorage` and populates the Redis instance defined in the `redis` field.
+
