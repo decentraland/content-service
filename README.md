@@ -7,7 +7,7 @@ In the base dir you can find the `config.yml` as follows:
 ```
 server:
   port: '8000'                  # port to use for server
-  url: 'http://localhost:8000'  # server URL (used in the replication script)
+  url: 'http://127.0.0.1:8000'  # server URL (used in the replication script)
 
 s3Storage:
   bucket: ''        # Bucket to use in S3
@@ -26,12 +26,15 @@ redis:
 
 ## Running
 
-This service runs inside Fargate.
+This service runs inside AWS Fargate.
 
 
 ## Endpoints
-Locally: http://localhost:8000
+
+Locally: `http://localhost:8000`
+
 In Development: `https://content-service.decentraland.zone`
+
 In Production:  `https://content-service.decentraland.org`
 
 
@@ -215,3 +218,4 @@ $ make replicate
 You will recieve a prompt to input the map coordinates for the NW and SE parcels.
 
 This program connects to the server url provided in `config.yml`. It stores the data files in the dir specified by `localstorage` and populates the Redis instance defined in the `redis` field.
+

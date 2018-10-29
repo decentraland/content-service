@@ -81,7 +81,7 @@ node {
             echo " ------------------------------------------ "
             echo "| Waiting for container startup....         |"
             echo " ------------------------------------------ "
-            sleep 90
+            sleep 120
             docker logs content_service_golang
             echo " ------------------------------------ "
             echo "| Executing demo routine....         |"
@@ -128,9 +128,8 @@ node {
             echo " ------------------------------------------ "
             echo "| Launching deploy job....                 |"
             echo " ------------------------------------------ "
-            Branch=`echo $Branch | awk -F"/" '{print $NF}'`
             aws ecr get-login --no-include-email | bash
-            case $Branch in
+            case $BRANCH_NAME in
               master)
                       cd ${PROJECT}
                       git checkout master
@@ -151,11 +150,11 @@ node {
 
               *)
                       cd ${PROJECT}
-                      git checkout $Branch
+                      git checkout $BRANCH_NAME
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev $Branch
+                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME
               ;;
             esac
           '''
