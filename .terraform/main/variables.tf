@@ -61,3 +61,7 @@ variable "family" {
 variable "cluster" {
   description = "Cluster name"
 }
+
+variable "matcher" {
+  description = "Error Matcher"
+}
