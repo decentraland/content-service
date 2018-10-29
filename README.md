@@ -26,7 +26,7 @@ redis:
 
 ## Running
 
-This service runs inside Fargate.
+This service runs inside AWS Fargate.
 
 
 ## Endpoints
