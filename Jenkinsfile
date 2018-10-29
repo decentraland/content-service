@@ -120,6 +120,46 @@ node {
           docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
           '''
     }
+    stage('Launching Deploy') {
+          sh '''
+            #Retrieveing the job name. This is used as the first part of the image name
+            PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
+            REPOURL="git@github.com:decentraland"
+            echo " ------------------------------------------ "
+            echo "| Launching deploy job....                 |"
+            echo " ------------------------------------------ "
+            Branch=`echo $Branch | awk -F"/" '{print $NF}'`
+            aws ecr get-login --no-include-email | bash
+            case $Branch in
+              master)
+                      cd ${PROJECT}
+                      git checkout master
+                      test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
+                      ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
+                      cd .terraform/main
+                      ./terraform-run.sh us-east-1 prod master
+              ;;
+
+              development)
+                      cd ${PROJECT}
+                      git checkout development
+                      test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
+                      ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
+                      cd .terraform/main
+                      ./terraform-run.sh us-east-1 dev development
+              ;;
+
+              *)
+                      cd ${PROJECT}
+                      git checkout $Branch
+                      test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
+                      ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
+                      cd .terraform/main
+                      ./terraform-run.sh us-east-1 dev $Branch
+              ;;
+            esac
+          '''
+    }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Finished OK*  \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
   } catch (caughtError) { //End of Try
     err = caughtError
