@@ -17,7 +17,6 @@ node {
             ;;
           esac
           aws ecr get-login --no-include-email | bash
-          cd ${PROJECT}
 
           #So far, the last image is tagged as latest.
           #This must change to commit number
