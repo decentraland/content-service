@@ -4,4 +4,4 @@ demo/
 .vscode/
 *.tar.gz
 a.out
-.terraform/main/.terraform
+.terraform/main/.terraform/*

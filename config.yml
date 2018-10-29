@@ -3,9 +3,9 @@ server:
   url: 'http://localhost:8000/'
 
 s3Storage:
-  bucket: ''
-  acl: ''
-  url: ''
+  bucket: 'content-service'
+  acl: 'public-read'
+  url: 'https://content-service.decentraland.zone'
 
 localStorage: 'tmp'
 
