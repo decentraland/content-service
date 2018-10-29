@@ -7,7 +7,7 @@ In the base dir you can find the `config.yml` as follows:
 ```
 server:
   port: '8000'                  # port to use for server
-  url: 'http://localhost:8000'  # server URL (used in the replication script)
+  url: 'http://127.0.0.1:8000'  # server URL (used in the replication script)
 
 s3Storage:
   bucket: ''        # Bucket to use in S3
