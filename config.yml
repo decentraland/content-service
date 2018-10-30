@@ -3,7 +3,7 @@ server:
   url: 'http://127.0.0.1:8000/'
 
 s3Storage:
-  bucket: 'content-service'
+  bucket: 'content-service.decentraland.zone'
   acl: 'public-read'
   url: 'https://content-service.decentraland.zone'
 
