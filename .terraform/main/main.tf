@@ -21,8 +21,8 @@ resource "aws_alb_target_group" "this" {
     healthy_threshold   = "2"
     interval            = "30"
     protocol            = "HTTP"
-    matcher             = "200"
-    timeout             = "3"
+    matcher             = "${var.matcher}"
+    timeout             = "5"
     path                = "${var.health_check_path}"
     unhealthy_threshold = "5"
   }
@@ -44,8 +44,8 @@ resource "aws_ecs_task_definition" "this" {
   family = "${var.family}-${var.env}"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu = 256
-  memory = 2048
+  cpu = 4096
+  memory = 8192
   container_definitions = "${file("../config/${var.region}/${var.env}/container_definition/content-service.json")}"
   execution_role_arn = "${var.execution_role_arn}"
 }

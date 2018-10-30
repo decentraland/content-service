@@ -14,13 +14,13 @@ if test $? -ne 0; then
   exit 2;
 fi
 
-terraform destroy -auto-approve \
--var-file=../config/$REGION/${ENV}/default.backend \
--var-file=../config/$REGION/${ENV}/default.tfvars
-  if test $? -ne 0; then
-    echo "Unable ter perform terraform destroy"
-    exit 2;
-fi
+#terraform destroy -auto-approve \
+#-var-file=../config/$REGION/${ENV}/default.backend \
+#-var-file=../config/$REGION/${ENV}/default.tfvars
+#  if test $? -ne 0; then
+##    echo "Unable ter perform terraform destroy"
+#    exit 2;
+#fi
 
 
 
