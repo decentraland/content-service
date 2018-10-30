@@ -7,8 +7,8 @@ resource "aws_ecs_task_definition" "this" {
   family = "${var.family}-${var.env}"
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu = 256
-  memory = 2048
+  cpu = 4096
+  memory = 16384
   container_definitions = "${file("../config/${var.region}/${var.env}/container_definition/content-service.json")}"
   execution_role_arn = "${var.execution_role_arn}"
 }

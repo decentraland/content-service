@@ -10,6 +10,6 @@ s3Storage:
 localStorage: 'tmp'
 
 redis:
-  address: '127.0.0.1:6379'
+  address: 'content-s-redis-dev.on6tjm.ng.0001.use1.cache.amazonaws.com:6379'
   password: ''
   DB: 0
