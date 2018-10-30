@@ -1,15 +1,15 @@
 server:
-  hostname: 'localhost'
   port: '8000'
+  url: 'http://localhost:8000/'
 
 s3Storage:
-  bucket: 'content-service'
-  acl: 'public-read'
-  url: 'https://content-service.decentraland.zone/'
+  bucket: ''
+  acl: ''
+  url: ''
 
 localStorage: 'tmp'
 
 redis:
-  address: 'content_service_redis:6379'
+  address: 'localhost:6379'
   password: ''
   DB: 0
