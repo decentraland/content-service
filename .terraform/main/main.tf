@@ -15,6 +15,7 @@ resource "aws_alb_target_group" "this" {
   protocol    = "HTTP"
   vpc_id      = "${data.terraform_remote_state.vpc.vpc_id}"
   target_type = "ip"
+  deregistration_delay = "${var.deregistration_delay}"
 
   health_check {
     healthy_threshold   = "2"
