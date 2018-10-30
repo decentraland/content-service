@@ -44,7 +44,7 @@ resource "aws_ecs_task_definition" "this" {
   network_mode = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu = 4096
-  memory = 16384
+  memory = 8192
   container_definitions = "${file("../config/${var.region}/${var.env}/container_definition/content-service.json")}"
   execution_role_arn = "${var.execution_role_arn}"
 }
@@ -58,7 +58,7 @@ resource "aws_ecs_service" "this" {
 
   network_configuration {
     security_groups = "${var.security_groups}"
-    subnets         = ["${data.terraform_remote_state.subnets.public_subnets_ids}"]
+    subnets         = ["${data.terraform_remote_state.subnets.app_subnets_ids}"]
     assign_public_ip = "${var.assign_public_ip}"
   }
 
@@ -71,6 +71,7 @@ resource "aws_ecs_service" "this" {
   depends_on = [
     "aws_alb_listener.this",
     ]
+
 }
 
 resource "aws_cloudwatch_log_group" "this" {
