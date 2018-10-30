@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -20,7 +20,7 @@ var client *redis.Client
 
 func init() {
 	conf = config.GetConfig("config")
-	
+
 	client = redis.NewClient(&redis.Options{
 		Addr:     conf.Redis.Address,
 		Password: conf.Redis.Password,

@@ -2,17 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
-	"net/http"
-	"strconv"
-
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	"net/http"
+	"strconv"
 )
 
 type ParcelContent struct {
-	ParcelID string            `json:"parcel_id"`
-	Contents map[string]string `json:"contents"`
+	ParcelID  string            `json:"parcel_id"`
+	Contents  map[string]string `json:"contents"`
+	RootCID   string            `json:"root_cid"`
+	Publisher string            `json:"publisher"`
 }
 
 type MappingsHandler struct {
@@ -26,8 +26,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
@@ -37,23 +36,19 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	var mapContents []ParcelContent
 	for _, parcel := range parcels {
-		contents, err := getParcelContent(handler.RedisClient, parcel.ID)
-		// If parcel is not found ignore and keep going
-		if err == redis.Nil {
-			continue
-		} else if err != nil {
-			log.Println(err)
-			http.Error(w, http.StatusText(500), 500)
+		content, err := getParcelInformation(handler.RedisClient, parcel.ID)
+		if err != nil {
+			handle500(w, err)
 			return
 		}
-
-		mapContents = append(mapContents, ParcelContent{ParcelID: parcel.ID, Contents: contents})
+		if content.Contents != nil {
+			mapContents = append(mapContents, content)
+		}
 	}
 
 	contentsJSON, err := json.Marshal(mapContents)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
@@ -61,10 +56,29 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(200)
 	_, err = w.Write(contentsJSON)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
+}
+
+/**
+Retrieves the consolidated information of a given Parcel <ParcelContent>
+if the parcel does not exists, the ParcelContent.Contents will be nil
+*/
+func getParcelInformation(client *redis.Client, parcelId string) (ParcelContent, error) {
+	var pc ParcelContent
+	content, err := getParcelContent(client, parcelId)
+
+	if err == redis.Nil {
+		return pc, nil
+	} else if err != nil {
+		return pc, err
+	}
+	metadata, err := getParcelMetadata(client, parcelId)
+	if err != nil {
+		return pc, err
+	}
+	return ParcelContent{ParcelID: parcelId, Contents: content, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
 }
 
 func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {

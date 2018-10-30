@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/go-redis/redis"
@@ -21,18 +20,16 @@ func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	parcelMeta, err := getParcelMetadata(handler.RedisClient, parcelID)
 	if err == redis.Nil {
-		http.Error(w, http.StatusText(404), 404)
+		handle400(w, 404, "Parcel metadata not found")
 		return
 	} else if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
 	metadataJSON, err := json.Marshal(parcelMeta)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 
@@ -40,8 +37,7 @@ func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(200)
 	_, err = w.Write(metadataJSON)
 	if err != nil {
-		log.Println(err)
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, err)
 		return
 	}
 }

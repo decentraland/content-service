@@ -6,3 +6,7 @@ demo/
 a.out
 .terraform/main/.terraform
 .git
+
+.idea/*
+.DS_Store
+tmp/
