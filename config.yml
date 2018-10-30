@@ -10,6 +10,6 @@ s3Storage:
 localStorage: 'tmp'
 
 redis:
-  address: '172.17.0.1:6379'
+  address: '127.0.0.1:6379'
   password: ''
   DB: 0
