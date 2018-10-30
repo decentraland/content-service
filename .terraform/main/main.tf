@@ -5,7 +5,7 @@ provider "aws" {
 
 resource "aws_alb" "this" {
   name            = "${var.alb_name}-${var.env}"
-  subnets         = ["${data.terraform_remote_state.subnets.app_subnets_ids}"]
+  subnets         = ["${data.terraform_remote_state.subnets.public_subnets_ids}"]
   security_groups = "${var.security_groups}"
 }
 
@@ -20,8 +20,8 @@ resource "aws_alb_target_group" "this" {
     healthy_threshold   = "2"
     interval            = "30"
     protocol            = "HTTP"
-    matcher             = "200"
-    timeout             = "3"
+    matcher             = "${var.matcher}"
+    timeout             = "5"
     path                = "${var.health_check_path}"
     unhealthy_threshold = "5"
   }
