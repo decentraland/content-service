@@ -198,7 +198,7 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, filesMeta []FileMetadat
 
 		fileHeader := files[meta.Cid][0]
 		dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
-		filePath := filepath.Join(dir, fileHeader.Filename)
+		filePath := filepath.Join(dir, filepath.Base(meta.Name))
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
