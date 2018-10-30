@@ -2,3 +2,7 @@ cache/
 content-service
 demo/
 .vscode/
+
+.idea/*
+.DS_Store
+tmp/
