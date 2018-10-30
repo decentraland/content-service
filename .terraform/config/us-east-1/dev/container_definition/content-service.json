@@ -23,7 +23,7 @@
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/fargate/service/content-service-dev",
+        "awslogs-group": "content-service-dev",
         "awslogs-region": "us-east-1",
         "awslogs-stream-prefix": "content-service-golang"
       }

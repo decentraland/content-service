@@ -24,34 +24,12 @@ variable "assign_public_ip" {
   description = "Security group IDs"
 }
 
-
-#When you use a alb. Esle remove this aws_ecs_task_definition
-variable "alb_name" {
-  description = "name of the ALB"
-}
-
-variable "tg_name" {
-  description = "name of the target group"
-}
-
-variable "health_check_path" {
-  description = "path of the health_check"
-}
-
-variable "listener_port" {
-  description = "Port where the alb listens"
-}
-
 variable "alb_container_name" {
   description = "Name of the container receiving traffic from internet via alb."
 }
 
 variable "alb_container_port" {
   description = "Port number running on the container receiving traffic from internet."
-}
-
-variable "certificate_arn" {
-  description = "SSL certificate"
 }
 
 variable "family" {
@@ -62,10 +40,6 @@ variable "cluster" {
   description = "Cluster name"
 }
 
-variable "matcher" {
-  description = "Error Matcher"
-}
-
-variable "deregistration_delay" {
-  description = "The amount time for Elastic Load Balancing to wait before changing the state of a deregistering target from draining to unused."
+variable "tg_arn" {
+  description = "arn of the alb previously created"
 }
