@@ -4,5 +4,5 @@ demo/
 .vscode/
 *.tar.gz
 a.out
-.terraform/main/.terraform/*
-.git/*
+.terraform/main/.terraform
+.git
