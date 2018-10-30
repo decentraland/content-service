@@ -5,7 +5,7 @@ server:
 s3Storage:
   bucket: 'content-service.decentraland.zone'
   acl: 'public-read'
-  url: 'https://content-service.decentraland.zone'
+  url: 'https://s3.amazonaws.com/content-service.decentraland.zone/'
 
 localStorage: 'tmp'
 
