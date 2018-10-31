@@ -70,6 +70,7 @@ node {
               ;;
             esac
             cd ${PROJECT}
+            LASTCOMMIT=`git rev-parse HEAD`
             echo " ------------------------------------------ "
             echo "| Starting redis....         |"
             echo " ------------------------------------------ "
