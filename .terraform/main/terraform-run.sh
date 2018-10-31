@@ -58,4 +58,7 @@ case $BRANCH in
             -var-file=../config/$REGION/${ENV}/default.tfvars
   ;;
 esac
-git stash
+echo " ------------------------------------- "
+echo "| Cleaning local changes....         |"
+echo " ------------------------------------ "
+git clean -f -d -X
