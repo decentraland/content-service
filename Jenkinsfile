@@ -141,29 +141,28 @@ node {
             echo "| Launching deploy job....                 |"
             echo " ------------------------------------------ "
             aws ecr get-login --no-include-email | bash
+            cd ${PROJECT}
+            LASTCOMMIT=`git rev-parse HEAD`
             case $BRANCH_NAME in
               master)
-                      cd ${PROJECT}
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 prod master ${PROJECT}
+                      ./terraform-run.sh us-east-1 prod master ${PROJECT} ${LASTCOMMIT}
               ;;
 
               development)
-                      cd ${PROJECT}
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev development ${PROJECT}
+                      ./terraform-run.sh us-east-1 dev development ${PROJECT} ${LASTCOMMIT}
               ;;
 
               *)
-                      cd ${PROJECT}
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME ${PROJECT}
+                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME ${PROJECT} ${LASTCOMMIT}
               ;;
             esac
           '''

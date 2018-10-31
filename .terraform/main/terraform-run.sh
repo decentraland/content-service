@@ -3,13 +3,9 @@ REGION=$1
 ENV=$2
 BRANCH=$3
 PROJECT=$4
+LASTCOMMIT=$5
 CONTAINER_DEFINITION_FILE="container-definition.json"
 
-export LASTCOMMIT=`git rev-parse HEAD`
-if test $? -ne 0; then
-  echo "Unable to get commit number"
-  exit 2;
-fi
 echo " ------------------------------------- "
 echo "| Using commit number: ${LASTCOMMIT} "
 echo " ------------------------------------  "
