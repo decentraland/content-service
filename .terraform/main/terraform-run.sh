@@ -5,15 +5,14 @@ BRANCH=$3
 PROJECT=$4
 CONTAINER_DEFINITION_FILE="container-definition.json"
 
-echo " ------------------------------------- "
-echo "| Getting commit number: ${GIT_COMMIT} "
-echo " ------------------------------------  "
-
 export LASTCOMMIT=`git rev-parse HEAD`
 if test $? -ne 0; then
   echo "Unable to get commit number"
   exit 2;
 fi
+echo " ------------------------------------- "
+echo "| Using commit number: ${LASTCOMMIT} "
+echo " ------------------------------------  "
 
 cd ../config/${REGION}/${ENV}
 sed "s/tag-number/${LASTCOMMIT}/g" ${CONTAINER_DEFINITION_FILE} > tmp.json
@@ -62,4 +61,3 @@ esac
 echo " ------------------------------------- "
 echo "| Cleaning local changes....         |"
 echo " ------------------------------------ "
-git clean -f -d -X
