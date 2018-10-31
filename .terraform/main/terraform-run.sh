@@ -54,6 +54,3 @@ case $BRANCH in
             -var-file=../config/$REGION/${ENV}/default.tfvars
   ;;
 esac
-echo " ------------------------------------- "
-echo "| Cleaning local changes....         |"
-echo " ------------------------------------ "
