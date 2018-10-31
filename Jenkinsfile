@@ -19,7 +19,7 @@ node {
           esac
           git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
           git checkout ${BRANCH_NAME}
-          git clean -f -d -x
+          git reset --hard
           git fetch
           git pull
 
