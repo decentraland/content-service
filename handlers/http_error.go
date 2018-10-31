@@ -17,7 +17,6 @@ func handle400(w http.ResponseWriter, code int, msg string) {
 		return
 	}
 
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_, err = w.Write(errorJSON)
