@@ -9,7 +9,7 @@ resource "aws_ecs_task_definition" "this" {
   requires_compatibilities = ["FARGATE"]
   cpu = 4096
   memory = 8192
-  container_definitions = "${file("../config/${var.region}/${var.env}/container_definition/content-service.json")}"
+  container_definitions = "${file("../config/${var.region}/${var.env}/content-service.json")}"
   execution_role_arn = "${var.execution_role_arn}"
 }
 
