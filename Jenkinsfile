@@ -51,7 +51,7 @@ node {
           echo " ------------------------------------------ "
           echo "| Building commit ${LASTCOMMIT} from branch `git checkout`...         |"
           echo " ------------------------------------------ "
-          docker build -t ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}.
+          docker build -t ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT} .
           '''
           }
     }
@@ -77,7 +77,7 @@ node {
             echo " ----------------------------- "
             echo "| starting golang....         |"
             echo " ----------------------------- "
-            docker run -d --name content_service_golang -p 8000:8000 --rm ${ECREGISTRY}/${PROJECT}:latest
+            docker run -d --name content_service_golang -p 8000:8000 --rm ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
             if test $? -ne 0; then
               echo "ERROR!!, `docker logs content_service_golang`"
               docker stop -t 1 content_service_redis content_service_golang
@@ -124,10 +124,10 @@ node {
           cd ${PROJECT}
           LASTCOMMIT=`git rev-parse HEAD`
           echo " ------------------------------------------ "
-          echo "| Building commit ${LASTCOMMIT} from branch `git checkout`...         |"
+          echo "| Building commit ${LASTCOMMIT} . `git checkout`...         |"
           echo " ------------------------------------------ "
-          docker push ${ECREGISTRY}/${PROJECT}:latest
-          docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
+          docker push ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
+          docker rmi -f ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
           '''
     }
     stage('Launching Deploy') {
