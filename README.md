@@ -29,6 +29,12 @@ redis:
 
 **Note**: If you use `s3Storage` you need to set AWS environment variables: `AWS_REGION`, `AWS_ACCESS_KEY`, and `AWS_SECRET_KEY`.
 
+## Setup Environment 
+
+```
+$ make init
+```
+
 ## Running
 
 First start Redis
