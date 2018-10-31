@@ -2,6 +2,24 @@
 REGION=$1
 ENV=$2
 BRANCH=$3
+CONTAINER_DEFINITION_FILE="container-definition.json"
+
+echo " ------------------------------------- "
+echo "| Getting commit number: ${GIT_COMMIT}               |"
+echo " ------------------------------------  "
+
+export LASTCOMMIT=`git rev-parse HEAD`
+if test $? -ne 0; then
+  echo "Unable to get commit number"
+  exit 2;
+fi
+
+cd ../config/${REGION}/${ENV}
+sed "s/tag-number/${LASTCOMMIT}/g" ${CONTAINER_DEFINITION_FILE} > tmp.json
+mv tmp.json ${CONTAINER_DEFINITION_FILE}
+cat ${CONTAINER_DEFINITION_FILE}
+cd ${WORKSPACE}/${PROJECT}/.terraform/main
+
 
 rm -rfv .terraform terraform.tfstate.backup
 
@@ -40,3 +58,4 @@ case $BRANCH in
             -var-file=../config/$REGION/${ENV}/default.tfvars
   ;;
 esac
+git stash
