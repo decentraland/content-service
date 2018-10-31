@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"fmt"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -64,9 +64,9 @@ func GetRouter(config *config.Configuration, client *redis.Client, node *core.Ip
 	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 
 	uploadHandler := handlers.UploadHandler{
-		Storage: storage,
-		RedisClient:  client,
-		IpfsNode:     node,
+		Storage:     storage,
+		RedisClient: client,
+		IpfsNode:    node,
 	}
 	r.Handle("/mappings", &uploadHandler).Methods("POST")
 
