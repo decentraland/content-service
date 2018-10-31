@@ -1,6 +1,9 @@
 [
   {
     "environment": [{
+      "name": "commit-number",
+      "value": "tag-number"
+    },{
       "name": "hostname",
       "value": "content-service-golang-dev"
     },
@@ -33,7 +36,7 @@
       "hostPort": 8000
     }],
     "essential": true,
-    "image": "872049612737.dkr.ecr.us-east-1.amazonaws.com/content-service:latest",
+    "image": "872049612737.dkr.ecr.us-east-1.amazonaws.com/content-service:tag-number",
     "memoryReservation": 8192,
     "name": "content-service-golang-dev"
   }
