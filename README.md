@@ -5,6 +5,12 @@
 - [Go 1.11](https://golang.org/dl/)
 - [Docker Compose](https://docs.docker.com/compose/)
 
+## Setup Environment 
+
+```
+$ make init
+```
+
 ## Configuration
 
 In the base dir you can find the `config.yml` as follows:
@@ -28,12 +34,6 @@ redis:
 ```
 
 **Note**: If you use `s3Storage` you need to set AWS environment variables: `AWS_REGION`, `AWS_ACCESS_KEY`, and `AWS_SECRET_KEY`.
-
-## Setup Environment 
-
-```
-$ make init
-```
 
 ## Running
 
