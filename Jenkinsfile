@@ -137,7 +137,7 @@ node {
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 prod master
+                      ./terraform-run.sh us-east-1 prod master ${PROJECT}
               ;;
 
               development)
@@ -146,7 +146,7 @@ node {
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev development
+                      ./terraform-run.sh us-east-1 dev development ${PROJECT}
               ;;
 
               *)
@@ -155,7 +155,7 @@ node {
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME
+                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME ${PROJECT}
               ;;
             esac
           '''

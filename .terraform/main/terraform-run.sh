@@ -2,6 +2,7 @@
 REGION=$1
 ENV=$2
 BRANCH=$3
+PROJECT=$4
 CONTAINER_DEFINITION_FILE="container-definition.json"
 
 echo " ------------------------------------- "
