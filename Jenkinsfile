@@ -18,6 +18,7 @@ node {
             ;;
           esac
           git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
+          git stash
           git fetch
           git pull
           git checkout ${BRANCH_NAME}
