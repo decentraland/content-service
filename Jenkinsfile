@@ -18,10 +18,11 @@ node {
             ;;
           esac
           git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
-          git clean -f -d -X
+          git checkout ${BRANCH_NAME}
+          git reset --hard
           git fetch
           git pull
-          git checkout ${BRANCH_NAME}
+
           '''
         }
     }
@@ -47,7 +48,11 @@ node {
           #So far, the last image is tagged as latest.
           #This must change to commit number
           cd ${PROJECT}
-          docker build -t ${ECREGISTRY}/${PROJECT}:latest .
+          LASTCOMMIT=`git rev-parse HEAD`
+          echo " ------------------------------------------ "
+          echo "| Building commit ${LASTCOMMIT} from branch `git checkout`...         |"
+          echo " ------------------------------------------ "
+          docker build -t ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT} .
           '''
           }
     }
@@ -66,6 +71,7 @@ node {
               ;;
             esac
             cd ${PROJECT}
+            LASTCOMMIT=`git rev-parse HEAD`
             echo " ------------------------------------------ "
             echo "| Starting redis....         |"
             echo " ------------------------------------------ "
@@ -73,7 +79,7 @@ node {
             echo " ----------------------------- "
             echo "| starting golang....         |"
             echo " ----------------------------- "
-            docker run -d --name content_service_golang -p 8000:8000 --rm ${ECREGISTRY}/${PROJECT}:latest
+            docker run -d --name content_service_golang -p 8000:8000 --rm ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
             if test $? -ne 0; then
               echo "ERROR!!, `docker logs content_service_golang`"
               docker stop -t 1 content_service_redis content_service_golang
@@ -118,8 +124,13 @@ node {
           echo " ------------------------------------------ "
           echo "| Waiting for container to finish....         |"
           echo " ------------------------------------------ "
-          docker push ${ECREGISTRY}/${PROJECT}:latest
-          docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
+          cd ${PROJECT}
+          LASTCOMMIT=`git rev-parse HEAD`
+          echo " ------------------------------------------ "
+          echo "| Building commit ${LASTCOMMIT} . `git checkout`...         |"
+          echo " ------------------------------------------ "
+          docker push ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
+          docker rmi -f ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
           '''
     }
     stage('Launching Deploy') {
