@@ -105,6 +105,7 @@ node {
           #Retrieveing the job name. This is used as the first part of the image name
           PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
           REPOURL="git@github.com:decentraland"
+          LASTCOMMIT=`cd ${PROJECT} && git rev-parse HEAD`
           test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
           case ${BRANCH_NAME} in
               master) ECREGISTRY="245402993223.dkr.ecr.us-east-1.amazonaws.com"
