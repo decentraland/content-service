@@ -143,7 +143,6 @@ node {
             case $BRANCH_NAME in
               master)
                       cd ${PROJECT}
-                      git checkout master
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
                       cd .terraform/main
@@ -152,7 +151,6 @@ node {
 
               development)
                       cd ${PROJECT}
-                      git checkout development
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
@@ -161,7 +159,6 @@ node {
 
               *)
                       cd ${PROJECT}
-                      git checkout $BRANCH_NAME
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
