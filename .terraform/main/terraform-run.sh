@@ -5,7 +5,7 @@ BRANCH=$3
 CONTAINER_DEFINITION_FILE="container-definition.json"
 
 echo " ------------------------------------- "
-echo "| Getting commit number: ${GIT_COMMIT}               |"
+echo "| Getting commit number: ${GIT_COMMIT} "
 echo " ------------------------------------  "
 
 export LASTCOMMIT=`git rev-parse HEAD`
