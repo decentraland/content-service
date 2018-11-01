@@ -29,7 +29,7 @@ if test $? -ne 0; then
 fi
 
 case $BRANCH in
-  master|development)
+  master|development|staging)
             terraform destroy -auto-approve \
             -var-file=../config/$REGION/${ENV}/default.backend \
             -var-file=../config/$REGION/${ENV}/default.tfvars
