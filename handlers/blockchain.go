@@ -44,8 +44,10 @@ type estate struct {
 	} `json:"data"`
 }
 
+var landApi string
+
 func getParcel(x, y int) (*parcel, error) {
-	url := fmt.Sprintf("https://api.decentraland.org/v1/parcels/%d/%d", x, y)
+	url := fmt.Sprintf(landApi+"/parcels/%d/%d", x, y)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -61,7 +63,7 @@ func getParcel(x, y int) (*parcel, error) {
 }
 
 func getEstate(id int) (*estate, error) {
-	url := fmt.Sprintf("https://api.decentraland.org/v1/estates/%d", id)
+	url := fmt.Sprintf(landApi+"/estates/%d", id)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -81,7 +83,7 @@ func getEstate(id int) (*estate, error) {
 }
 
 func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
-	url := fmt.Sprintf("https://api.decentraland.org/v1/map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
+	url := fmt.Sprintf(landApi+"/map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, nil, err
@@ -94,4 +96,9 @@ func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
 	}
 
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
+}
+
+// Setup the decentraland server address.
+func InitDclClient(address string) {
+	landApi = address
 }

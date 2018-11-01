@@ -13,3 +13,6 @@ redis:
   address: 'content_service_redis:6379'
   password: ''
   DB: 0
+
+decentraland:
+  landApi: 'https://api.decentraland.org/v1'

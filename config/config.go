@@ -24,6 +24,10 @@ type Configuration struct {
 		Password string
 		DB       int
 	}
+
+	Decentraland struct {
+		LandApi string
+	}
 }
 
 // GetConfig populates a Configuration struct from a config file

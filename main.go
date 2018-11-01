@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,6 +19,11 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	configParams := config.GetConfig("config")
+
+	//Initialize Decentraland client
+	if err := initDclClient(configParams); err != nil {
+		log.Fatal(err)
+	}
 
 	// Initialize Redis client
 	client, err := initRedisClient(configParams)
@@ -56,6 +62,15 @@ func initIpfsNode() (*core.IpfsNode, error) {
 	ctx, _ := context.WithCancel(context.Background())
 
 	return core.NewNode(ctx, nil)
+}
+
+func initDclClient(config *config.Configuration) error {
+	address := config.Decentraland.LandApi
+	if len(address) == 0 {
+		return errors.New("unable to setup Decentraland API, verify your configurations")
+	}
+	handlers.InitDclClient(address)
+	return nil
 }
 
 func GetRouter(config *config.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
