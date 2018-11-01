@@ -1,0 +1,10 @@
+region = "us-east-1"
+env = "prod"
+cluster = "cl-worldteam"
+execution_role_arn = "arn:aws:iam::245402993223:role/ecsTaskExecutionRole"
+security_groups = ["sg-01c25a2f3a233bf7f"]
+assign_public_ip = false
+alb_container_port = "8000"
+alb_container_name = "content-service-golang"
+family="td-content-service"
+tg_arn="arn:aws:elasticloadbalancing:us-east-1:245402993223:targetgroup/tg-content-service-prod/ecf2f07d95c72d65"
