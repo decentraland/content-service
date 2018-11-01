@@ -163,7 +163,7 @@ node {
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME ${PROJECT} ${LASTCOMMIT}
+                      ./terraform-run.sh us-east-1 stg $BRANCH_NAME ${PROJECT} ${LASTCOMMIT}
               ;;
             esac
           '''
