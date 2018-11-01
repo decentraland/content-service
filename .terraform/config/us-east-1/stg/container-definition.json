@@ -5,11 +5,11 @@
       "value": "tag-number"
     },{
       "name": "hostname",
-      "value": "content-service-golang-dev"
+      "value": "content-service-golang-stg"
     },
     {
       "name": "name",
-      "value": "content-service-golang-dev"
+      "value": "content-service-golang-stg"
     },
     {
       "name": "AWS_REGION",
@@ -26,7 +26,7 @@
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "content-service-dev",
+        "awslogs-group": "content-service-stg",
         "awslogs-region": "us-east-1",
         "awslogs-stream-prefix": "content-service-golang"
       }
@@ -38,6 +38,6 @@
     "essential": true,
     "image": "872049612737.dkr.ecr.us-east-1.amazonaws.com/content-service:tag-number",
     "memoryReservation": 8192,
-    "name": "content-service-golang-dev"
+    "name": "content-service-golang-stg"
   }
 ]
