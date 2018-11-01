@@ -7,4 +7,4 @@ assign_public_ip = false
 alb_container_port = "8000"
 alb_container_name = "content-service-golang"
 family="td-content-service"
-tg_arn=""
+tg_arn="arn:aws:elasticloadbalancing:us-east-1:872049612737:targetgroup/tg-content-service-stg/9b2fb948bd1a1553"
