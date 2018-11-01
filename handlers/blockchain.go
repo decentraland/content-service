@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 )
 
 type parcelResponse struct {
@@ -47,8 +49,9 @@ type estate struct {
 var landApi string
 
 func getParcel(x, y int) (*parcel, error) {
-	url := fmt.Sprintf(landApi+"/parcels/%d/%d", x, y)
-	resp, err := http.Get(url)
+	u, _ := url.Parse(landApi)
+	u.Path = path.Join(u.Path, fmt.Sprintf("parcels/%d/%d", x, y))
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +66,9 @@ func getParcel(x, y int) (*parcel, error) {
 }
 
 func getEstate(id int) (*estate, error) {
-	url := fmt.Sprintf(landApi+"/estates/%d", id)
-	resp, err := http.Get(url)
+	u, _ := url.Parse(landApi)
+	u.Path = path.Join(landApi, fmt.Sprintf("estates/%d", id))
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -83,8 +87,9 @@ func getEstate(id int) (*estate, error) {
 }
 
 func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
-	url := fmt.Sprintf(landApi+"/map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
-	resp, err := http.Get(url)
+	u, _ := url.Parse(landApi)
+	u.Path = path.Join(landApi, fmt.Sprintf("map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2))
+	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, nil, err
 	}
