@@ -1,0 +1,25 @@
+#!/bin/sh
+modifiedFiles=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.go$')
+[ -z "$modifiedFiles" ] && exit 0
+
+# Running gofmt (https://golang.org/cmd/gofmt/) to the modified files 
+echo "[gofmt] Running gofmt..."
+unformatted=$(gofmt -l $modifiedFiles)
+if  ! [ -z "$unformatted" ]; then
+	echo "[Rejected] The following files need formatting:\n $unformatted"
+	echo "Run 'gofmt -w <file>' to correct the error"
+	exit 1
+fi
+echo "[gofmt] Format OK"
+
+# Running go vet (https://golang.org/cmd/vet/) to the modified files 
+echo "[go vet] Running go vet..."
+go tool vet $modifiedFiles
+foundErrors=$?
+if  [ "$foundErrors" -eq 1 ]; then
+	echo "[Rejected] Check the errors above"
+	exit 1
+fi
+echo "[go vet] go vet OK"
+
+exit 0

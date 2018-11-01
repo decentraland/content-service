@@ -3,6 +3,9 @@
 ops:
 	docker-compose up
 
+init:
+	git config core.hooksPath .githooks 
+
 build:
 	docker-compose run --rm --name content_service_golang golang go build
 
