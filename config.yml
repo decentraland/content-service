@@ -14,5 +14,5 @@ redis:
   password: ''
   DB: 0
 
-decentraland:
-  landApi: 'https://api.decentraland.org/v1'
+decentralandApi:
+  landUrl: 'https://api.decentraland.org/v1/'
