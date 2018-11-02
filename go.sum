@@ -60,6 +60,8 @@ github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f h1:JJ2EP5vV3LAD2
 github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/context v1.1.1 h1:AWwleXJkX/nhcU9bZSnZoi3h/qGYqQAGhq6zZe/aQW8=
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
+github.com/gorilla/handlers v1.4.0 h1:XulKRWSQK5uChr4pEgSE4Tc/OcmnU9GJuSwdog/tZsA=
+github.com/gorilla/handlers v1.4.0/go.mod h1:Qkdc/uu4tH4g6mTK6auzZ766c4CA0Ng8+o/OAirnOIQ=
 github.com/gorilla/mux v1.6.2 h1:Pgr17XVTNXAk3q/r4CpKzC5xBM/qW1uVLV+IhRZpIIk=
 github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
@@ -84,6 +86,8 @@ github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 h1:1L6CVB+4xo+X++E
 github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422/go.mod h1:iXzbK+Wa6eePj3jQg/uY6Uoq5iOwY+GToD/bgaRadto=
 github.com/ipsn/go-ipfs v0.0.0-20181003223520-1ade9a5dc26e h1:jxCD2QlD5Ly0KUAeqJtQPGKKesf5j3C6/AVoQA7eXJc=
 github.com/ipsn/go-ipfs v0.0.0-20181003223520-1ade9a5dc26e/go.mod h1:i7fHGKFb0CfJTRzXhks1Y+cH19jn2VJ7uX5ysogkm5Y=
+github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd h1:7diHeerlnJoMO/kCirN2ENlGHXcAYtQ1j1nrr+UBZXc=
+github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd/go.mod h1:i7fHGKFb0CfJTRzXhks1Y+cH19jn2VJ7uX5ysogkm5Y=
 github.com/jackpal/gateway v1.0.4 h1:LS5EHkLuQ6jzaHwULi0vL+JO0mU/n4yUtK8oUjHHOlM=
 github.com/jackpal/gateway v1.0.4/go.mod h1:lTpwd4ACLXmpyiCTRtfiNyVnUmqT9RivzCDQetPfnjA=
 github.com/jackpal/go-nat-pmp v1.0.1 h1:i0LektDkO1QlrTm/cSuP+PyBCDnYvjPLGl4LdWEMiaA=

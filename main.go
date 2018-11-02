@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
+	gHandlers "github.com/gorilla/handlers"
 	"log"
 	"net/http"
-	"fmt"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -36,8 +37,11 @@ func main() {
 
 	router := GetRouter(configParams, client, ipfsNode, sto)
 
+	//CORS
+	corsObj := gHandlers.AllowedOrigins([]string{"*"})
+
 	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
-	log.Fatal(http.ListenAndServe(serverURL, router))
+	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj)(router)))
 }
 
 func initRedisClient(config *config.Configuration) (*redis.Client, error) {
@@ -61,12 +65,13 @@ func initIpfsNode() (*core.IpfsNode, error) {
 func GetRouter(config *config.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
 	r := mux.NewRouter()
 
-	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
+	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client, Config: config}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 
 	uploadHandler := handlers.UploadHandler{
-		Storage: storage,
-		RedisClient:  client,
-		IpfsNode:     node,
+		Storage:     storage,
+		RedisClient: client,
+		IpfsNode:    node,
+		Config:      config,
 	}
 	r.Handle("/mappings", &uploadHandler).Methods("POST")
 

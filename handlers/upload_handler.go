@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/decentraland/content-service/config"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,6 +22,7 @@ type UploadHandler struct {
 	Storage     storage.Storage
 	RedisClient *redis.Client
 	IpfsNode    *core.IpfsNode
+	Config      *config.Configuration
 }
 
 type FileMetadata struct {
@@ -120,7 +122,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	canModify, err := userCanModify(meta.PubKey, scene)
+	canModify, err := userCanModify(meta.PubKey, scene, &handler.Config.DecentralandApi)
 	if err != nil {
 		handle500(w, err)
 		return

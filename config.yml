@@ -3,13 +3,16 @@ server:
   url: 'http://127.0.0.1:8000/'
 
 s3Storage:
-  bucket: 'content-service.decentraland.zone'
-  acl: 'public-read'
-  url: 'https://s3.amazonaws.com/content-service.decentraland.zone/'
+  bucket: 'content-service.decentraland.zone'                           # Set AWS_S3_BUCKET env variable to overwrite this value
+  url: 'https://s3.amazonaws.com/content-service.decentraland.zone/'    # Set AWS_S3_URL env variable to overwrite this value
+  acl: 'public-read'                                                    # Set AWS_S3_ACL env variable to overwrite this value
 
 localStorage: 'tmp'
 
 redis:
-  address: 'content-s-redis-dev.on6tjm.ng.0001.use1.cache.amazonaws.com:6379'
-  password: ''
-  DB: 0
+  address: 'content-s-redis-dev.on6tjm.ng.0001.use1.cache.amazonaws.com:6379' # Set REDIS_ADDRESS env variable to overwrite this value
+  password: ''                                                                # Set REDIS_PASSWORD env variable to overwrite this value
+  DB: 0                                                                       # Set REDIS_DB env variable to overwrite this value
+
+decentralandApi:
+  landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
