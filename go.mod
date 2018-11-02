@@ -28,6 +28,7 @@ require (
 	github.com/google/uuid v1.0.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f // indirect
 	github.com/gorilla/context v1.1.1 // indirect
+	github.com/gorilla/handlers v1.4.0 // indirect
 	github.com/gorilla/mux v1.6.2
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
@@ -35,7 +36,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/ipfs/go-cid v0.9.0
 	github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 // indirect
-	github.com/ipsn/go-ipfs v0.0.0-20181003223520-1ade9a5dc26e
+	github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd
 	github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0 // indirect
