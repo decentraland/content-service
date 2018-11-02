@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/decentraland/content-service/config"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -17,6 +18,7 @@ type ParcelContent struct {
 
 type MappingsHandler struct {
 	RedisClient *redis.Client
+	Config      *config.Configuration
 }
 
 func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +26,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	paramsInt, err := mapValuesToInt(params)
 
-	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
+	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"], &handler.Config.DecentralandApi)
 	if err != nil {
 		handle500(w, err)
 		return
