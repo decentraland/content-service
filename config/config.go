@@ -8,26 +8,32 @@ import (
 
 // Configuration holds global config parameters
 type Configuration struct {
-	Server struct {
-		Port string
-		URL  string
-	}
-	S3Storage struct {
-		Bucket string
-		ACL    string
-		URL    string
-	}
-	LocalStorage string
+	Server          Server
+	S3Storage       S3Storage
+	LocalStorage    string
+	Redis           Redis
+	DecentralandApi DecentralandApi
+}
 
-	Redis struct {
-		Address  string
-		Password string
-		DB       int
-	}
+type DecentralandApi struct {
+	LandUrl string
+}
 
-	Decentraland struct {
-		LandApi string
-	}
+type Redis struct {
+	Address  string
+	Password string
+	DB       int
+}
+
+type S3Storage struct {
+	Bucket string
+	ACL    string
+	URL    string
+}
+
+type Server struct {
+	Port string
+	URL  string
 }
 
 // GetConfig populates a Configuration struct from a config file

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/decentraland/content-service/config"
 	"net/http"
 	"net/url"
 	"path"
@@ -46,10 +47,8 @@ type estate struct {
 	} `json:"data"`
 }
 
-var landApi string
-
-func getParcel(x, y int) (*parcel, error) {
-	u, _ := url.Parse(landApi)
+func getParcel(x, y int, config *config.DecentralandApi) (*parcel, error) {
+	u, _ := url.Parse(config.LandUrl)
 	u.Path = path.Join(u.Path, fmt.Sprintf("parcels/%d/%d", x, y))
 	resp, err := http.Get(u.String())
 	if err != nil {
@@ -65,9 +64,9 @@ func getParcel(x, y int) (*parcel, error) {
 	return jsonResponse.Data, nil
 }
 
-func getEstate(id int) (*estate, error) {
-	u, _ := url.Parse(landApi)
-	u.Path = path.Join(landApi, fmt.Sprintf("estates/%d", id))
+func getEstate(id int, config *config.DecentralandApi) (*estate, error) {
+	u, _ := url.Parse(config.LandUrl)
+	u.Path = path.Join(u.Path, fmt.Sprintf("estates/%d", id))
 	resp, err := http.Get(u.String())
 	if err != nil {
 		return nil, err
@@ -86,10 +85,11 @@ func getEstate(id int) (*estate, error) {
 	return jsonResponse.Data, nil
 }
 
-func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
-	u, _ := url.Parse(landApi)
-	u.Path = path.Join(landApi, fmt.Sprintf("map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2))
-	resp, err := http.Get(u.String())
+func getMap(x1, y1, x2, y2 int, config *config.DecentralandApi) ([]*parcel, []*estate, error) {
+	u, _ := url.Parse(config.LandUrl)
+	u.Path = path.Join(u.Path, fmt.Sprintf("map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2))
+	url, _ := url.PathUnescape(u.String())
+	resp, err := http.Get(url)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,9 +101,4 @@ func getMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
 	}
 
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
-}
-
-// Setup the decentraland server address.
-func InitDclClient(address string) {
-	landApi = address
 }

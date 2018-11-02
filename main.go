@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,11 +18,6 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	configParams := config.GetConfig("config")
-
-	//Initialize Decentraland client
-	if err := initDclClient(configParams); err != nil {
-		log.Fatal(err)
-	}
 
 	// Initialize Redis client
 	client, err := initRedisClient(configParams)
@@ -64,24 +58,16 @@ func initIpfsNode() (*core.IpfsNode, error) {
 	return core.NewNode(ctx, nil)
 }
 
-func initDclClient(config *config.Configuration) error {
-	address := config.Decentraland.LandApi
-	if len(address) == 0 {
-		return errors.New("unable to setup Decentraland API, verify your configurations")
-	}
-	handlers.InitDclClient(address)
-	return nil
-}
-
 func GetRouter(config *config.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
 	r := mux.NewRouter()
 
-	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
+	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client, Config: config}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 
 	uploadHandler := handlers.UploadHandler{
 		Storage:     storage,
 		RedisClient: client,
 		IpfsNode:    node,
+		Config:      config,
 	}
 	r.Handle("/mappings", &uploadHandler).Methods("POST")
 

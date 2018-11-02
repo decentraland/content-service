@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"fmt"
+	"github.com/decentraland/content-service/config"
 	"strconv"
 	"strings"
 
@@ -10,14 +11,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func userCanModify(pubkey string, scene *scene) (bool, error) {
-	parcels, err := getParcels(scene.Scene.Parcels)
+func userCanModify(pubkey string, scene *scene, dclConfig *config.DecentralandApi) (bool, error) {
+	parcels, err := getParcels(scene.Scene.Parcels, dclConfig)
 	if err != nil {
 		return false, err
 	}
 
 	for _, parcel := range parcels {
-		match, err := canModify(pubkey, parcel)
+		match, err := canModify(pubkey, parcel, dclConfig)
 		if err != nil || !match {
 			return false, err
 		}
@@ -26,7 +27,7 @@ func userCanModify(pubkey string, scene *scene) (bool, error) {
 	return true, nil
 }
 
-func getParcels(parcelsList []string) ([]*parcel, error) {
+func getParcels(parcelsList []string, dclConfig *config.DecentralandApi) ([]*parcel, error) {
 	var parcels []*parcel
 
 	for _, parcelStr := range parcelsList {
@@ -41,7 +42,7 @@ func getParcels(parcelsList []string) ([]*parcel, error) {
 			return nil, err
 		}
 
-		land, err := getParcel(int(x), int(y))
+		land, err := getParcel(int(x), int(y), dclConfig)
 		if err != nil {
 			return parcels, err
 		}
@@ -52,7 +53,7 @@ func getParcels(parcelsList []string) ([]*parcel, error) {
 	return parcels, nil
 }
 
-func canModify(pubkey string, parcel *parcel) (bool, error) {
+func canModify(pubkey string, parcel *parcel, dclConfig *config.DecentralandApi) (bool, error) {
 	if pubkey == parcel.Owner {
 		return true, nil
 	} else if pubkey == parcel.UpdateOperator {
@@ -63,7 +64,7 @@ func canModify(pubkey string, parcel *parcel) (bool, error) {
 			return false, err
 		}
 
-		estate, err := getEstate(estateID)
+		estate, err := getEstate(estateID, dclConfig)
 		if err != nil {
 			return false, err
 		}
