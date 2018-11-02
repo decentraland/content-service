@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	gHandlers "github.com/gorilla/handlers"
 	"log"
 	"net/http"
 
@@ -36,8 +37,11 @@ func main() {
 
 	router := GetRouter(configParams, client, ipfsNode, sto)
 
+	//CORS
+	corsObj := gHandlers.AllowedOrigins([]string{"*"})
+
 	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
-	log.Fatal(http.ListenAndServe(serverURL, router))
+	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj)(router)))
 }
 
 func initRedisClient(config *config.Configuration) (*redis.Client, error) {
