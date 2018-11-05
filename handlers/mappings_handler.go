@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/data"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -17,8 +17,8 @@ type ParcelContent struct {
 }
 
 type MappingsHandler struct {
-	RedisClient *redis.Client
-	Config      *config.Configuration
+	RedisClient data.RedisClient
+	Dcl         data.Decentraland
 }
 
 func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +26,7 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	paramsInt, err := mapValuesToInt(params)
 
-	parcels, estates, err := getMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"], &handler.Config.DecentralandApi)
+	parcels, estates, err := handler.Dcl.GetMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
 	if err != nil {
 		handle500(w, err)
 		return
@@ -67,16 +67,16 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 Retrieves the consolidated information of a given Parcel <ParcelContent>
 if the parcel does not exists, the ParcelContent.Contents will be nil
 */
-func getParcelInformation(client *redis.Client, parcelId string) (ParcelContent, error) {
+func getParcelInformation(client data.RedisClient, parcelId string) (ParcelContent, error) {
 	var pc ParcelContent
-	content, err := getParcelContent(client, parcelId)
+	content, err := client.GetParcelContent(parcelId)
 
 	if err == redis.Nil {
 		return pc, nil
 	} else if err != nil {
 		return pc, err
 	}
-	metadata, err := getParcelMetadata(client, parcelId)
+	metadata, err := client.GetParcelMetadata(parcelId)
 	if err != nil {
 		return pc, err
 	}

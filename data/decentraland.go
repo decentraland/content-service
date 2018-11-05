@@ -1,9 +1,8 @@
-package handlers
+package data
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/decentraland/content-service/config"
 	"net/http"
 	"net/url"
 	"path"
@@ -47,16 +46,24 @@ type estate struct {
 	} `json:"data"`
 }
 
-func getParcel(x, y int, config *config.DecentralandApi) (*parcel, error) {
-	u, _ := url.Parse(config.LandUrl)
-	u.Path = path.Join(u.Path, fmt.Sprintf("parcels/%d/%d", x, y))
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
+type Decentraland interface {
+	GetParcel(x, y int) (*parcel, error)
+	GetEstate(id int) (*estate, error)
+	GetMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error)
+}
 
+type DclClient struct {
+	ApiUrl string
+}
+
+func NewDclClient(apiUrl string) *DclClient {
+	return &DclClient{apiUrl}
+}
+
+// Retrieves a parcel information from Decentraland
+func (dcl DclClient) GetParcel(x, y int) (*parcel, error) {
 	var jsonResponse parcelResponse
-	err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	err := doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d", x, y), &jsonResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -64,16 +71,10 @@ func getParcel(x, y int, config *config.DecentralandApi) (*parcel, error) {
 	return jsonResponse.Data, nil
 }
 
-func getEstate(id int, config *config.DecentralandApi) (*estate, error) {
-	u, _ := url.Parse(config.LandUrl)
-	u.Path = path.Join(u.Path, fmt.Sprintf("estates/%d", id))
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-
+//Retrieves the Estate by its Id
+func (dcl DclClient) GetEstate(id int) (*estate, error) {
 	var jsonResponse estateResponse
-	err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	err := doGet(buildUrl(dcl.ApiUrl, "estates/%d", id), &jsonResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -85,20 +86,28 @@ func getEstate(id int, config *config.DecentralandApi) (*estate, error) {
 	return jsonResponse.Data, nil
 }
 
-func getMap(x1, y1, x2, y2 int, config *config.DecentralandApi) ([]*parcel, []*estate, error) {
-	u, _ := url.Parse(config.LandUrl)
-	u.Path = path.Join(u.Path, fmt.Sprintf("map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2))
-	url, _ := url.PathUnescape(u.String())
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, nil, err
-	}
-
+// Retrieves all parcels information in the given quadrant
+func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
 	var jsonResponse MapResponse
-	err = json.NewDecoder(resp.Body).Decode(&jsonResponse)
+	err := doGet(buildUrl(dcl.ApiUrl, "map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2), &jsonResponse)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
+}
+
+func buildUrl(basePath string, callPath string, args ...interface{}) string {
+	u, _ := url.Parse(basePath)
+	u.Path = path.Join(u.Path, fmt.Sprintf(callPath, args...))
+	url, _ := url.PathUnescape(u.String())
+	return url
+}
+
+func doGet(url string, response interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	return json.NewDecoder(resp.Body).Decode(response)
 }
