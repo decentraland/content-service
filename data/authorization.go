@@ -72,8 +72,8 @@ func (service AuthorizationService) IsSignatureValid(msg, hexSignature, hexAddre
 	return verified && bytes.Equal(sigAddress.Bytes(), ownerAddress), nil
 }
 
-func getParcels(parcelsList []string, dcl Decentraland) ([]*parcel, error) {
-	var parcels []*parcel
+func getParcels(parcelsList []string, dcl Decentraland) ([]*Parcel, error) {
+	var parcels []*Parcel
 
 	for _, parcelStr := range parcelsList {
 		coordinates := strings.Split(parcelStr, ",")
@@ -98,7 +98,7 @@ func getParcels(parcelsList []string, dcl Decentraland) ([]*parcel, error) {
 	return parcels, nil
 }
 
-func canModify(pubkey string, parcel *parcel, dcl Decentraland) (bool, error) {
+func canModify(pubkey string, parcel *Parcel, dcl Decentraland) (bool, error) {
 	if pubkey == parcel.Owner {
 		return true, nil
 	} else if pubkey == parcel.UpdateOperator {

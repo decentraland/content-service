@@ -10,25 +10,25 @@ import (
 
 type parcelResponse struct {
 	Ok   bool    `json:"ok"`
-	Data *parcel `json:"data"`
+	Data *Parcel `json:"data"`
 }
 
 type estateResponse struct {
 	Ok   bool    `json:"ok"`
-	Data *estate `json:"data"`
+	Data *Estate `json:"data"`
 }
 
 type MapResponse struct {
 	Ok   bool `json:"ok"`
 	Data struct {
 		Assets struct {
-			Parcels []*parcel `json:"parcels"`
-			Estates []*estate `json:"estates"`
+			Parcels []*Parcel `json:"parcels"`
+			Estates []*Estate `json:"estates"`
 		} `json:"assets"`
 	} `json:"data"`
 }
 
-type parcel struct {
+type Parcel struct {
 	ID             string `json:"id"`
 	X              int    `json:"x"`
 	Y              int    `json:"y"`
@@ -37,19 +37,19 @@ type parcel struct {
 	EstateID       string `json:"estate_id"`
 }
 
-type estate struct {
+type Estate struct {
 	ID             string `json:"id"`
 	Owner          string `json:"owner"`
 	UpdateOperator string `json:"update_operator"`
 	Data           struct {
-		Parcels []*parcel `json:"parcels"`
+		Parcels []*Parcel `json:"parcels"`
 	} `json:"data"`
 }
 
 type Decentraland interface {
-	GetParcel(x, y int) (*parcel, error)
-	GetEstate(id int) (*estate, error)
-	GetMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error)
+	GetParcel(x, y int) (*Parcel, error)
+	GetEstate(id int) (*Estate, error)
+	GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error)
 }
 
 type DclClient struct {
@@ -61,7 +61,7 @@ func NewDclClient(apiUrl string) *DclClient {
 }
 
 // Retrieves a parcel information from Decentraland
-func (dcl DclClient) GetParcel(x, y int) (*parcel, error) {
+func (dcl DclClient) GetParcel(x, y int) (*Parcel, error) {
 	var jsonResponse parcelResponse
 	err := doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d", x, y), &jsonResponse)
 	if err != nil {
@@ -72,7 +72,7 @@ func (dcl DclClient) GetParcel(x, y int) (*parcel, error) {
 }
 
 //Retrieves the Estate by its Id
-func (dcl DclClient) GetEstate(id int) (*estate, error) {
+func (dcl DclClient) GetEstate(id int) (*Estate, error) {
 	var jsonResponse estateResponse
 	err := doGet(buildUrl(dcl.ApiUrl, "estates/%d", id), &jsonResponse)
 	if err != nil {
@@ -87,7 +87,7 @@ func (dcl DclClient) GetEstate(id int) (*estate, error) {
 }
 
 // Retrieves all parcels information in the given quadrant
-func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*parcel, []*estate, error) {
+func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error) {
 	var jsonResponse MapResponse
 	err := doGet(buildUrl(dcl.ApiUrl, "map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2), &jsonResponse)
 	if err != nil {

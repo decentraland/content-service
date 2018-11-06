@@ -34,9 +34,9 @@ func (m *MockDecentraland) EXPECT() *MockDecentralandMockRecorder {
 }
 
 // GetEstate mocks base method
-func (m *MockDecentraland) GetEstate(arg0 int) (*data.estate, error) {
+func (m *MockDecentraland) GetEstate(arg0 int) (*data.Estate, error) {
 	ret := m.ctrl.Call(m, "GetEstate", arg0)
-	ret0, _ := ret[0].(*data.estate)
+	ret0, _ := ret[0].(*data.Estate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -47,10 +47,10 @@ func (mr *MockDecentralandMockRecorder) GetEstate(arg0 interface{}) *gomock.Call
 }
 
 // GetMap mocks base method
-func (m *MockDecentraland) GetMap(arg0, arg1, arg2, arg3 int) ([]*data.parcel, []*data.estate, error) {
+func (m *MockDecentraland) GetMap(arg0, arg1, arg2, arg3 int) ([]*data.Parcel, []*data.Estate, error) {
 	ret := m.ctrl.Call(m, "GetMap", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]*data.parcel)
-	ret1, _ := ret[1].([]*data.estate)
+	ret0, _ := ret[0].([]*data.Parcel)
+	ret1, _ := ret[1].([]*data.Estate)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -61,9 +61,9 @@ func (mr *MockDecentralandMockRecorder) GetMap(arg0, arg1, arg2, arg3 interface{
 }
 
 // GetParcel mocks base method
-func (m *MockDecentraland) GetParcel(arg0, arg1 int) (*data.parcel, error) {
+func (m *MockDecentraland) GetParcel(arg0, arg1 int) (*data.Parcel, error) {
 	ret := m.ctrl.Call(m, "GetParcel", arg0, arg1)
-	ret0, _ := ret[0].(*data.parcel)
+	ret0, _ := ret[0].(*data.Parcel)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
