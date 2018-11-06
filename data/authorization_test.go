@@ -1,9 +1,11 @@
 package data_test
 
 import (
+	"fmt"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 )
@@ -33,7 +35,7 @@ func TestUserCanModifyParcels(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
 	for _, d := range userCanModifyTable {
-		t.Logf("[INPUT] = Given the publicKey %s and parcel [%s]", d.inputKey, d.inputParcel)
+		t.Logf("Given the publicKey %s and parcel [%s]", d.inputKey, d.inputParcel)
 
 		mockDcl := mocks.NewMockDecentraland(mockController)
 		mockDcl.EXPECT().GetParcel(d.parcel.X, d.parcel.Y).Return(d.parcel, nil).AnyTimes()
@@ -42,7 +44,7 @@ func TestUserCanModifyParcels(t *testing.T) {
 			mockDcl.EXPECT().GetEstate(i).Return(d.estate, nil).AnyTimes()
 		}
 
-		t.Logf("[CASE] - %s", d.testCaseMsg)
+		t.Logf(d.testCaseMsg)
 		service := data.NewAuthorizationService(mockDcl)
 		canModify, err := service.UserCanModifyParcels(d.inputKey, []string{d.inputParcel})
 
@@ -52,9 +54,9 @@ func TestUserCanModifyParcels(t *testing.T) {
 
 func TestIsSignatureValid(t *testing.T) {
 	for _, d := range isSignatureValidTable {
-		t.Logf("[INPUT] - Given the Message [%s], the Siganture [%s] and the Address [%s]", d.inputMsg, d.inputSignature, d.inputAddress)
+		t.Logf("Given the Message [%s], the Siganture [%s] and the Address [%s]", d.inputMsg, d.inputSignature, d.inputAddress)
 
-		t.Logf("[CASE] - %s", d.testCaseMsg)
+		t.Log(d.testCaseMsg)
 		service := data.NewAuthorizationService(data.NewDclClient(""))
 		isValid, err := service.IsSignatureValid(d.inputMsg, d.inputSignature, d.inputAddress)
 
@@ -62,21 +64,15 @@ func TestIsSignatureValid(t *testing.T) {
 	}
 }
 
-func validateResult(err error, result bool, expected bool, expectError bool, okMsg string, t *testing.T) {
-	if err != nil && !expectError {
-		t.Errorf("[x FAIL] - Function retrieve an Unexpected Error: %s", err.Error())
-	}
-	if err == nil && expectError {
-		t.Error("[x FAIL] - Function should have retrieved an error")
-	}
-	if result != expected {
-		t.Errorf("[x FAIL] - Function retrieved %t. Expected %t", result, expected)
-	}
+func validateResult(err error, result bool, expected bool, expectError bool, thenMsg string, t *testing.T) {
+	t.Log(thenMsg)
 	if expectError {
-		t.Logf("[✓ SUCCESS] - %s - Error: %s", okMsg, err.Error())
+		assert.NotNil(t, err, "Function should have retrieved an error")
 	} else {
-		t.Logf("[✓ SUCCESS] - %s", okMsg)
+		assert.Nil(t, err, "Function should not retrieve an error")
 	}
+
+	assert.Equal(t, expected, result, fmt.Sprintf("Function should retrieve %t", expected))
 }
 
 // UserCanModify Test cases to evaluate
