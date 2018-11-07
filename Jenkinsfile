@@ -173,5 +173,5 @@ node {
     err = caughtError
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: '#FF0000', message: "Project/Branch - *${env.JOB_NAME}* \n\tError: ${err}\n\tCommit Number: *${env.GIT_COMMIT}*   \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     currentBuild.result = "FAILURE"
-  *}
+  }*/
 }
