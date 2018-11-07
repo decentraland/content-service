@@ -4,7 +4,7 @@ node {
   try {
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Started...*  \n\tCommit Number: *${env.GIT_COMMIT}* \n\tBuild Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     stage('Clone repo') {
-          sshagent(credentials : ['content-service']) {
+          /*sshagent(credentials : ['content-service']) {
           sh '''
           #Retrieveing the job name. This is used as the first part of the image name
           PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
@@ -24,7 +24,8 @@ node {
           git pull
 
           '''
-        }
+        }*/
+      scm checkout
     }
     stage('Build Image') {
           sshagent(credentials : ['content-service']) {
