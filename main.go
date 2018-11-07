@@ -73,14 +73,22 @@ func GetRouter(config *config.Configuration, client *redis.Client, node *core.Ip
 		IpfsNode:    node,
 		Config:      config,
 	}
-	r.Handle("/mappings", &uploadHandler).Methods("POST")
+
+	r.Path("/mappings").
+		Methods("POST").
+		Handler(&uploadHandler)
 
 	contentsHandler := handlers.ContentsHandler{
 		Storage: storage,
 	}
-	r.Handle("/contents/{cid}", &contentsHandler).Methods("GET")
+	r.Path("/contents/{cid}").
+		Methods("GET").
+		Handler(&contentsHandler)
 
-	r.Handle("/validate", &handlers.ValidateHandler{RedisClient: client}).Methods("GET").Queries("x", "{x}", "y", "{y}")
+	r.Path("/validate").
+		Methods("GET").
+		Queries("x", "{x:-?[0-9]+}", "y", "{y:-?[0-9]+}").
+		Handler(&handlers.ValidateHandler{RedisClient: client})
 
 	return r
 }
