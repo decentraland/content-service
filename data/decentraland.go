@@ -97,9 +97,9 @@ func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error) {
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
 }
 
-func buildUrl(basePath string, callPath string, args ...interface{}) string {
+func buildUrl(basePath string, relPath string, args ...interface{}) string {
 	u, _ := url.Parse(basePath)
-	u.Path = path.Join(u.Path, fmt.Sprintf(callPath, args...))
+	u.Path = path.Join(u.Path, fmt.Sprintf(relPath, args...))
 	url, _ := url.PathUnescape(u.String())
 	return url
 }

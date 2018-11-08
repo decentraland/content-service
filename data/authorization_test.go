@@ -1,7 +1,6 @@
 package data_test
 
 import (
-	"fmt"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
@@ -11,134 +10,116 @@ import (
 )
 
 type userCanModifyParcelsTestData struct {
-	inputKey       string
-	inputParcel    string
-	parcel         *data.Parcel
-	expectedResult bool
-	expectError    bool
-	testCaseMsg    string
-	resultMsg      string
-	estate         *data.Estate
+	inputKey     string
+	inputParcel  string
+	parcel       *data.Parcel
+	testCaseName string
+	estate       *data.Estate
+	evalResult   evalBooleanResult
 }
 
 type isSignatureValidTestData struct {
-	testCaseMsg    string
+	testCaseName   string
 	inputMsg       string
 	inputAddress   string
 	inputSignature string
-	expectedResult bool
-	expectError    bool
-	resultMsg      string
+	evalResult     evalBooleanResult
+}
+
+type evalBooleanResult func(err error, value bool, t *testing.T)
+
+func expectTrue(err error, value bool, t *testing.T) {
+	assert.Nil(t, err)
+	assert.True(t, value)
+}
+
+func expectFalse(err error, value bool, t *testing.T) {
+	assert.Nil(t, err)
+	assert.False(t, value)
+}
+
+func expectError(err error, value bool, t *testing.T) {
+	assert.NotNil(t, err)
 }
 
 func TestUserCanModifyParcels(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()
-	for _, d := range userCanModifyTable {
-		t.Logf("Given the publicKey %s and parcel [%s]", d.inputKey, d.inputParcel)
-
-		mockDcl := mocks.NewMockDecentraland(mockController)
-		mockDcl.EXPECT().GetParcel(d.parcel.X, d.parcel.Y).Return(d.parcel, nil).AnyTimes()
-		if d.estate != nil {
-			i, _ := strconv.Atoi(d.estate.ID)
-			mockDcl.EXPECT().GetEstate(i).Return(d.estate, nil).AnyTimes()
-		}
-
-		t.Logf(d.testCaseMsg)
-		service := data.NewAuthorizationService(mockDcl)
-		canModify, err := service.UserCanModifyParcels(d.inputKey, []string{d.inputParcel})
-
-		validateResult(err, canModify, d.expectedResult, d.expectError, d.resultMsg, t)
+	for _, tc := range userCanModifyTable {
+		t.Run(tc.testCaseName, func(t *testing.T) {
+			mockDcl := mocks.NewMockDecentraland(mockController)
+			mockDcl.EXPECT().GetParcel(tc.parcel.X, tc.parcel.Y).Return(tc.parcel, nil).AnyTimes()
+			if tc.estate != nil {
+				i, _ := strconv.Atoi(tc.estate.ID)
+				mockDcl.EXPECT().GetEstate(i).Return(tc.estate, nil).AnyTimes()
+			}
+			service := data.NewAuthorizationService(mockDcl)
+			canModify, err := service.UserCanModifyParcels(tc.inputKey, []string{tc.inputParcel})
+			tc.evalResult(err, canModify, t)
+		})
 	}
 }
 
 func TestIsSignatureValid(t *testing.T) {
-	for _, d := range isSignatureValidTable {
-		t.Logf("Given the Message [%s], the Siganture [%s] and the Address [%s]", d.inputMsg, d.inputSignature, d.inputAddress)
-
-		t.Log(d.testCaseMsg)
-		service := data.NewAuthorizationService(data.NewDclClient(""))
-		isValid, err := service.IsSignatureValid(d.inputMsg, d.inputSignature, d.inputAddress)
-
-		validateResult(err, isValid, d.expectedResult, d.expectError, d.resultMsg, t)
+	for _, tc := range isSignatureValidTable {
+		t.Run(tc.testCaseName, func(t *testing.T) {
+			service := data.NewAuthorizationService(data.NewDclClient(""))
+			isValid, err := service.IsSignatureValid(tc.inputMsg, tc.inputSignature, tc.inputAddress)
+			tc.evalResult(err, isValid, t)
+		})
 	}
-}
-
-func validateResult(err error, result bool, expected bool, expectError bool, thenMsg string, t *testing.T) {
-	t.Log(thenMsg)
-	if expectError {
-		assert.NotNil(t, err, "Function should have retrieved an error")
-	} else {
-		assert.Nil(t, err, "Function should not retrieve an error")
-	}
-
-	assert.Equal(t, expected, result, fmt.Sprintf("Function should retrieve %t", expected))
 }
 
 // UserCanModify Test cases to evaluate
 var userCanModifyTable = []userCanModifyParcelsTestData{
 	{
-		testCaseMsg:    "When receiving an existing parcel with a valid owner",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "1,2",
-		parcel:         &data.Parcel{"id", 1, 2, "0xa08a656ac52c0b32902a76e122d2973b022caa0e", "", ""},
-		expectedResult: true,
-		expectError:    false,
-		resultMsg:      "Then the user should be able to modify the parcel",
+		testCaseName: "Parcel with a valid owner",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		parcel:       &data.Parcel{"id", 1, 2, "0xa08a656ac52c0b32902a76e122d2973b022caa0e", "", ""},
+		evalResult:   expectTrue,
 	}, {
-		testCaseMsg:    "When the owner does not match the given key",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "1,2",
-		parcel:         &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
-		expectedResult: false,
-		expectError:    false,
-		resultMsg:      "Then the  user should not be able to modify the parcel",
+		testCaseName: "Owner does not match the given key",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
+		evalResult:   expectFalse,
 	}, {
-		testCaseMsg:    "When the owner does not match the given key, but it has Update operator privileges",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "1,2",
-		parcel:         &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "0xa08a656ac52c0b32902a76e122d2973b022caa0e", ""},
-		expectedResult: true,
-		expectError:    false,
-		resultMsg:      "Then the  user should be able to modify the parcel",
+		testCaseName: "Owner does not match the given key, but it has Update operator privileges",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "0xa08a656ac52c0b32902a76e122d2973b022caa0e", ""},
+		evalResult:   expectTrue,
 	}, {
-		testCaseMsg:    "When the input parcels are invalid",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "not an integer,also not an integer",
-		parcel:         &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
-		expectedResult: false,
-		expectError:    true,
-		resultMsg:      "Then the  operation should return an error",
+		testCaseName: "Input parcels are invalid",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "not an integer,also not an integer",
+		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
+		evalResult:   expectError,
 	}, {
-		testCaseMsg:    "When the user is estate Owner",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "1,2",
-		parcel:         &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
-		expectedResult: true,
-		expectError:    false,
-		resultMsg:      "Then the user should be able to modify the parcel",
+		testCaseName: "The user is estate Owner",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
+		evalResult:   expectTrue,
 		estate: &data.Estate{ID: "1", Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", UpdateOperator: "", Data: struct {
 			Parcels []*data.Parcel `json:"parcels"`
 		}{Parcels: []*data.Parcel{}}},
 	}, {
-		testCaseMsg:    "When the user is not the Owner nor the estate Owner nor Update Operator",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "1,2",
-		parcel:         &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
-		expectedResult: false,
-		expectError:    false,
-		resultMsg:      "Then the user should not be able to modify the parcel",
+		testCaseName: "The user is not the Owner nor the estate Owner nor Update Operator",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
+		evalResult:   expectFalse,
 		estate: &data.Estate{ID: "1", Owner: "0x0000000000000000000000000000000000000000", UpdateOperator: "", Data: struct {
 			Parcels []*data.Parcel `json:"parcels"`
 		}{Parcels: []*data.Parcel{}}},
 	}, {
-		testCaseMsg:    "When the user is Estate Update operator",
-		inputKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:    "1,2",
-		parcel:         &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
-		expectedResult: true,
-		expectError:    false,
-		resultMsg:      "Then the user should be able to modify the parcel",
+		testCaseName: "User is Estate Update operator",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
+		evalResult:   expectTrue,
 		estate: &data.Estate{ID: "1", Owner: "0x0000000000000000000000000000000000000000", UpdateOperator: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", Data: struct {
 			Parcels []*data.Parcel `json:"parcels"`
 		}{Parcels: []*data.Parcel{}}},
@@ -147,44 +128,34 @@ var userCanModifyTable = []userCanModifyParcelsTestData{
 
 var isSignatureValidTable = []isSignatureValidTestData{
 	{
-		testCaseMsg:    "When validating the  signature  with the correct messgage and signature",
+		testCaseName:   "Validate the signature with the correct messgage and address",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		expectedResult: true,
-		expectError:    false,
-		resultMsg:      "Then the result should be true",
+		evalResult:     expectTrue,
 	}, {
-		testCaseMsg:    "When validating the signature with the not corresponding message",
+		testCaseName:   "Validate signature with the not corresponding message",
 		inputMsg:       "not the message you signed",
 		inputAddress:   "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		expectedResult: false,
-		expectError:    false,
-		resultMsg:      "Then the result should be false",
+		evalResult:     expectFalse,
 	}, {
-		testCaseMsg:    "When validating a different signature with not corresponding address",
+		testCaseName:   "Validate signature with not the corresponding address",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "0x0000000000000000000000000000000000000000",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		expectedResult: false,
-		expectError:    false,
-		resultMsg:      "Then the result should be false",
+		evalResult:     expectFalse,
 	}, {
-		testCaseMsg:    "When validating the invalid signature",
+		testCaseName:   "Invalid signature",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputSignature: "not hex, not a signtature",
-		expectedResult: false,
-		expectError:    true,
-		resultMsg:      "Then the result should be an error",
+		evalResult:     expectError,
 	}, {
-		testCaseMsg:    "When validating the signature with the invalid address",
+		testCaseName:   "Invalid address",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "not an address",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		expectedResult: false,
-		expectError:    true,
-		resultMsg:      "Then the result should be an error",
+		evalResult:     expectError,
 	},
 }

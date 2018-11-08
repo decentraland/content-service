@@ -62,7 +62,7 @@ func (service AuthorizationService) IsSignatureValid(msg, hexSignature, hexAddre
 
 	verified := crypto.VerifySignature(publicKeyBytes, msgHash.Bytes(), sigBytes[:64])
 
-	publicKey, err := crypto.UnmarshalPubkey(publicKeyBytes)
+	publicKey, _ := crypto.UnmarshalPubkey(publicKeyBytes)
 	sigAddress := crypto.PubkeyToAddress(*publicKey)
 	ownerAddress, err := hexutil.Decode(hexAddress)
 	if err != nil {
