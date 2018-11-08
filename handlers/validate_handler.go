@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/decentraland/content-service/data"
 	"net/http"
 
 	"github.com/go-redis/redis"
@@ -10,7 +11,7 @@ import (
 )
 
 type ValidateHandler struct {
-	RedisClient *redis.Client
+	RedisClient data.RedisClient
 }
 
 func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +19,7 @@ func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	parcelID := fmt.Sprintf("%+s,%+s", params["x"], params["y"])
 
-	parcelMeta, err := getParcelMetadata(handler.RedisClient, parcelID)
+	parcelMeta, err := handler.RedisClient.GetParcelMetadata(parcelID)
 	if err == redis.Nil {
 		handle400(w, 404, "Parcel metadata not found")
 		return

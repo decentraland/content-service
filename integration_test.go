@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/decentraland/content-service/data"
 	"io"
 	"io/ioutil"
 	"log"
@@ -27,7 +28,7 @@ func TestMain(m *testing.M) {
 	// Start server
 	conf := config.GetConfig("config_test")
 
-	redisClient, err := initRedisClient(conf)
+	redisClient, err := data.NewRedisClient(conf.Redis.Address, conf.Redis.Password, conf.Redis.DB)
 	if err != nil {
 		log.Fatal(err)
 	}

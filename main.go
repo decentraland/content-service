@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/decentraland/content-service/data"
 	gHandlers "github.com/gorilla/handlers"
 	"log"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
 
-	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/ipsn/go-ipfs/core"
 )
@@ -21,7 +21,7 @@ func main() {
 	configParams := config.GetConfig("config")
 
 	// Initialize Redis client
-	client, err := initRedisClient(configParams)
+	client, err := data.NewRedisClient(configParams.Redis.Address, configParams.Redis.Password, configParams.Redis.DB)
 	if err != nil {
 		log.Fatal("Error initializing Redis client")
 	}
@@ -44,34 +44,24 @@ func main() {
 	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj)(router)))
 }
 
-func initRedisClient(config *config.Configuration) (*redis.Client, error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:     config.Redis.Address,
-		Password: config.Redis.Password,
-		DB:       config.Redis.DB,
-	})
-
-	err := client.Set("key", "value", 0).Err()
-
-	return client, err
-}
-
 func initIpfsNode() (*core.IpfsNode, error) {
 	ctx, _ := context.WithCancel(context.Background())
 
 	return core.NewNode(ctx, nil)
 }
 
-func GetRouter(config *config.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
+func GetRouter(config *config.Configuration, client data.RedisClient, node *core.IpfsNode, storage storage.Storage) *mux.Router {
 	r := mux.NewRouter()
 
-	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client, Config: config}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
+	dclApi := config.DecentralandApi.LandUrl
+
+	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client, Dcl: data.NewDclClient(dclApi)}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
 
 	uploadHandler := handlers.UploadHandler{
 		Storage:     storage,
 		RedisClient: client,
 		IpfsNode:    node,
-		Config:      config,
+		Auth:        data.NewAuthorizationService(data.NewDclClient(dclApi)),
 	}
 	r.Handle("/mappings", &uploadHandler).Methods("POST")
 
