@@ -134,7 +134,8 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	for filePath, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
 
-		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, filesCIDs[filePath])
+		fileCID := filesCIDs[filePath]
+		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, fileCID)
 		if err != nil {
 			handle500(w, err)
 			return
@@ -151,13 +152,13 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 		defer file.Close()
 
-		_, err = handler.Storage.SaveFile(filesCIDs[filePath], file)
+		_, err = handler.Storage.SaveFile(fileCID, file)
 		if err != nil {
 			handle500(w, err)
 			return
 		}
 
-		err = handler.RedisClient.HSet("content_"+meta.RootCid, filePath, filesCIDs[filePath]).Err()
+		err = handler.RedisClient.HSet("content_"+meta.RootCid, filePath, fileCID).Err()
 		if err != nil {
 			handle500(w, err)
 			return
