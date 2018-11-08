@@ -55,7 +55,10 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 
 	dclApi := config.DecentralandApi.LandUrl
 
-	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client, Dcl: data.NewDclClient(dclApi)}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
+	r.Path("/mappings").
+		Methods("GET").
+		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
+		Handler(&handlers.MappingsHandler{RedisClient: client, Dcl: data.NewDclClient(dclApi)})
 
 	uploadHandler := handlers.UploadHandler{
 		Storage:     storage,
@@ -63,14 +66,21 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 		IpfsNode:    node,
 		Auth:        data.NewAuthorizationService(data.NewDclClient(dclApi)),
 	}
-	r.Handle("/mappings", &uploadHandler).Methods("POST")
+
+	r.Path("/mappings").
+		Methods("POST").
+		Handler(&uploadHandler)
 
 	contentsHandler := handlers.ContentsHandler{
 		Storage: storage,
 	}
-	r.Handle("/contents/{cid}", &contentsHandler).Methods("GET")
 
-	r.Handle("/validate", &handlers.ValidateHandler{RedisClient: client}).Methods("GET").Queries("x", "{x}", "y", "{y}")
+	r.Path("/contents/{cid}").Methods("GET").Handler(&contentsHandler)
+
+	r.Path("/validate").
+		Methods("GET").
+		Queries("x", "{x:-?[0-9]+}", "y", "{y:-?[0-9]+}").
+		Handler(&handlers.ValidateHandler{RedisClient: client})
 
 	return r
 }
