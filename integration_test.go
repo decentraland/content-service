@@ -253,7 +253,7 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 			continue
 		}
 
-		part, err := writer.CreateFormFile(content.Name, filepath.Base(content.Name))
+		part, err := writer.CreateFormFile(content.Cid, filepath.Base(content.Name))
 		if err != nil {
 			return nil, err
 		}
