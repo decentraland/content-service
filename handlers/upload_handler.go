@@ -98,9 +98,9 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	filesPath := make(map[string]string)
+	filesCIDs := make(map[string]string)
 	for _, fileMeta := range filesMeta {
-		filesPath[fileMeta.Cid] = fileMeta.Name
+		filesCIDs[fileMeta.Name] = fileMeta.Cid
 	}
 
 	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, filesMeta, r.MultipartForm.File)
@@ -131,9 +131,10 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	for fileCID, fileHeaders := range r.MultipartForm.File {
+	for filePath, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
 
+		fileCID := filesCIDs[filePath]
 		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, fileCID)
 		if err != nil {
 			handle500(w, err)
@@ -157,7 +158,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		err = handler.RedisClient.HSet("content_"+meta.RootCid, filesPath[fileCID], fileCID).Err()
+		err = handler.RedisClient.HSet("content_"+meta.RootCid, filePath, fileCID).Err()
 		if err != nil {
 			handle500(w, err)
 			return
@@ -198,7 +199,7 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, filesMeta []FileMetadat
 			continue
 		}
 
-		fileHeader := files[meta.Cid][0]
+		fileHeader := files[meta.Name][0]
 		dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
 		filePath := filepath.Join(dir, filepath.Base(meta.Name))
 
