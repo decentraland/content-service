@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/validation"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -18,10 +19,11 @@ import (
 )
 
 type UploadHandler struct {
-	Storage     storage.Storage
-	RedisClient data.RedisClient
-	IpfsNode    *core.IpfsNode
-	Auth        data.Authorization
+	Storage         storage.Storage
+	RedisClient     data.RedisClient
+	IpfsNode        *core.IpfsNode
+	Auth            data.Authorization
+	StructValidator validation.Validator
 }
 
 type FileMetadata struct {
@@ -30,13 +32,13 @@ type FileMetadata struct {
 }
 
 type Metadata struct {
-	Value        string `json:"value" structs:"value"`
-	Signature    string `json:"signature" structs:"signature"`
-	Validity     string `json:"validity" structs:"validity"`
-	ValidityType int    `json:"validityType" structs:"validityType"`
-	Sequence     int    `json:"sequence" structs:"sequence"`
-	PubKey       string `json:"pubkey" structs:"pubkey"`
-	RootCid      string `json:"root_cid" structs:"root_cid"`
+	Value        string `json:"value" structs:"value " validate:"required"`
+	Signature    string `json:"signature" structs:"signature" validate:"required,prefix=0x"`
+	Validity     string `json:"validity" structs:"validity" validate:"required"`
+	ValidityType int    `json:"validityType" structs:"validityType" validate:"required,gte=0"`
+	Sequence     int    `json:"sequence" structs:"sequence" validate:"required,gte=0"`
+	PubKey       string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
+	RootCid      string `json:"root_cid" structs:"root_cid" validate:"required"`
 }
 
 type scene struct {
@@ -69,9 +71,9 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	meta, err := getMetadata([]byte(metaMultipart[0]))
+	meta, err := getMetadata([]byte(metaMultipart[0]), handler.StructValidator)
 	if err != nil {
-		handle500(w, err)
+		handle400(w, 400, err.Error())
 		return
 	}
 
@@ -179,14 +181,17 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func getMetadata(jsonString []byte) (Metadata, error) {
+func getMetadata(jsonString []byte, v validation.Validator) (Metadata, error) {
 	var meta Metadata
 	err := json.Unmarshal(jsonString, &meta)
 	if err != nil {
 		return Metadata{}, err
 	}
-
 	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
+	err = v.ValidateStruct(meta)
+	if err != nil {
+		return Metadata{}, err
+	}
 	return meta, nil
 }
 

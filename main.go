@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/validation"
 	gHandlers "github.com/gorilla/handlers"
 	"log"
 	"net/http"
@@ -61,10 +62,11 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 		Handler(&handlers.MappingsHandler{RedisClient: client, Dcl: data.NewDclClient(dclApi)})
 
 	uploadHandler := handlers.UploadHandler{
-		Storage:     storage,
-		RedisClient: client,
-		IpfsNode:    node,
-		Auth:        data.NewAuthorizationService(data.NewDclClient(dclApi)),
+		Storage:         storage,
+		RedisClient:     client,
+		IpfsNode:        node,
+		Auth:            data.NewAuthorizationService(data.NewDclClient(dclApi)),
+		StructValidator: validation.NewValidator(),
 	}
 
 	r.Path("/mappings").
