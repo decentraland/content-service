@@ -1,0 +1,98 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.11
+        environment: &ENVIRONMENT
+          GO111MODULE: "on"
+          TEST_RESULTS: /tmp/test-results
+          DOCKER_IMAGE_NAME: decentraland/content-service
+      - image: redis:4.0.10
+
+    #### TEMPLATE_NOTE: go expects specific checkout path representing url
+    #### expecting it in the form of
+    ####   /go/src/github.com/circleci/go-tool
+    ####   /go/src/bitbucket.org/circleci/go-tool
+    working_directory: /go/src/github.com/decentraland/content-service
+    steps:
+      - checkout
+      - run: mkdir -p $TEST_RESULTS # create the test results directory
+
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+
+      # specify any bash command here prefixed with `run: `
+      - run: go get
+      - run: go get github.com/jstemmer/go-junit-report
+
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - ~/.cache/go-build
+
+      - run: |
+          trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+          go test -v ./... | tee ${TEST_RESULTS}/go-test.out
+
+      - store_artifacts: # Upload test summary for display in Artifacts
+          path: /tmp/test-results
+          destination: raw-test-output
+          when: always
+
+      - store_test_results: # Upload test results for display in Test Summary
+          path: /tmp/test-results
+          when: always
+
+  build-image:
+    docker:
+      - image: circleci/golang:1.11
+        environment: *ENVIRONMENT
+
+    working_directory: /go/src/github.com/decentraland/content-service
+
+    steps:
+      - checkout
+
+      - setup_remote_docker: { docker_layer_caching: true }
+
+      - run:
+          name: Build Docker image
+          command: docker build -t $DOCKER_IMAGE_NAME:$CIRCLE_SHA1 .
+
+      - run:
+          name: Log in DockerHub
+          command: docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
+
+      - run:
+          name: Push image
+          command: |
+            if echo "$CIRCLE_BRANCH" | grep "^master$"; then
+              docker tag "$DOCKER_IMAGE_NAME:$CIRCLE_SHA1" "$DOCKER_IMAGE_NAME:$CIRCLE_BRANCH"
+              docker push "$DOCKER_IMAGE_NAME:$CIRCLE_SHA1"
+            elif echo "$CIRCLE_TAG" | grep "^[0-9]\+\.[0-9]\+\.[0-9]\+$"; then
+              docker tag "$DOCKER_IMAGE_NAME:$CIRCLE_SHA1" "$DOCKER_IMAGE_NAME:$CIRCLE_TAG"
+              docker push "$DOCKER_IMAGE_NAME:$CIRCLE_TAG"
+            else
+              echo "Not a release, skipping push"
+            fi
+
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+
+      - build-image:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /.*/
