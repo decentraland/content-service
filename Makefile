@@ -13,7 +13,7 @@ run:
 	docker-compose run --rm --name content_service_golang -p 8000:8000 golang /bin/bash -c "go build && ./content-service"
 
 test:
-	go test -v ./...
+	go test -v ./... -count=1
 
 demo:
 	docker-compose run --rm --name content_service_golang -p 8000:8000 \
