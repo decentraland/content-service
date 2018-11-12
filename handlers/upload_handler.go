@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/data"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -13,16 +13,15 @@ import (
 
 	"github.com/decentraland/content-service/storage"
 	"github.com/fatih/structs"
-	"github.com/go-redis/redis"
 	"github.com/ipsn/go-ipfs/core"
 	"github.com/ipsn/go-ipfs/core/coreunix"
 )
 
 type UploadHandler struct {
 	Storage     storage.Storage
-	RedisClient *redis.Client
+	RedisClient data.RedisClient
 	IpfsNode    *core.IpfsNode
-	Config      *config.Configuration
+	Auth        data.Authorization
 }
 
 type FileMetadata struct {
@@ -76,7 +75,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	valid, err := isSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
+	valid, err := handler.Auth.IsSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
 	if err != nil {
 		handle500(w, err)
 		return
@@ -98,9 +97,13 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	filesCIDs := make(map[string]string)
+	filesPaths := make(map[string][]string)
 	for _, fileMeta := range filesMeta {
-		filesCIDs[fileMeta.Name] = fileMeta.Cid
+		paths := filesPaths[fileMeta.Cid]
+		if paths == nil {
+			paths = []string{}
+		}
+		filesPaths[fileMeta.Cid] = append(paths, fileMeta.Name)
 	}
 
 	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, filesMeta, r.MultipartForm.File)
@@ -122,7 +125,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	canModify, err := userCanModify(meta.PubKey, scene, &handler.Config.DecentralandApi)
+	canModify, err := handler.Auth.UserCanModifyParcels(meta.PubKey, scene.Scene.Parcels)
 	if err != nil {
 		handle500(w, err)
 		return
@@ -131,10 +134,9 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	for filePath, fileHeaders := range r.MultipartForm.File {
+	for fileCID, fileHeaders := range r.MultipartForm.File {
 		fileHeader := fileHeaders[0]
 
-		fileCID := filesCIDs[filePath]
 		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, fileCID)
 		if err != nil {
 			handle500(w, err)
@@ -158,22 +160,24 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		err = handler.RedisClient.HSet("content_"+meta.RootCid, filePath, fileCID).Err()
-		if err != nil {
-			handle500(w, err)
-			return
+		for _, path := range filesPaths[fileCID] {
+			err = handler.RedisClient.StoreContent(meta.RootCid, path, fileCID)
+			if err != nil {
+				handle500(w, err)
+				return
+			}
 		}
 	}
 
 	for _, parcel := range scene.Scene.Parcels {
-		err = handler.RedisClient.Set(parcel, meta.RootCid, 0).Err()
+		err = handler.RedisClient.SetKey(parcel, meta.RootCid)
 		if err != nil {
 			handle500(w, err)
 			return
 		}
 	}
 
-	err = handler.RedisClient.HMSet("metadata_"+meta.RootCid, structs.Map(meta)).Err()
+	err = handler.RedisClient.StoreMetadata(meta.RootCid, structs.Map(meta))
 	if err != nil {
 		handle500(w, err)
 		return
@@ -199,7 +203,7 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, filesMeta []FileMetadat
 			continue
 		}
 
-		fileHeader := files[meta.Name][0]
+		fileHeader := files[meta.Cid][0]
 		dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
 		filePath := filepath.Join(dir, filepath.Base(meta.Name))
 
