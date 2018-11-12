@@ -27,35 +27,41 @@ type UploadHandler struct {
 }
 
 type FileMetadata struct {
-	Cid  string `json:"cid"`
-	Name string `json:"name"`
+	Cid  string `json:"cid" validate:"required"`
+	Name string `json:"name" validate:"required"`
 }
 
 type Metadata struct {
 	Value        string `json:"value" structs:"value " validate:"required"`
 	Signature    string `json:"signature" structs:"signature" validate:"required,prefix=0x"`
 	Validity     string `json:"validity" structs:"validity" validate:"required"`
-	ValidityType int    `json:"validityType" structs:"validityType" validate:"required,gte=0"`
-	Sequence     int    `json:"sequence" structs:"sequence" validate:"required,gte=0"`
+	ValidityType int    `json:"validityType" structs:"validityType" validate:"gte=0"`
+	Sequence     int    `json:"sequence" structs:"sequence" validate:"gte=0"`
 	PubKey       string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
 	RootCid      string `json:"root_cid" structs:"root_cid" validate:"required"`
 }
 
 type scene struct {
-	Display struct {
-		Title string `json:"title"`
-	} `json:"display"`
-	Owner string `json:"owner"`
-	Scene struct {
-		EstateID int      `json:"estateId"`
-		Parcels  []string `json:"parcels"`
-		Base     string   `json:"base"`
-	} `json:"scene"`
-	Communications struct {
-		Type       string `json:"type"`
-		Signalling string `json:"signalling"`
-	} `json:"communications"`
-	Main string `json:"main"`
+	Display        display     `json:"display"`
+	Owner          string      `json:"owner" validate:"required"`
+	Scene          sceneData   `json:"scene"`
+	Communications commsConfig `json:"communications"`
+	Main           string      `json:"main" validate:"required"`
+}
+
+type display struct {
+	Title string `json:"title"`
+}
+
+type sceneData struct {
+	EstateID int      `json:"estateId"`
+	Parcels  []string `json:"parcels" validate:"required"`
+	Base     string   `json:"base" validate:"required"`
+}
+
+type commsConfig struct {
+	Type       string `json:"type"`
+	Signalling string `json:"signalling"`
 }
 
 func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -92,10 +98,9 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var filesMeta []FileMetadata
-	err = json.Unmarshal([]byte(filesJSON[0]), &filesMeta)
+	filesMeta, err := getFilesMetadata(filesJSON[0], handler.StructValidator)
 	if err != nil {
-		handle500(w, err)
+		handle400(w, 400, err.Error())
 		return
 	}
 
@@ -113,7 +118,7 @@ func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	scene, err := getScene(r.MultipartForm.File)
+	scene, err := getScene(r.MultipartForm.File, handler.StructValidator)
 	if err != nil {
 		if err.Error() == "Missing scene.json" {
 			handle400(w, 400, err.Error())
@@ -238,7 +243,7 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, filesMeta []FileMetadat
 	return rootCID == actualRootCID, nil
 }
 
-func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
+func getScene(files map[string][]*multipart.FileHeader, v validation.Validator) (*scene, error) {
 	for _, header := range files {
 		if header[0].Filename == "scene.json" {
 			sceneFile, err := header[0].Open()
@@ -251,7 +256,10 @@ func getScene(files map[string][]*multipart.FileHeader) (*scene, error) {
 			if err != nil {
 				return nil, err
 			}
-
+			err = v.ValidateStruct(sce)
+			if err != nil {
+				return nil, err
+			}
 			return &sce, nil
 		}
 	}
@@ -272,4 +280,19 @@ func fileMatchesCID(node *core.IpfsNode, fileHeader *multipart.FileHeader, recei
 	}
 
 	return receivedCID == actualCID, nil
+}
+
+func getFilesMetadata(strFiles string, v validation.Validator) ([]FileMetadata, error) {
+	var filesMeta []FileMetadata
+	err := json.Unmarshal([]byte(strFiles), &filesMeta)
+	if err != nil {
+		return nil, err
+	}
+	for _, element := range filesMeta {
+		err = v.ValidateStruct(element)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return filesMeta, nil
 }

@@ -27,9 +27,11 @@ func NewValidator() *ValidatorImpl {
 
 func (v *ValidatorImpl) ValidateStruct(s interface{}) error {
 	err := v.validator.Struct(s)
-	validationErrors := err.(validator.ValidationErrors)
-	if validationErrors != nil {
-		return translateErrors(validationErrors, v.translations)
+	if err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		if validationErrors != nil {
+			return translateErrors(validationErrors, v.translations)
+		}
 	}
 	return nil
 }
