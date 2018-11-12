@@ -59,6 +59,7 @@ require (
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/polydawn/refmt v0.0.0-20181101235710-2700834540f8 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
