@@ -253,7 +253,7 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string) erro
 	if err != nil {
 		return WrapInBadRequestError(err)
 	} else if !canModify {
-		return StatusError{http.StatusUnauthorized, errors.New("Given address is not authorized to modify given parcels")}
+		return StatusError{http.StatusUnauthorized, errors.New("address is not authorized to modify given parcels")}
 	}
 	return nil
 }
@@ -294,28 +294,36 @@ func calculateRootCid(node *core.IpfsNode, rootPath string, filesMeta []FileMeta
 			continue
 		}
 
-		fileHeader := files[meta.Cid][0]
-		dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
-		filePath := filepath.Join(dir, filepath.Base(meta.Name))
+		// This anonymous function would allow the defers to work properly
+		// preventing resources from being piled up
+		err := func() error {
+			fileHeader := files[meta.Cid][0]
+			dir := filepath.Join(rootDir, filepath.Dir(meta.Name))
+			filePath := filepath.Join(dir, filepath.Base(meta.Name))
 
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
+			err := os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				return err
+			}
 
-		dst, err := os.Create(filePath)
-		if err != nil {
-			return "", err
-		}
-		defer dst.Close()
+			dst, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
+			defer dst.Close()
 
-		file, err := fileHeader.Open()
-		if err != nil {
-			return "", err
-		}
-		defer file.Close()
+			file, err := fileHeader.Open()
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 
-		_, err = io.Copy(dst, file)
+			_, err = io.Copy(dst, file)
+			if err != nil {
+				return err
+			}
+			return nil
+		}()
 		if err != nil {
 			return "", err
 		}
@@ -357,18 +365,26 @@ func processUploadedFiles(fh map[string][]*multipart.FileHeader, n *core.IpfsNod
 		if err != nil {
 			return WrapInBadRequestError(err)
 		} else if !fileMatches {
-			return NewBadRequestError("Given file CID does not match its generated CID")
+			return NewBadRequestError("File CID does not match its generated CID")
 		}
 
-		file, err := fileHeader.Open()
-		if err != nil {
-			return WrapInInternalError(err)
-		}
-		defer file.Close()
+		// This anonymous function would allow the defers to work properly
+		// preventing resources from being piled up
+		err = func() error {
+			file, err := fileHeader.Open()
+			if err != nil {
+				return WrapInInternalError(err)
+			}
+			defer file.Close()
 
-		_, err = s.SaveFile(fileCID, file)
+			_, err = s.SaveFile(fileCID, file)
+			if err != nil {
+				return WrapInInternalError(err)
+			}
+			return nil
+		}()
 		if err != nil {
-			return WrapInInternalError(err)
+			return err
 		}
 
 		for _, path := range paths[fileCID] {
