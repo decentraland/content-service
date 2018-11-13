@@ -304,16 +304,16 @@ func calculateRootCid(node *core.IpfsNode, rootPath string, filesMeta []FileMeta
 		}
 
 		dst, err := os.Create(filePath)
-		defer dst.Close()
 		if err != nil {
 			return "", err
 		}
+		defer dst.Close()
 
 		file, err := fileHeader.Open()
-		defer file.Close()
 		if err != nil {
 			return "", err
 		}
+		defer file.Close()
 
 		_, err = io.Copy(dst, file)
 		if err != nil {
@@ -361,11 +361,10 @@ func processUploadedFiles(fh map[string][]*multipart.FileHeader, n *core.IpfsNod
 		}
 
 		file, err := fileHeader.Open()
-		defer file.Close()
-
 		if err != nil {
 			return WrapInInternalError(err)
 		}
+		defer file.Close()
 
 		_, err = s.SaveFile(fileCID, file)
 		if err != nil {
