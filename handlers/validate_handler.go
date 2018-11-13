@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/decentraland/content-service/data"
 	"net/http"
@@ -10,35 +9,32 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type ValidateHandler struct {
+type ValidateParcelCtx struct {
 	RedisClient data.RedisClient
 }
 
-func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func GetParcelMetadata(ctx interface{}, r *http.Request) (interface{}, error) {
+	c, ok := ctx.(ValidateParcelCtx)
+	if !ok {
+		return nil, NewInternalError("Invalid Configuration")
+	}
+
 	params := mux.Vars(r)
 
-	parcelID := fmt.Sprintf("%+s,%+s", params["x"], params["y"])
+	parcelMeta, err := getParcelMetadata(c.RedisClient, fmt.Sprintf("%+s,%+s", params["x"], params["y"]))
+	if err != nil {
+		return nil, err
+	}
 
-	parcelMeta, err := handler.RedisClient.GetParcelMetadata(parcelID)
+	return parcelMeta, nil
+}
+
+func getParcelMetadata(rc data.RedisClient, parcelId string) (map[string]interface{}, error) {
+	parcelMeta, err := rc.GetParcelMetadata(parcelId)
 	if err == redis.Nil {
-		handle400(w, 404, "Parcel metadata not found")
-		return
+		return nil, NewNotFoundError("Parcel metadata not found")
 	} else if err != nil {
-		handle500(w, err)
-		return
+		return nil, WrapInInternalError(err)
 	}
-
-	metadataJSON, err := json.Marshal(parcelMeta)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err = w.Write(metadataJSON)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
+	return parcelMeta, nil
 }

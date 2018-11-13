@@ -18,7 +18,7 @@ import (
 	"github.com/ipsn/go-ipfs/core/coreunix"
 )
 
-type UploadHandler struct {
+type UploadCtx struct {
 	Storage         storage.Storage
 	RedisClient     data.RedisClient
 	IpfsNode        *core.IpfsNode
@@ -64,149 +64,203 @@ type commsConfig struct {
 	Signalling string `json:"signalling"`
 }
 
-func (handler *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func UploadContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
+	c, ok := ctx.(UploadCtx)
+	if !ok {
+		return NewInternalError("Invalid Configuration")
+	}
+
 	err := r.ParseMultipartForm(0)
 	if err != nil {
-		handle500(w, err)
-		return
+		return NewInternalError(err.Error())
 	}
 
-	metaMultipart, isset := r.MultipartForm.Value["metadata"]
-	if !isset {
-		handle400(w, 400, "Missing metadata part in multipart")
-		return
-	}
-
-	meta, err := getMetadata([]byte(metaMultipart[0]), handler.StructValidator)
+	meta, err := getMetadata(r, c.StructValidator)
 	if err != nil {
-		handle400(w, 400, err.Error())
-		return
+		return err
 	}
 
-	valid, err := handler.Auth.IsSignatureValid(meta.RootCid, meta.Signature, meta.PubKey)
+	filesMeta, err := getFilesMetadata(r, c.StructValidator, meta.RootCid)
 	if err != nil {
-		handle500(w, err)
-		return
-	} else if !valid {
-		handle400(w, 401, "Signature is invalid")
-		return
+		return err
 	}
 
-	filesJSON, isset := r.MultipartForm.Value[meta.RootCid]
-	if !isset {
-		handle400(w, 400, "Missing contents part in multipart ")
-		return
-	}
-
-	filesMeta, err := getFilesMetadata(filesJSON[0], handler.StructValidator)
+	err = validateSignature(c.Auth, meta.RootCid, meta.Signature, meta.PubKey)
 	if err != nil {
-		handle400(w, 400, err.Error())
-		return
+		return err
 	}
 
-	filesPaths := make(map[string][]string)
-	for _, fileMeta := range filesMeta {
-		paths := filesPaths[fileMeta.Cid]
-		if paths == nil {
-			paths = []string{}
-		}
-		filesPaths[fileMeta.Cid] = append(paths, fileMeta.Name)
-	}
+	fileHeaders := r.MultipartForm.File
 
-	match, err := rootCIDMatches(handler.IpfsNode, meta.RootCid, filesMeta, r.MultipartForm.File)
+	err = validateRootCid(c.IpfsNode, meta.RootCid, filesMeta, fileHeaders)
 	if err != nil {
-		handle500(w, err)
-		return
-	} else if !match {
-		handle400(w, 400, "Generated root CID does not match given root CID")
-		return
+		return err
 	}
 
-	scene, err := getScene(r.MultipartForm.File, handler.StructValidator)
+	scene, err := getScene(fileHeaders, c.StructValidator)
 	if err != nil {
-		if err.Error() == "Missing scene.json" {
-			handle400(w, 400, err.Error())
-		} else {
-			handle500(w, err)
-		}
-		return
+		return err
 	}
 
-	canModify, err := handler.Auth.UserCanModifyParcels(meta.PubKey, scene.Scene.Parcels)
+	err = validateKeyAccess(c.Auth, meta.PubKey, scene.Scene.Parcels)
 	if err != nil {
-		handle500(w, err)
-		return
-	} else if !canModify {
-		handle400(w, 401, "Given address is not authorized to modify given parcels")
-		return
+		return err
 	}
 
-	for fileCID, fileHeaders := range r.MultipartForm.File {
-		fileHeader := fileHeaders[0]
-
-		fileMatches, err := fileMatchesCID(handler.IpfsNode, fileHeader, fileCID)
-		if err != nil {
-			handle500(w, err)
-			return
-		} else if !fileMatches {
-			handle400(w, 400, "Given file CID does not match its generated CID")
-			http.Error(w, http.StatusText(400), 400)
-			return
-		}
-
-		file, err := fileHeader.Open()
-		if err != nil {
-			handle500(w, err)
-			return
-		}
-		defer file.Close()
-
-		_, err = handler.Storage.SaveFile(fileCID, file)
-		if err != nil {
-			handle500(w, err)
-			return
-		}
-
-		for _, path := range filesPaths[fileCID] {
-			err = handler.RedisClient.StoreContent(meta.RootCid, path, fileCID)
-			if err != nil {
-				handle500(w, err)
-				return
-			}
-		}
-	}
-
-	for _, parcel := range scene.Scene.Parcels {
-		err = handler.RedisClient.SetKey(parcel, meta.RootCid)
-		if err != nil {
-			handle500(w, err)
-			return
-		}
-	}
-
-	err = handler.RedisClient.StoreMetadata(meta.RootCid, structs.Map(meta))
+	err = processUploadedFiles(fileHeaders, c.IpfsNode, groupFilePathsByCid(filesMeta), c.RedisClient, meta.RootCid, c.Storage)
 	if err != nil {
-		handle500(w, err)
-		return
+		return err
 	}
+
+	err = storeParcelsInformation(meta.RootCid, scene.Scene.Parcels, c.RedisClient)
+	if err != nil {
+		return err
+	}
+
+	err = c.RedisClient.StoreMetadata(meta.RootCid, structs.Map(meta))
+	if err != nil {
+		return WrapInInternalError(err)
+	}
+	return nil
 }
 
-func getMetadata(jsonString []byte, v validation.Validator) (Metadata, error) {
+// Extracts the request Metadata
+func getMetadata(r *http.Request, v validation.Validator) (Metadata, error) {
+	metaMultipart, isset := r.MultipartForm.Value["metadata"]
+	if !isset {
+		return Metadata{}, NewBadRequestError("Missing metadata part in multipart")
+	}
+	return parseSceneMetadata(metaMultipart[0], v)
+}
+
+// Parse a Json String into a Metadata
+// Retrieves an error if the Json String is malformed or if a required field is missing
+func parseSceneMetadata(mStr string, v validation.Validator) (Metadata, error) {
 	var meta Metadata
-	err := json.Unmarshal(jsonString, &meta)
+	err := json.Unmarshal([]byte(mStr), &meta)
 	if err != nil {
-		return Metadata{}, err
+		return Metadata{}, WrapInBadRequestError(err)
 	}
 	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
 	err = v.ValidateStruct(meta)
 	if err != nil {
-		return Metadata{}, err
+		return Metadata{}, WrapInBadRequestError(err)
 	}
 	return meta, nil
 }
 
-func rootCIDMatches(node *core.IpfsNode, rootCID string, filesMeta []FileMetadata, files map[string][]*multipart.FileHeader) (bool, error) {
-	rootDir := filepath.Join("/tmp", rootCID)
+// Extract the scene information from the upload request
+func getScene(files map[string][]*multipart.FileHeader, v validation.Validator) (*scene, error) {
+	for _, header := range files {
+		if header[0].Filename == "scene.json" {
+			sceneFile, err := header[0].Open()
+			if err != nil {
+				return nil, WrapInBadRequestError(err)
+			}
+			return parseSceneJsonFile(sceneFile, v)
+		}
+	}
+	return nil, NewBadRequestError("Missing scene.json")
+}
+
+// Transform a io.Reader into a scene object
+// Retrieves an error if the scene object is missing a required field is missing
+func parseSceneJsonFile(file io.Reader, v validation.Validator) (*scene, error) {
+	var sce scene
+	err := json.NewDecoder(file).Decode(&sce)
+	if err != nil {
+		return nil, WrapInBadRequestError(err)
+	}
+	err = v.ValidateStruct(sce)
+	if err != nil {
+		return nil, WrapInBadRequestError(err)
+	}
+	return &sce, nil
+}
+
+// Check if the expectedCID matches the actual CID for a given file
+func fileMatchesCID(node *core.IpfsNode, fileHeader *multipart.FileHeader, expectedCID string) (bool, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	actualCID, err := coreunix.Add(node, file)
+	if err != nil {
+		return false, err
+	}
+
+	return expectedCID == actualCID, nil
+}
+
+// Extracts a the list of FileMetadata from the Request
+func getFilesMetadata(r *http.Request, v validation.Validator, cid string) ([]FileMetadata, error) {
+	filesJSON, isset := r.MultipartForm.Value[cid]
+	if !isset {
+		return nil, NewBadRequestError("Missing contents part in multipart ")
+	}
+	return parseFilesMetadata(filesJSON[0], v)
+}
+
+// Parse a Json String into an array of FileMetadata
+// Retrieves an error if the Json String is malformed or if a required field is missing
+func parseFilesMetadata(metadataStr string, v validation.Validator) ([]FileMetadata, error) {
+	var filesMeta []FileMetadata
+	err := json.Unmarshal([]byte(metadataStr), &filesMeta)
+	if err != nil {
+		return nil, WrapInInternalError(err)
+	}
+	for _, element := range filesMeta {
+		err = v.ValidateStruct(element)
+		if err != nil {
+			return nil, WrapInBadRequestError(err)
+		}
+	}
+	return filesMeta, nil
+}
+
+// Retrieves an error if the given pKey does not have permissions to modify the parcels
+func validateKeyAccess(a data.Authorization, pKey string, parcels []string) error {
+	canModify, err := a.UserCanModifyParcels(pKey, parcels)
+	if err != nil {
+		return WrapInBadRequestError(err)
+	} else if !canModify {
+		return StatusError{http.StatusUnauthorized, errors.New("Given address is not authorized to modify given parcels")}
+	}
+	return nil
+}
+
+// Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
+func validateSignature(a data.Authorization, rootCid, signature, address string) error {
+	valid, err := a.IsSignatureValid(rootCid, signature, address)
+	if err != nil {
+		return WrapInInternalError(err)
+	} else if !valid {
+		return NewBadRequestError("Signature is invalid")
+	}
+	return nil
+}
+
+// Retrieves an error if the calculated global CID differs from the expected CID
+func validateRootCid(node *core.IpfsNode, expectedCID string, filesMeta []FileMetadata, files map[string][]*multipart.FileHeader) error {
+	actualRootCID, err := calculateRootCid(node, expectedCID, filesMeta, files)
+	if err != nil {
+		return WrapInInternalError(err)
+	}
+
+	if expectedCID != actualRootCID {
+		return NewBadRequestError("Generated root CID does not match given root CID")
+	}
+	return nil
+}
+
+// Calculate the RootCid for a given set of files
+// rootPath: root folder to group the files
+// filesMeta: Information about each file path
+// files: A map with all the files content
+func calculateRootCid(node *core.IpfsNode, rootPath string, filesMeta []FileMetadata, files map[string][]*multipart.FileHeader) (string, error) {
+	rootDir := filepath.Join("/tmp", rootPath)
 
 	for _, meta := range filesMeta {
 		if meta.Name[len(meta.Name)-1:] == "/" {
@@ -219,85 +273,84 @@ func rootCIDMatches(node *core.IpfsNode, rootCID string, filesMeta []FileMetadat
 
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
-			return false, err
+			return "", err
 		}
 
 		dst, err := os.Create(filePath)
-		if err != nil {
-			return false, err
-		}
 		defer dst.Close()
+		if err != nil {
+			return "", err
+		}
 
 		file, err := fileHeader.Open()
-		if err != nil {
-			return false, err
-		}
 		defer file.Close()
+		if err != nil {
+			return "", err
+		}
 
 		_, err = io.Copy(dst, file)
 		if err != nil {
-			return false, err
+			return "", err
 		}
 	}
 
-	actualRootCID, err := coreunix.AddR(node, rootDir)
-	if err != nil {
-		return false, err
-	}
-
-	return rootCID == actualRootCID, nil
+	return coreunix.AddR(node, rootDir)
 }
 
-func getScene(files map[string][]*multipart.FileHeader, v validation.Validator) (*scene, error) {
-	for _, header := range files {
-		if header[0].Filename == "scene.json" {
-			sceneFile, err := header[0].Open()
-			if err != nil {
-				return nil, err
-			}
-
-			var sce scene
-			err = json.NewDecoder(sceneFile).Decode(&sce)
-			if err != nil {
-				return nil, err
-			}
-			err = v.ValidateStruct(sce)
-			if err != nil {
-				return nil, err
-			}
-			return &sce, nil
+// Gruops all the files in the list by file CID
+// The map will cointain an entry for each CID, and the associated value would be a list of all the paths
+func groupFilePathsByCid(files []FileMetadata) map[string][]string {
+	filesPaths := make(map[string][]string)
+	for _, fileMeta := range files {
+		paths := filesPaths[fileMeta.Cid]
+		if paths == nil {
+			paths = []string{}
 		}
+		filesPaths[fileMeta.Cid] = append(paths, fileMeta.Name)
 	}
-
-	return nil, errors.New("Missing scene.json")
+	return filesPaths
 }
 
-func fileMatchesCID(node *core.IpfsNode, fileHeader *multipart.FileHeader, receivedCID string) (bool, error) {
-	file, err := fileHeader.Open()
-	if err != nil {
-		return false, err
-	}
-	defer file.Close()
-
-	actualCID, err := coreunix.Add(node, file)
-	if err != nil {
-		return false, err
-	}
-
-	return receivedCID == actualCID, nil
-}
-
-func getFilesMetadata(strFiles string, v validation.Validator) ([]FileMetadata, error) {
-	var filesMeta []FileMetadata
-	err := json.Unmarshal([]byte(strFiles), &filesMeta)
-	if err != nil {
-		return nil, err
-	}
-	for _, element := range filesMeta {
-		err = v.ValidateStruct(element)
+func storeParcelsInformation(rootCID string, parcels []string, rc data.RedisClient) error {
+	for _, parcel := range parcels {
+		err := rc.SetKey(parcel, rootCID)
 		if err != nil {
-			return nil, err
+			return WrapInInternalError(err)
 		}
 	}
-	return filesMeta, nil
+	return nil
+}
+
+// Validate and store all the uploaded files
+func processUploadedFiles(fh map[string][]*multipart.FileHeader, n *core.IpfsNode, paths map[string][]string, rc data.RedisClient, cid string, s storage.Storage) error {
+	for fileCID, fileHeaders := range fh {
+		fileHeader := fileHeaders[0]
+
+		fileMatches, err := fileMatchesCID(n, fileHeader, fileCID)
+		if err != nil {
+			return WrapInBadRequestError(err)
+		} else if !fileMatches {
+			return NewBadRequestError("Given file CID does not match its generated CID")
+		}
+
+		file, err := fileHeader.Open()
+		defer file.Close()
+
+		if err != nil {
+			return WrapInInternalError(err)
+		}
+
+		_, err = s.SaveFile(fileCID, file)
+		if err != nil {
+			return WrapInInternalError(err)
+		}
+
+		for _, path := range paths[fileCID] {
+			err = rc.StoreContent(cid, path, fileCID)
+			if err != nil {
+				return WrapInInternalError(err)
+			}
+		}
+	}
+	return nil
 }

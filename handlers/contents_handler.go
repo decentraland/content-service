@@ -1,23 +1,26 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/decentraland/content-service/storage"
 	"github.com/gorilla/mux"
 )
 
-type ContentsHandler struct {
+type GetContentCtx struct {
 	Storage storage.Storage
 }
 
-func (handler *ContentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func GetContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
+	c, ok := ctx.(GetContentCtx)
+	if !ok {
+		return NewInternalError("Invalid Configuration")
+	}
 	params := mux.Vars(r)
 
-	storeValue := handler.Storage.GetFile(params["cid"])
+	storeValue := c.Storage.GetFile(params["cid"])
 
-	switch handler.Storage.(type) {
+	switch c.Storage.(type) {
 	case *storage.S3:
 		w.Header().Add("Cache-Control", "max-age:31536000, public")
 		http.Redirect(w, r, storeValue, 301)
@@ -25,6 +28,7 @@ func (handler *ContentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		w.Header().Add("Content-Disposition", "Attachment")
 		http.ServeFile(w, r, storeValue)
 	default:
-		handle500(w, errors.New("Storage has unregistered type"))
+		return NewInternalError("Storage has unregistered type")
 	}
+	return nil
 }

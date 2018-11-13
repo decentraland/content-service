@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"github.com/decentraland/content-service/data"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
@@ -16,20 +15,35 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
-type MappingsHandler struct {
+type GetMappingsCtx struct {
 	RedisClient data.RedisClient
 	Dcl         data.Decentraland
 }
 
-func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func GetMappings(ctx interface{}, r *http.Request) (interface{}, error) {
+	c, ok := ctx.(GetMappingsCtx)
+	if !ok {
+		return nil, NewInternalError("Invalid Configuration")
+	}
+
 	params := mux.Vars(r)
 
 	paramsInt, err := mapValuesToInt(params)
-
-	parcels, estates, err := handler.Dcl.GetMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
 	if err != nil {
-		handle500(w, err)
-		return
+		return nil, err
+	}
+
+	mapContents, err := getMappings(c, paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
+	if err != nil {
+		return nil, err
+	}
+	return mapContents, nil
+}
+
+func getMappings(c GetMappingsCtx, x1, y1, x2, y2 int) ([]ParcelContent, error) {
+	parcels, estates, err := c.Dcl.GetMap(x1, y1, x2, y2)
+	if err != nil {
+		return nil, WrapInInternalError(err)
 	}
 
 	for _, estate := range estates {
@@ -38,29 +52,15 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	var mapContents []ParcelContent
 	for _, parcel := range parcels {
-		content, err := getParcelInformation(handler.RedisClient, parcel.ID)
+		content, err := getParcelInformation(c.RedisClient, parcel.ID)
 		if err != nil {
-			handle500(w, err)
-			return
+			return nil, WrapInInternalError(err)
 		}
 		if content.Contents != nil {
 			mapContents = append(mapContents, content)
 		}
 	}
-
-	contentsJSON, err := json.Marshal(mapContents)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err = w.Write(contentsJSON)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
+	return mapContents, nil
 }
 
 /**
@@ -84,15 +84,13 @@ func getParcelInformation(client data.RedisClient, parcelId string) (ParcelConte
 }
 
 func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
-	// var mapInt map[string]int
 	var err error
 	mapInt := make(map[string]int)
 	for k, v := range mapStr {
 		mapInt[k], err = strconv.Atoi(v)
 		if err != nil {
-			return nil, err
+			return nil, WrapInBadRequestError(err)
 		}
 	}
-
 	return mapInt, nil
 }
