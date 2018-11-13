@@ -37,6 +37,9 @@ func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	if mapContents == nil {
+		return NewOkEmptyResponse(), nil
+	}
 	return NewOkJsonResponse(mapContents), nil
 }
 
