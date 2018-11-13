@@ -50,24 +50,24 @@ func WrapInInternalError(err error) *StatusError {
 }
 
 type Handler struct {
-	ctx interface{}
+	Ctx interface{}
 	H   func(ctx interface{}, w http.ResponseWriter, r *http.Request) error
 }
 
 type JsonResponseHandler struct {
-	ctx interface{}
+	Ctx interface{}
 	H   func(ctx interface{}, r *http.Request) (interface{}, error)
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := h.H(h.ctx, w, r)
+	err := h.H(h.Ctx, w, r)
 	if err != nil {
 		handleError(w, err)
 	}
 }
 
 func (h JsonResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s, err := h.H(h.ctx, r)
+	s, err := h.H(h.Ctx, r)
 	if err != nil {
 		handleError(w, err)
 	}
