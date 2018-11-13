@@ -20,7 +20,7 @@ type GetMappingsCtx struct {
 	Dcl         data.Decentraland
 }
 
-func GetMappings(ctx interface{}, r *http.Request) (interface{}, error) {
+func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(GetMappingsCtx)
 	if !ok {
 		return nil, NewInternalError("Invalid Configuration")
@@ -37,7 +37,7 @@ func GetMappings(ctx interface{}, r *http.Request) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return mapContents, nil
+	return NewOkJsonResponse(mapContents), nil
 }
 
 func getMappings(c GetMappingsCtx, x1, y1, x2, y2 int) ([]ParcelContent, error) {

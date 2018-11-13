@@ -64,60 +64,87 @@ type commsConfig struct {
 	Signalling string `json:"signalling"`
 }
 
-func UploadContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
+type UploadRequest struct {
+	Metadata      Metadata
+	Manifest      []FileMetadata
+	UploadedFiles map[string][]*multipart.FileHeader
+	Scene         *scene
+}
+
+func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(UploadCtx)
 	if !ok {
-		return NewInternalError("Invalid Configuration")
+		return nil, NewInternalError("Invalid Configuration")
 	}
 
+	uploadRequest, err := parseRequest(r, c)
+	if err != nil {
+		return nil, err
+	}
+
+	err = processRequest(uploadRequest, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewOkEmptyResponse(), nil
+}
+
+// Extracts all the information from the http request
+// If any part is missing or is invalid it will retrieve an error
+func parseRequest(r *http.Request, c UploadCtx) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
-		return NewInternalError(err.Error())
+		return nil, NewInternalError(err.Error())
 	}
 
-	meta, err := getMetadata(r, c.StructValidator)
+	metadata, err := getMetadata(r, c.StructValidator)
+	if err != nil {
+		return nil, err
+	}
+
+	manifestContent, err := getManifestContent(r, c.StructValidator, metadata.RootCid)
+	if err != nil {
+		return nil, err
+	}
+
+	uploadedFiles := r.MultipartForm.File
+
+	scene, err := getScene(uploadedFiles, c.StructValidator)
+	if err != nil {
+		return nil, err
+	}
+	return &UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene}, nil
+}
+
+func processRequest(r *UploadRequest, c UploadCtx) error {
+
+	err := validateSignature(c.Auth, r.Metadata.RootCid, r.Metadata.Signature, r.Metadata.PubKey)
 	if err != nil {
 		return err
 	}
 
-	filesMeta, err := getFilesMetadata(r, c.StructValidator, meta.RootCid)
+	err = validateRootCid(c.IpfsNode, r.Metadata.RootCid, r.Manifest, r.UploadedFiles)
 	if err != nil {
 		return err
 	}
 
-	err = validateSignature(c.Auth, meta.RootCid, meta.Signature, meta.PubKey)
+	err = validateKeyAccess(c.Auth, r.Metadata.PubKey, r.Scene.Scene.Parcels)
 	if err != nil {
 		return err
 	}
 
-	fileHeaders := r.MultipartForm.File
-
-	err = validateRootCid(c.IpfsNode, meta.RootCid, filesMeta, fileHeaders)
+	err = processUploadedFiles(r.UploadedFiles, c.IpfsNode, groupFilePathsByCid(r.Manifest), c.RedisClient, r.Metadata.RootCid, c.Storage)
 	if err != nil {
 		return err
 	}
 
-	scene, err := getScene(fileHeaders, c.StructValidator)
+	err = storeParcelsInformation(r.Metadata.RootCid, r.Scene.Scene.Parcels, c.RedisClient)
 	if err != nil {
 		return err
 	}
 
-	err = validateKeyAccess(c.Auth, meta.PubKey, scene.Scene.Parcels)
-	if err != nil {
-		return err
-	}
-
-	err = processUploadedFiles(fileHeaders, c.IpfsNode, groupFilePathsByCid(filesMeta), c.RedisClient, meta.RootCid, c.Storage)
-	if err != nil {
-		return err
-	}
-
-	err = storeParcelsInformation(meta.RootCid, scene.Scene.Parcels, c.RedisClient)
-	if err != nil {
-		return err
-	}
-
-	err = c.RedisClient.StoreMetadata(meta.RootCid, structs.Map(meta))
+	err = c.RedisClient.StoreMetadata(r.Metadata.RootCid, structs.Map(r.Metadata))
 	if err != nil {
 		return WrapInInternalError(err)
 	}
@@ -195,7 +222,7 @@ func fileMatchesCID(node *core.IpfsNode, fileHeader *multipart.FileHeader, expec
 }
 
 // Extracts a the list of FileMetadata from the Request
-func getFilesMetadata(r *http.Request, v validation.Validator, cid string) ([]FileMetadata, error) {
+func getManifestContent(r *http.Request, v validation.Validator, cid string) ([]FileMetadata, error) {
 	filesJSON, isset := r.MultipartForm.Value[cid]
 	if !isset {
 		return nil, NewBadRequestError("Missing contents part in multipart ")

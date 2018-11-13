@@ -59,7 +59,7 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 	r.Path("/mappings").
 		Methods("GET").
 		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
-		Handler(&handlers.JsonResponseHandler{&handlers.GetMappingsCtx{RedisClient: client, Dcl: data.NewDclClient(dclApi)}, handlers.GetMappings})
+		Handler(&handlers.ResponseHandler{&handlers.GetMappingsCtx{RedisClient: client, Dcl: data.NewDclClient(dclApi)}, handlers.GetMappings})
 
 	uploadCtx := handlers.UploadCtx{
 		Storage:         storage,
@@ -71,7 +71,7 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 
 	r.Path("/mappings").
 		Methods("POST").
-		Handler(&handlers.Handler{&uploadCtx, handlers.UploadContent})
+		Handler(&handlers.ResponseHandler{&uploadCtx, handlers.UploadContent})
 
 	getContentCtx := handlers.GetContentCtx{
 		Storage: storage,
@@ -82,7 +82,7 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 	r.Path("/validate").
 		Methods("GET").
 		Queries("x", "{x:-?[0-9]+}", "y", "{y:-?[0-9]+}").
-		Handler(&handlers.JsonResponseHandler{&handlers.ValidateParcelCtx{RedisClient: client}, handlers.GetParcelMetadata})
+		Handler(&handlers.ResponseHandler{&handlers.ValidateParcelCtx{RedisClient: client}, handlers.GetParcelMetadata})
 
 	return r
 }

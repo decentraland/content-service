@@ -13,7 +13,7 @@ type ValidateParcelCtx struct {
 	RedisClient data.RedisClient
 }
 
-func GetParcelMetadata(ctx interface{}, r *http.Request) (interface{}, error) {
+func GetParcelMetadata(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(ValidateParcelCtx)
 	if !ok {
 		return nil, NewInternalError("Invalid Configuration")
@@ -26,7 +26,7 @@ func GetParcelMetadata(ctx interface{}, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	return parcelMeta, nil
+	return NewOkJsonResponse(parcelMeta), nil
 }
 
 func getParcelMetadata(rc data.RedisClient, parcelId string) (map[string]interface{}, error) {
