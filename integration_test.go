@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/decentraland/content-service/data"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,8 +17,6 @@ import (
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
-	"github.com/decentraland/content-service/storage"
-	"github.com/ipsn/go-ipfs/core"
 )
 
 var server *httptest.Server
@@ -28,22 +25,8 @@ var runIntegrationTests = os.Getenv("RUN_IT") == "true"
 
 func TestMain(m *testing.M) {
 	// Start server
-	conf := config.GetConfig("config_test")
+	router := InitializeApp(config.GetConfig("config_test"))
 
-	redisClient, err := data.NewRedisClient(conf.Redis.Address, conf.Redis.Password, conf.Redis.DB)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var ipfsNode *core.IpfsNode
-	ipfsNode, err = initIpfsNode()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	storage := storage.NewStorage(conf)
-
-	router := GetRouter(conf, redisClient, ipfsNode, storage)
 	server = httptest.NewServer(router)
 	defer server.Close()
 	code := m.Run()
