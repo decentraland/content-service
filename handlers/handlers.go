@@ -73,7 +73,7 @@ func NewInternalError(msg string) *StatusError {
 }
 
 func NewNotFoundError(msg string) *StatusError {
-	return &StatusError{http.StatusInternalServerError, errors.New(msg)}
+	return &StatusError{http.StatusNotFound, errors.New(msg)}
 }
 
 func WrapInBadRequestError(err error) *StatusError {
@@ -88,10 +88,11 @@ func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response, err := h.H(h.Ctx, r)
 	if err != nil {
 		handleError(w, err)
-	}
-	err = response.WriteResponse(w)
-	if err != nil {
-		unexpectedError(w, err)
+	} else {
+		err = response.WriteResponse(w)
+		if err != nil {
+			unexpectedError(w, err)
+		}
 	}
 }
 

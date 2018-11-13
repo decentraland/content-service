@@ -26,9 +26,13 @@ func GetParcelMetadata(ctx interface{}, r *http.Request) (Response, error) {
 		return nil, err
 	}
 
+	if parcelMeta == nil {
+		return NewOkEmptyResponse(), nil
+	}
 	return NewOkJsonResponse(parcelMeta), nil
 }
 
+// Retrieves the Parcel metadata or an error if no metadata for the given id is found
 func getParcelMetadata(rc data.RedisClient, parcelId string) (map[string]interface{}, error) {
 	parcelMeta, err := rc.GetParcelMetadata(parcelId)
 	if err == redis.Nil {

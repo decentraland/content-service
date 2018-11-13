@@ -71,18 +71,16 @@ func GetRouter(config *config.Configuration, client data.RedisClient, node *core
 
 	r.Path("/mappings").
 		Methods("POST").
-		Handler(&handlers.ResponseHandler{Ctx: &uploadCtx, H: handlers.UploadContent})
+		Handler(&handlers.ResponseHandler{Ctx: uploadCtx, H: handlers.UploadContent})
 
-	getContentCtx := handlers.GetContentCtx{
-		Storage: storage,
-	}
-
-	r.Path("/contents/{cid}").Methods("GET").Handler(&handlers.Handler{Ctx: &getContentCtx, H: handlers.GetContent})
+	r.Path("/contents/{cid}").
+		Methods("GET").
+		Handler(&handlers.Handler{Ctx: handlers.GetContentCtx{Storage: storage}, H: handlers.GetContent})
 
 	r.Path("/validate").
 		Methods("GET").
 		Queries("x", "{x:-?[0-9]+}", "y", "{y:-?[0-9]+}").
-		Handler(&handlers.ResponseHandler{Ctx: &handlers.ValidateParcelCtx{RedisClient: client}, H: handlers.GetParcelMetadata})
+		Handler(&handlers.ResponseHandler{Ctx: handlers.ValidateParcelCtx{RedisClient: client}, H: handlers.GetParcelMetadata})
 
 	return r
 }

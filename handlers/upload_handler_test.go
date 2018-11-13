@@ -156,27 +156,7 @@ var sceneValidation = []testDataValidation{
 			Main: "scene.js",
 		},
 		errorsAssertion: assert.Nil,
-	},
-	{
-		caseName: "Missing Owner",
-		s: scene{
-			Display: display{
-				Title: "suspicious_liskov",
-			},
-			Owner: "",
-			Scene: sceneData{
-				Parcels: []string{"54,-136"},
-				Base:    "54,-136",
-			},
-			Communications: commsConfig{
-				Type:       "webrtc",
-				Signalling: "https://rendezvous.decentraland.org",
-			},
-			Main: "scene.js",
-		},
-		errorsAssertion: assert.NotNil,
-	},
-	{
+	}, {
 		caseName: "Missing Parcels",
 		s: scene{
 			Display: display{

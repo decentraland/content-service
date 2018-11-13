@@ -43,7 +43,7 @@ type Metadata struct {
 
 type scene struct {
 	Display        display     `json:"display"`
-	Owner          string      `json:"owner" validate:"required"`
+	Owner          string      `json:"owner"`
 	Scene          sceneData   `json:"scene"`
 	Communications commsConfig `json:"communications"`
 	Main           string      `json:"main" validate:"required"`
