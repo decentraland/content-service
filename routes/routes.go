@@ -23,11 +23,8 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Handler(&handlers.ResponseHandler{Ctx: handlers.GetMappingsCtx{RedisClient: client, Dcl: data.NewDclClient(dclApi)}, H: handlers.GetMappings})
 
 	uploadCtx := handlers.UploadCtx{
-		Storage:         storage,
-		RedisClient:     client,
-		IpfsNode:        node,
-		Auth:            data.NewAuthorizationService(data.NewDclClient(dclApi)),
 		StructValidator: validation.NewValidator(),
+		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(dclApi))),
 	}
 
 	r.Path("/mappings").
