@@ -1,10 +1,10 @@
-.PHONY: ops build run test demo replicate
+.PHONY: ops build run test integration demo replicate
 
 ops:
 	docker-compose up
 
 init:
-	git config core.hooksPath .githooks 
+	git config core.hooksPath .githooks
 
 build:
 	docker-compose run --rm --name content_service_golang golang go build
@@ -14,6 +14,11 @@ run:
 
 test:
 	go test -v ./... -count=1
+
+integration:
+	docker start content_service_redis \
+        && RUN_IT=true /bin/bash -c 'go test -v main.go integration_test.go -count=1' \
+        && docker stop content_service_redis
 
 demo:
 	docker-compose run --rm --name content_service_golang -p 8000:8000 \
