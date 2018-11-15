@@ -20,7 +20,7 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 	r.Path("/mappings").
 		Methods("GET").
 		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
-		Handler(&handlers.ResponseHandler{Ctx: handlers.GetMappingsCtx{RedisClient: client, Dcl: data.NewDclClient(dclApi)}, H: handlers.GetMappings})
+		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMappingsService(client, data.NewDclClient(dclApi)), H: handlers.GetMappings})
 
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),
@@ -38,5 +38,5 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 	r.Path("/validate").
 		Methods("GET").
 		Queries("x", "{x:-?[0-9]+}", "y", "{y:-?[0-9]+}").
-		Handler(&handlers.ResponseHandler{Ctx: handlers.ValidateParcelCtx{RedisClient: client}, H: handlers.GetParcelMetadata})
+		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMetadataService(client), H: handlers.GetParcelMetadata})
 }

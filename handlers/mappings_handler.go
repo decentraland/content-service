@@ -15,25 +15,18 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
-type GetMappingsCtx struct {
-	RedisClient data.RedisClient
-	Dcl         data.Decentraland
-}
-
 func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
-	c, ok := ctx.(GetMappingsCtx)
+	ms, ok := ctx.(MappingsService)
 	if !ok {
 		return nil, NewInternalError("Invalid Configuration")
 	}
 
-	params := mux.Vars(r)
-
-	paramsInt, err := mapValuesToInt(params)
+	params, err := mapValuesToInt(mux.Vars(r))
 	if err != nil {
 		return nil, err
 	}
 
-	mapContents, err := getMappings(c, paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
+	mapContents, err := ms.GetMappings(params["x1"], params["y1"], params["x2"], params["y2"])
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +36,36 @@ func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
 	return NewOkJsonResponse(mapContents), nil
 }
 
-func getMappings(c GetMappingsCtx, x1, y1, x2, y2 int) ([]ParcelContent, error) {
-	parcels, estates, err := c.Dcl.GetMap(x1, y1, x2, y2)
+func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
+	var err error
+	mapInt := make(map[string]int)
+	for k, v := range mapStr {
+		mapInt[k], err = strconv.Atoi(v)
+		if err != nil {
+			return nil, WrapInBadRequestError(err)
+		}
+	}
+	return mapInt, nil
+}
+
+// Logic layer
+
+type MappingsService interface {
+	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
+	GetParcelInformation(parcelId string) (ParcelContent, error)
+}
+
+type MappingsServiceImpl struct {
+	RedisClient data.RedisClient
+	Dcl         data.Decentraland
+}
+
+func NewMappingsService(client data.RedisClient, dcl data.Decentraland) *MappingsServiceImpl {
+	return &MappingsServiceImpl{client, dcl}
+}
+
+func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
+	parcels, estates, err := ms.Dcl.GetMap(x1, y1, x2, y2)
 	if err != nil {
 		return nil, WrapInInternalError(err)
 	}
@@ -55,7 +76,7 @@ func getMappings(c GetMappingsCtx, x1, y1, x2, y2 int) ([]ParcelContent, error) 
 
 	var mapContents []ParcelContent
 	for _, parcel := range parcels {
-		content, err := getParcelInformation(c.RedisClient, parcel.ID)
+		content, err := ms.GetParcelInformation(parcel.ID)
 		if err != nil {
 			return nil, WrapInInternalError(err)
 		}
@@ -70,30 +91,18 @@ func getMappings(c GetMappingsCtx, x1, y1, x2, y2 int) ([]ParcelContent, error) 
 Retrieves the consolidated information of a given Parcel <ParcelContent>
 if the parcel does not exists, the ParcelContent.Contents will be nil
 */
-func getParcelInformation(client data.RedisClient, parcelId string) (ParcelContent, error) {
+func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (ParcelContent, error) {
 	var pc ParcelContent
-	content, err := client.GetParcelContent(parcelId)
+	content, err := ms.RedisClient.GetParcelContent(parcelId)
 
 	if err == redis.Nil {
 		return pc, nil
 	} else if err != nil {
 		return pc, err
 	}
-	metadata, err := client.GetParcelMetadata(parcelId)
+	metadata, err := ms.RedisClient.GetParcelMetadata(parcelId)
 	if err != nil {
 		return pc, err
 	}
 	return ParcelContent{ParcelID: parcelId, Contents: content, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
-}
-
-func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
-	var err error
-	mapInt := make(map[string]int)
-	for k, v := range mapStr {
-		mapInt[k], err = strconv.Atoi(v)
-		if err != nil {
-			return nil, WrapInBadRequestError(err)
-		}
-	}
-	return mapInt, nil
 }
