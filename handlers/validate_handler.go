@@ -19,12 +19,13 @@ func GetParcelMetadata(ctx interface{}, r *http.Request) (Response, error) {
 
 	parcelMeta, err := ms.GetParcelMetadata(fmt.Sprintf("%+s,%+s", params["x"], params["y"]))
 	if err != nil {
-		return nil, err
+		return nil, WrapInInternalError(err)
 	}
 
 	if parcelMeta == nil {
-		return NewOkEmptyResponse(), nil
+		return nil, NewNotFoundError("Parcel metadata not found")
 	}
+
 	return NewOkJsonResponse(parcelMeta), nil
 }
 
@@ -42,13 +43,13 @@ func NewMetadataService(client data.RedisClient) *MetadataServiceImpl {
 	return &MetadataServiceImpl{client}
 }
 
-// Retrieves the Parcel metadata or an error if no metadata for the given id is found
+// Retrieves the Parcel metadata for the given id is found
 func (ms *MetadataServiceImpl) GetParcelMetadata(parcelId string) (map[string]interface{}, error) {
 	parcelMeta, err := ms.RedisClient.GetParcelMetadata(parcelId)
 	if err == redis.Nil {
-		return nil, NewNotFoundError("Parcel metadata not found")
+		return nil, nil
 	} else if err != nil {
-		return nil, WrapInInternalError(err)
+		return nil, err
 	}
 	return parcelMeta, nil
 }
