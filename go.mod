@@ -21,6 +21,8 @@ require (
 	github.com/fatih/structs v1.0.0
 	github.com/fd/go-nat v1.0.0 // indirect
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
+	github.com/go-playground/locales v0.12.1
+	github.com/go-playground/universal-translator v0.16.0
 	github.com/go-redis/redis v6.14.1+incompatible
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/mock v1.1.1
@@ -34,7 +36,6 @@ require (
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
-	github.com/ipfs/go-cid v0.9.0
 	github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 // indirect
 	github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd
 	github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec // indirect
@@ -47,6 +48,7 @@ require (
 	github.com/lucas-clemente/aes12 v0.0.0-20171027163421-cd47fb39b79f // indirect
 	github.com/lucas-clemente/quic-go v0.10.0 // indirect
 	github.com/lucas-clemente/quic-go-certificates v0.0.0-20160823095156-d2f86524cced // indirect
+	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/miekg/dns v1.0.12 // indirect
@@ -54,12 +56,11 @@ require (
 	github.com/minio/sha256-simd v0.0.0-20171213220625-ad98a36ba0da // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mr-tron/base58 v0.0.0-20180922112544-9ad991d48a42 // indirect
-	github.com/multiformats/go-multibase v0.3.0 // indirect
-	github.com/multiformats/go-multihash v1.0.8
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/polydawn/refmt v0.0.0-20181101235710-2700834540f8 // indirect
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72 // indirect
@@ -67,10 +68,11 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d // indirect
 	github.com/warpfork/go-wish v0.0.0-20180510122957-5ad1f5abf436 // indirect
-	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc // indirect
 	go4.org v0.0.0-20180809161055-417644f6feb5 // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b // indirect
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 // indirect
 	golang.org/x/sys v0.0.0-20180926160741-c2ed4eda69e7 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
+	gopkg.in/go-playground/validator.v9 v9.23.0
 )

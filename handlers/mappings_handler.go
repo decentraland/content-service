@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"github.com/decentraland/content-service/data"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
@@ -16,20 +15,59 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
-type MappingsHandler struct {
+func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
+	ms, ok := ctx.(MappingsService)
+	if !ok {
+		return nil, NewInternalError("Invalid Configuration")
+	}
+
+	params, err := mapValuesToInt(mux.Vars(r))
+	if err != nil {
+		return nil, err
+	}
+
+	mapContents, err := ms.GetMappings(params["x1"], params["y1"], params["x2"], params["y2"])
+	if err != nil {
+		return nil, err
+	}
+	if mapContents == nil {
+		return NewOkEmptyResponse(), nil
+	}
+	return NewOkJsonResponse(mapContents), nil
+}
+
+func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
+	var err error
+	mapInt := make(map[string]int)
+	for k, v := range mapStr {
+		mapInt[k], err = strconv.Atoi(v)
+		if err != nil {
+			return nil, WrapInBadRequestError(err)
+		}
+	}
+	return mapInt, nil
+}
+
+// Logic layer
+
+type MappingsService interface {
+	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
+	GetParcelInformation(parcelId string) (ParcelContent, error)
+}
+
+type MappingsServiceImpl struct {
 	RedisClient data.RedisClient
 	Dcl         data.Decentraland
 }
 
-func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func NewMappingsService(client data.RedisClient, dcl data.Decentraland) *MappingsServiceImpl {
+	return &MappingsServiceImpl{client, dcl}
+}
 
-	paramsInt, err := mapValuesToInt(params)
-
-	parcels, estates, err := handler.Dcl.GetMap(paramsInt["x1"], paramsInt["y1"], paramsInt["x2"], paramsInt["y2"])
+func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
+	parcels, estates, err := ms.Dcl.GetMap(x1, y1, x2, y2)
 	if err != nil {
-		handle500(w, err)
-		return
+		return nil, WrapInInternalError(err)
 	}
 
 	for _, estate := range estates {
@@ -38,61 +76,33 @@ func (handler *MappingsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	var mapContents []ParcelContent
 	for _, parcel := range parcels {
-		content, err := getParcelInformation(handler.RedisClient, parcel.ID)
+		content, err := ms.GetParcelInformation(parcel.ID)
 		if err != nil {
-			handle500(w, err)
-			return
+			return nil, WrapInInternalError(err)
 		}
 		if content.Contents != nil {
 			mapContents = append(mapContents, content)
 		}
 	}
-
-	contentsJSON, err := json.Marshal(mapContents)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err = w.Write(contentsJSON)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
+	return mapContents, nil
 }
 
 /**
 Retrieves the consolidated information of a given Parcel <ParcelContent>
 if the parcel does not exists, the ParcelContent.Contents will be nil
 */
-func getParcelInformation(client data.RedisClient, parcelId string) (ParcelContent, error) {
+func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (ParcelContent, error) {
 	var pc ParcelContent
-	content, err := client.GetParcelContent(parcelId)
+	content, err := ms.RedisClient.GetParcelContent(parcelId)
 
 	if err == redis.Nil {
 		return pc, nil
 	} else if err != nil {
 		return pc, err
 	}
-	metadata, err := client.GetParcelMetadata(parcelId)
+	metadata, err := ms.RedisClient.GetParcelMetadata(parcelId)
 	if err != nil {
 		return pc, err
 	}
 	return ParcelContent{ParcelID: parcelId, Contents: content, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
-}
-
-func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
-	// var mapInt map[string]int
-	var err error
-	mapInt := make(map[string]int)
-	for k, v := range mapStr {
-		mapInt[k], err = strconv.Atoi(v)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return mapInt, nil
 }

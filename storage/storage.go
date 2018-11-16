@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/decentraland/content-service/config"
 )
@@ -12,15 +14,23 @@ type Storage interface {
 	SaveFile(filename string, fileDesc io.ReadCloser) (string, error)
 }
 
-func NewStorage(config *config.Configuration) Storage {
-	if config.S3Storage.Bucket != "" {
-		return NewS3(config.S3Storage.Bucket, config.S3Storage.ACL, config.S3Storage.URL)
-	} else {
-		sto := NewLocal(config.LocalStorage)
-		err := sto.CreateLocalDir()
-		if err != nil {
-			log.Fatal(err)
-		}
-		return sto
+func NewStorage(conf *config.Storage) Storage {
+	switch config.StorageType(strings.ToUpper(conf.StorageType)) {
+	case config.LOCAL:
+		return buildLocalStorage(conf)
+	case config.REMOTE:
+		return NewS3(conf.RemoteConfig.Bucket, conf.RemoteConfig.ACL, conf.RemoteConfig.URL)
+	default:
+		log.Fatal(fmt.Sprintf("Invalid StorageType: [%s]. Alowed Values: [REMOTE, LOCAL]", conf.StorageType))
 	}
+	return nil
+}
+
+func buildLocalStorage(conf *config.Storage) Storage {
+	sto := NewLocal(conf.LocalPath)
+	err := sto.CreateLocalDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return sto
 }

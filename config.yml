@@ -1,18 +1,19 @@
 server:
-  port: '8000'
-  url: 'http://localhost:8000/'
+  port: '8000'                    # Set SERVER_PORT env variable to overwrite this value
+  url:  'http://localhost:8000/'  # Set SERVER_URL env variable to overwrite this value
 
-s3Storage:
-  bucket: '' # Set AWS_S3_BUCKET env variable to overwrite this value
-  url: ''    # Set AWS_S3_URL env variable to overwrite this value
-  acl: ''    # Set AWS_S3_ACL env variable to overwrite this value
-
-localStorage: 'tmp'
+storage:
+  storageType: 'LOCAL' # Set STORAGE_TYPE env variable to overwrite this value, Possible values 'REMOTE' and 'LOCAL'
+  remoteConfig:
+    bucket: ''  # Set AWS_S3_BUCKET env variable to overwrite this value
+    url:    ''  # Set AWS_S3_URL env variable to overwrite this value
+    acl:    ''  # Set AWS_S3_ACL env variable to overwrite this value
+  localPath: 'tmp/' # Set LOCAL_STORAGE_PATH env variable to overwrite this value
 
 redis:
-  address: 'content_service_redis:6379' # Set REDIS_ADDRESS env variable to overwrite this value
-  password: ''                          # Set REDIS_PASSWORD env variable to overwrite this value
-  DB: 0                                 # Set REDIS_DB env variable to overwrite this value
+  address:  'content_service_redis:6379' # Set REDIS_ADDRESS env variable to overwrite this value
+  password: ''                           # Set REDIS_PASSWORD env variable to overwrite this value
+  DB:       0                            # Set REDIS_DB env variable to overwrite this value
 
 decentralandApi:
   landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value

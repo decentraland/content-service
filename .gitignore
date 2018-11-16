@@ -6,3 +6,5 @@ demo/
 .idea/*
 .DS_Store
 tmp/
+
+coverage.out
