@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/decentraland/content-service/validation"
 	"log"
 	"net/http"
 )
@@ -82,6 +83,17 @@ func WrapInBadRequestError(err error) *StatusError {
 
 func WrapInInternalError(err error) *StatusError {
 	return &StatusError{http.StatusInternalServerError, err}
+}
+
+func ExtractContentFormJsonRequest(r *http.Request, c interface{}, v validation.Validator) error {
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(c); err != nil {
+		return WrapInBadRequestError(err)
+	}
+	if err := v.ValidateStruct(c); err != nil {
+		return WrapInBadRequestError(err)
+	}
+	return nil
 }
 
 func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

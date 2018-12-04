@@ -39,4 +39,11 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Methods("GET").
 		Queries("x", "{x:-?[0-9]+}", "y", "{y:-?[0-9]+}").
 		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMetadataService(client), H: handlers.GetParcelMetadata})
+
+	contentStatusCtx := handlers.ContentStatusCtx{Service: &handlers.ContentServiceImpl{RedisClient: client}, Validator: validation.NewValidator()}
+
+	r.Path("/content/status").
+		Methods("POST").
+		Headers("Content-Type", "application/json").
+		Handler(&handlers.ResponseHandler{Ctx: contentStatusCtx, H: handlers.ContentStatus})
 }

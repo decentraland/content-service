@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/decentraland/content-service/config"
@@ -231,6 +233,8 @@ func TestUploadHandler(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Error("Validate handler should respond with status code 200. Recieved code: ", response.StatusCode)
 	}
+
+	checContentStatus(t, contentsFile)
 }
 
 func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder string) (*http.Request, error) {
@@ -311,4 +315,60 @@ func getRootCID(metadataFile string) string {
 		log.Fatal(err)
 	}
 	return meta.Value
+}
+
+func checContentStatus(t *testing.T, conentFile string) {
+	var contentsJSON []handlers.FileMetadata
+	c, err := os.Open(conentFile)
+	if err != nil {
+		t.Fail()
+	}
+	defer c.Close()
+	err = json.NewDecoder(c).Decode(&contentsJSON)
+	if err != nil {
+		t.Fail()
+	}
+
+	var list []string
+	for _, content := range contentsJSON {
+		if !strings.HasSuffix(content.Name, "/") {
+			list = append(list, fmt.Sprintf("\"%s\"", content.Cid))
+		}
+	}
+
+	list = append(list, "\"Not_A_CID\"")
+
+	body := fmt.Sprintf("{\"content\": [%s]}", strings.Join(list, ","))
+
+	req, err := http.NewRequest("POST", server.URL+"/content/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	if err != nil {
+		t.Fail()
+	}
+
+	client := server.Client()
+	response, err := client.Do(req)
+	if err != nil {
+		t.Fail()
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Content status failed. Got response code: %d", response.StatusCode)
+	}
+
+	result := make(map[string]bool)
+	err = json.NewDecoder(response.Body).Decode(&result)
+	if err != nil {
+		t.Fatal("Error parsing response body")
+	}
+
+	for k, v := range result {
+		if k == "Not_A_CID" {
+			assert.False(t, v)
+		} else {
+			assert.True(t, v)
+		}
+	}
 }
