@@ -409,6 +409,10 @@ func processUploadedFiles(fh map[string][]*multipart.FileHeader, n *core.IpfsNod
 				return WrapInInternalError(err)
 			}
 		}
+
+		if err = rc.AddCID(fileCID); err != nil {
+			return WrapInInternalError(err)
+		}
 	}
 	return nil
 }
