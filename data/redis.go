@@ -80,8 +80,7 @@ func (redis Redis) AddCID(cid string) error {
 
 func (redis Redis) IsContentMember(value string) (bool, error) {
 	res := redis.Client.SIsMember(uploadedElementsKey, value)
-	err := res.Err()
-	if err != nil {
+	if err := res.Err(); err != nil {
 		return false, err
 	}
 	return res.Val(), nil
