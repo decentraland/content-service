@@ -116,7 +116,7 @@ func (us *UploadServiceImpl) consolidateContent(requestFiles map[string]*FileCon
 		} else {
 			c, err := us.Storage.RetrieveFile(m.Cid)
 			if err != nil {
-				return nil, err
+				return nil, handleStorageError(err)
 			}
 			fc = &FileContent{FileName: m.Name, Content: c}
 		}
@@ -258,4 +258,13 @@ func storeParcelsInformation(rootCID string, parcels []string, rc data.RedisClie
 		}
 	}
 	return nil
+}
+
+func handleStorageError(err error) error {
+	switch e := err.(type) {
+	case storage.NotFoundError:
+		return WrapInBadRequestError(e)
+	default:
+		return err
+	}
 }

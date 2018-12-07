@@ -2,8 +2,10 @@ package storage
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 
@@ -65,7 +67,19 @@ func (sto *S3) RetrieveFile(cid string) ([]byte, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, handleS3Error(err, cid)
 	}
 	return w.Bytes(), nil
+}
+
+func handleS3Error(err error, cid string) error {
+	switch e := err.(type) {
+	case awserr.RequestFailure:
+		if e.StatusCode() == http.StatusNotFound {
+			return &NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
+		}
+		return err
+	default:
+		return err
+	}
 }

@@ -253,7 +253,7 @@ func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder s
 	}
 
 	for _, content := range contentsJSON {
-		if content.Name[len(content.Name)-1:] == "/" {
+		if content.Name != "scene.json" {
 			continue
 		}
 

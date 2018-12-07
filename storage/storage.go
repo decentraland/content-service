@@ -37,9 +37,9 @@ func buildLocalStorage(conf *config.Storage) Storage {
 }
 
 type NotFoundError struct {
-	cause string
+	Cause string
 }
 
-func (e *NotFoundError) Error() string {
-	return e.cause
+func (e NotFoundError) Error() string {
+	return e.Cause
 }
