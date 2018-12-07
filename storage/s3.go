@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"io"
 	"net/url"
 	"path"
@@ -32,7 +33,7 @@ func (sto *S3) GetFile(cid string) string {
 	return url
 }
 
-func (sto *S3) SaveFile(filename string, fileDesc io.ReadCloser) (string, error) {
+func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 	sess := session.Must(session.NewSession())
 
 	uploader := s3manager.NewUploader(sess)
@@ -50,4 +51,21 @@ func (sto *S3) SaveFile(filename string, fileDesc io.ReadCloser) (string, error)
 	}
 
 	return result.Location, nil
+}
+
+func (sto *S3) RetrieveFile(cid string) ([]byte, error) {
+	s := session.Must(session.NewSession())
+	downloader := s3manager.NewDownloader(s)
+
+	w := &aws.WriteAtBuffer{}
+
+	_, err := downloader.Download(w, &s3.GetObjectInput{
+		Bucket: sto.Bucket,
+		Key:    &cid,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return w.Bytes(), nil
 }
