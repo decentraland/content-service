@@ -104,9 +104,9 @@ func validateSignature(a data.Authorization, m Metadata) error {
 	return nil
 }
 
-func (us *UploadServiceImpl) consolidateContent(requestFiles map[string]*FileContent, metadata *[]FileMetadata) (map[string]*FileContent, error) {
+func (us *UploadServiceImpl) consolidateContent(requestFiles map[string]*FileContent, manifest *[]FileMetadata) (map[string]*FileContent, error) {
 	consolidatedData := make(map[string]*FileContent)
-	for _, m := range *metadata {
+	for _, m := range *manifest {
 		if strings.HasSuffix(m.Name, "/") {
 			continue
 		}

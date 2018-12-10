@@ -76,7 +76,7 @@ func handleS3Error(err error, cid string) error {
 	switch e := err.(type) {
 	case awserr.RequestFailure:
 		if e.StatusCode() == http.StatusNotFound {
-			return &NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
+			return NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
 		}
 		return err
 	default:
