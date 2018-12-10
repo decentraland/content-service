@@ -44,7 +44,7 @@ func (sto *Local) SaveFile(filename string, fileDesc io.Reader) (string, error) 
 func (sto *Local) RetrieveFile(cid string) ([]byte, error) {
 	path := filepath.Join(sto.Dir, cid)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, &NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
+		return nil, NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
 	}
 
 	content, err := ioutil.ReadFile(path)

@@ -91,6 +91,10 @@ func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, erro
 		return nil, err
 	}
 
+	if len(r.MultipartForm.File) > len(*manifestContent) {
+		return nil, NewBadRequestError("Request contains too many files")
+	}
+
 	requestFiles := make(map[string]*FileContent)
 	for k, v := range r.MultipartForm.File {
 		h := v[0]
