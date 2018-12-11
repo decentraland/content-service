@@ -1,13 +1,16 @@
 package handlers
 
 import (
-	"bytes"
+	"bufio"
 	"errors"
 	"fmt"
 	"github.com/decentraland/content-service/data"
 	"github.com/fatih/structs"
+	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
+	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,19 +22,10 @@ import (
 )
 
 type UploadRequest struct {
-	Metadata      Metadata                `validate:"required"`
-	Manifest      *[]FileMetadata         `validate:"required"`
-	UploadedFiles map[string]*FileContent `validate:"required"`
-	Scene         *scene                  `validate:"required"`
-}
-
-type FileContent struct {
-	FileName string
-	Content  []byte
-}
-
-func (f *FileContent) Reader() io.Reader {
-	return bytes.NewReader(f.Content)
+	Metadata      Metadata                           `validate:"required"`
+	Manifest      *[]FileMetadata                    `validate:"required"`
+	UploadedFiles map[string][]*multipart.FileHeader `validate:"required"`
+	Scene         *scene                             `validate:"required"`
 }
 
 type UploadService interface {
@@ -66,12 +60,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return err
 	}
 
-	consolidatedContent, err := us.consolidateContent(r.UploadedFiles, r.Manifest)
-	if err != nil {
-		return err
-	}
-
-	err = us.validateRootCid(r.Metadata.RootCid, consolidatedContent)
+	err = us.validateContentCID(r.UploadedFiles, r.Manifest, r.Metadata.RootCid)
 	if err != nil {
 		return err
 	}
@@ -104,114 +93,115 @@ func validateSignature(a data.Authorization, m Metadata) error {
 	return nil
 }
 
-func (us *UploadServiceImpl) consolidateContent(requestFiles map[string]*FileContent, manifest *[]FileMetadata) (map[string]*FileContent, error) {
-	consolidatedData := make(map[string]*FileContent)
-	for _, m := range *manifest {
-		if strings.HasSuffix(m.Name, "/") {
-			continue
-		}
-		var fc *FileContent
-		if f, ok := requestFiles[m.Cid]; ok {
-			fc = f
-		} else {
-			c, err := us.Storage.RetrieveFile(m.Cid)
-			if err != nil {
-				return nil, handleStorageError(err)
-			}
-			fc = &FileContent{FileName: m.Name, Content: c}
-		}
-		err := us.validateCID(fc, m.Cid)
-		if err != nil {
-			return nil, err
-		}
-		consolidatedData[m.Cid] = fc
+// Retrieves an error if the calculated global CID differs from the expected CID
+func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, rootCid string) error {
+	if err := checkCIDFormat(rootCid); err != nil {
+		return err
 	}
-	return consolidatedData, nil
-}
 
-// Check if the expectedCID matches the actual CID for a given file
-func (us *UploadServiceImpl) validateCID(file *FileContent, expectedCID string) error {
-	actualCID, err := coreunix.Add(us.IpfsNode, file.Reader())
+	rootDir := filepath.Join("/tmp", rootCid)
+	defer cleanUpTmpFile(rootDir)
+
+	err := us.consolidateContent(requestFiles, manifest, rootDir)
 	if err != nil {
 		return err
 	}
-	if expectedCID != actualCID {
-		return NewBadRequestError(fmt.Sprintf("File[%s] CID does not match expected value: %s", file.FileName, expectedCID))
-	}
-	return nil
-}
 
-// Retrieves an error if the calculated global CID differs from the expected CID
-func (us *UploadServiceImpl) validateRootCid(expectedCID string, files map[string]*FileContent) error {
-	actualRootCID, err := us.calculateRootCid(expectedCID, files)
+	actualRootCID, err := us.calculateRootCid(rootDir)
 	if err != nil {
 		return WrapInInternalError(err)
 	}
 
-	if expectedCID != actualRootCID {
+	if rootCid != actualRootCID {
 		return NewBadRequestError("Generated root CID does not match given root CID")
+	}
+	return nil
+}
+
+// Consolidate all the scene content under a tmp directory
+func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, projectTmpFile string) error {
+	for _, m := range *manifest {
+		if strings.HasSuffix(m.Name, "/") {
+			continue
+		}
+		if err := checkCIDFormat(m.Cid); err != nil {
+			return err
+		}
+
+		tmpFilePath := filepath.Join(projectTmpFile, m.Name)
+
+		var err error
+		if f, ok := requestFiles[m.Cid]; ok {
+			err = saveRequestFile(f[0], tmpFilePath)
+		} else {
+			err = us.Storage.DownloadFile(m.Cid, tmpFilePath)
+		}
+		if err != nil {
+			return handleStorageError(err)
+		}
+		if err := us.validateCID(tmpFilePath, m.Cid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func saveRequestFile(f *multipart.FileHeader, projectTmpFile string) error {
+	dir := filepath.Dir(projectTmpFile)
+	filePath := filepath.Join(dir, filepath.Base(projectTmpFile))
+
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	file, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(dst, file)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Check if the expectedCID matches the actual CID for a given file
+func (us *UploadServiceImpl) validateCID(f string, expectedCID string) error {
+	file, err := os.Open(f)
+	if err != nil {
+		return NewBadRequestError(fmt.Sprintf("Unable to open File[%s] to calculate CID", f))
+	}
+	defer file.Close()
+
+	reader := bufio.NewReader(file)
+
+	actualCID, err := coreunix.Add(us.IpfsNode, reader)
+	if err != nil {
+		return err
+	}
+	if expectedCID != actualCID {
+		return NewBadRequestError(fmt.Sprintf("File[%s] CID does not match expected value: %s", f, expectedCID))
 	}
 	return nil
 }
 
 // Calculate the RootCid for a given set of files
 // rootPath: root folder to group the files
-// filesMeta: Information about each file path
-// files: A map with all the files content
-func (us *UploadServiceImpl) calculateRootCid(receivedCid string, files map[string]*FileContent) (string, error) {
-	rootDir := filepath.Join("/tmp", receivedCid)
-
-	if err := createTemporaryProjectDir(rootDir, files); err != nil {
-		return "", err
-	}
-
-	rcid, err := coreunix.AddR(us.IpfsNode, rootDir)
+func (us *UploadServiceImpl) calculateRootCid(rootPath string) (string, error) {
+	rcid, err := coreunix.AddR(us.IpfsNode, rootPath)
 	if err != nil {
 		return "", err
 	}
-
-	if err := os.RemoveAll(rootDir); err != nil {
-		log.Printf("Failed to remove tmp directory: %s", rootDir)
-	}
-
 	return rcid, nil
-}
-
-func createTemporaryProjectDir(rootDir string, files map[string]*FileContent) error {
-
-	for _, f := range files {
-		if f.FileName[len(f.FileName)-1:] == "/" {
-			continue
-		}
-
-		// This anonymous function would allow the defers to work properly
-		// preventing resources from being piled up
-		err := func() error {
-			dir := filepath.Join(rootDir, filepath.Dir(f.FileName))
-			filePath := filepath.Join(dir, filepath.Base(f.FileName))
-
-			err := os.MkdirAll(dir, os.ModePerm)
-			if err != nil {
-				return err
-			}
-
-			dst, err := os.Create(filePath)
-			if err != nil {
-				return err
-			}
-			defer dst.Close()
-
-			_, err = io.Copy(dst, f.Reader())
-			if err != nil {
-				return err
-			}
-			return nil
-		}()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // Retrieves an error if the given pKey does not have permissions to modify the parcels
@@ -225,15 +215,27 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string) erro
 	return nil
 }
 
-// Validate and store all the uploaded files
-func (us *UploadServiceImpl) processUploadedFiles(fh map[string]*FileContent, paths map[string][]string, cid string) error {
-	for fileCID, fileHeader := range fh {
+func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.FileHeader, paths map[string][]string, cid string) error {
+	for fileCID, fileHeaders := range fh {
+		fileHeader := fileHeaders[0]
 
 		// This anonymous function would allow the defers to work properly
 		// preventing resources from being piled up
-		_, err := us.Storage.SaveFile(fileCID, fileHeader.Reader())
+		err := func() error {
+			file, err := fileHeader.Open()
+			if err != nil {
+				return WrapInInternalError(err)
+			}
+			defer file.Close()
+
+			_, err = us.Storage.SaveFile(fileCID, file)
+			if err != nil {
+				return WrapInInternalError(err)
+			}
+			return nil
+		}()
 		if err != nil {
-			return WrapInInternalError(err)
+			return err
 		}
 
 		for _, path := range paths[fileCID] {
@@ -267,4 +269,37 @@ func handleStorageError(err error) error {
 	default:
 		return err
 	}
+}
+
+// Gruops all the files in the list by file CID
+// The map will cointain an entry for each CID, and the associated value would be a list of all the paths
+func groupFilePathsByCid(files *[]FileMetadata) map[string][]string {
+	filesPaths := make(map[string][]string)
+	for _, fileMeta := range *files {
+		paths := filesPaths[fileMeta.Cid]
+		if paths == nil {
+			paths = []string{}
+		}
+		filesPaths[fileMeta.Cid] = append(paths, fileMeta.Name)
+	}
+	return filesPaths
+}
+
+func cleanUpTmpFile(rootPath string) {
+	if _, err := os.Stat(rootPath); err == nil {
+		if err := os.RemoveAll(rootPath); err != nil {
+			log.Printf("Failed to remove tmp directory: %s", rootPath)
+		}
+	}
+}
+
+func checkCIDFormat(c string) error {
+	res, err := cid.Parse(c)
+	if err != nil {
+		return NewBadRequestError(fmt.Sprintf("Invalid cid: %s", c))
+	}
+	if err := verifcid.ValidateCid(res); err != nil {
+		return NewBadRequestError(fmt.Sprintf("Invalid cid: %s", c))
+	}
+	return nil
 }

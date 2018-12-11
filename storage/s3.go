@@ -7,7 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -55,21 +57,33 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 	return result.Location, nil
 }
 
-func (sto *S3) RetrieveFile(cid string) ([]byte, error) {
+func (sto *S3) DownloadFile(cid string, filePath string) error {
+	dir := filepath.Dir(filePath)
+	fp := filepath.Join(dir, filepath.Base(filePath))
+
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
 	s := session.Must(session.NewSession())
 	downloader := s3manager.NewDownloader(s)
 
-	w := &aws.WriteAtBuffer{}
+	f, err := os.Create(fp)
+	if err != nil {
+		return fmt.Errorf("failed to create file %q, %v", fp, err)
+	}
 
-	_, err := downloader.Download(w, &s3.GetObjectInput{
+	_, err = downloader.Download(f, &s3.GetObjectInput{
 		Bucket: sto.Bucket,
 		Key:    &cid,
 	})
 
 	if err != nil {
-		return nil, handleS3Error(err, cid)
+		return handleS3Error(err, cid)
 	}
-	return w.Bytes(), nil
+
+	return nil
 }
 
 func handleS3Error(err error, cid string) error {

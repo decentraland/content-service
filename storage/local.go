@@ -1,9 +1,7 @@
 package storage
 
 import (
-	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -41,16 +39,23 @@ func (sto *Local) SaveFile(filename string, fileDesc io.Reader) (string, error) 
 	return path, nil
 }
 
-func (sto *Local) RetrieveFile(cid string) ([]byte, error) {
+func (sto *Local) DownloadFile(cid string, fileName string) error {
 	path := filepath.Join(sto.Dir, cid)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
-	}
-
-	content, err := ioutil.ReadFile(path)
+	in, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
+	defer in.Close()
 
-	return content, nil
+	out, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return out.Close()
 }

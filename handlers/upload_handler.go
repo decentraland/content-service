@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"github.com/decentraland/content-service/validation"
 	"io"
@@ -95,43 +94,19 @@ func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, erro
 		return nil, NewBadRequestError("Request contains too many files")
 	}
 
-	requestFiles := make(map[string]*FileContent)
-	for k, v := range r.MultipartForm.File {
-		h := v[0]
-		c, err := getContent(h)
-		if err != nil {
-			return nil, err
-		}
-		requestFiles[k] = c
-	}
+	uploadedFiles := r.MultipartForm.File
 
-	scene, err := getScene(requestFiles, v)
+	scene, err := getScene(uploadedFiles, v)
 	if err != nil {
 		return nil, err
 	}
 
-	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: requestFiles, Scene: scene}
+	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene}
 	err = v.ValidateStruct(request)
 	if err != nil {
 		return nil, WrapInBadRequestError(err)
 	}
 	return &request, nil
-}
-
-func getContent(h *multipart.FileHeader) (*FileContent, error) {
-	file, err := h.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return &FileContent{FileName: h.Filename, Content: buf.Bytes()}, nil
 }
 
 // Extracts the request Metadata
@@ -160,10 +135,14 @@ func parseSceneMetadata(mStr string, v validation.Validator) (Metadata, error) {
 }
 
 // Extract the scene information from the upload request
-func getScene(files map[string]*FileContent, v validation.Validator) (*scene, error) {
+func getScene(files map[string][]*multipart.FileHeader, v validation.Validator) (*scene, error) {
 	for _, header := range files {
-		if header.FileName == "scene.json" {
-			return parseSceneJsonFile(header.Reader(), v)
+		if header[0].Filename == "scene.json" {
+			sceneFile, err := header[0].Open()
+			if err != nil {
+				return nil, WrapInBadRequestError(err)
+			}
+			return parseSceneJsonFile(sceneFile, v)
 		}
 	}
 	return nil, NewBadRequestError("Missing scene.json")
@@ -208,18 +187,4 @@ func parseFilesMetadata(metadataStr string, v validation.Validator) (*[]FileMeta
 		}
 	}
 	return filesMeta, nil
-}
-
-// Gruops all the files in the list by file CID
-// The map will cointain an entry for each CID, and the associated value would be a list of all the paths
-func groupFilePathsByCid(files *[]FileMetadata) map[string][]string {
-	filesPaths := make(map[string][]string)
-	for _, fileMeta := range *files {
-		paths := filesPaths[fileMeta.Cid]
-		if paths == nil {
-			paths = []string{}
-		}
-		filesPaths[fileMeta.Cid] = append(paths, fileMeta.Name)
-	}
-	return filesPaths
 }

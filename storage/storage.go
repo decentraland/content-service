@@ -12,7 +12,7 @@ import (
 type Storage interface {
 	GetFile(cid string) string
 	SaveFile(filename string, fileDesc io.Reader) (string, error)
-	RetrieveFile(cid string) ([]byte, error)
+	DownloadFile(cid string, fileName string) error
 }
 
 func NewStorage(conf *config.Storage) Storage {
