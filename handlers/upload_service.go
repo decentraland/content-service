@@ -9,7 +9,6 @@ import (
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"github.com/decentraland/content-service/storage"
 	"github.com/ipsn/go-ipfs/core"
 	"github.com/ipsn/go-ipfs/core/coreunix"
+	log "github.com/sirupsen/logrus"
 )
 
 type UploadRequest struct {
@@ -49,6 +49,7 @@ func NewUploadService(storage storage.Storage, client data.RedisClient, node *co
 }
 
 func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
+	logUploadRequest(r)
 
 	err := validateSignature(us.Auth, r.Metadata)
 	if err != nil {
@@ -84,10 +85,8 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
 func validateSignature(a data.Authorization, m Metadata) error {
-	valid, err := a.IsSignatureValid(m.RootCid, m.Signature, m.PubKey)
-	if err != nil {
-		return WrapInInternalError(err)
-	} else if !valid {
+	if !a.IsSignatureValid(m.RootCid, m.Signature, m.PubKey) {
+		log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
 		return NewBadRequestError("Signature is invalid")
 	}
 	return nil
@@ -102,6 +101,7 @@ func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multi
 	rootDir := filepath.Join("/tmp", rootCid)
 	defer cleanUpTmpFile(rootDir)
 
+	log.Infof("Consolidating scene content for CID[%s]", rootCid)
 	err := us.consolidateContent(requestFiles, manifest, rootDir)
 	if err != nil {
 		return err
@@ -121,10 +121,12 @@ func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multi
 // Consolidate all the scene content under a tmp directory
 func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, projectTmpFile string) error {
 	for _, m := range *manifest {
+		log.Debugf("Verifying Manifest File[%s] CID [%s]", m.Name, m.Cid)
 		if strings.HasSuffix(m.Name, "/") {
 			continue
 		}
 		if err := checkCIDFormat(m.Cid); err != nil {
+			log.Debugf("Invalid CID for fileName[%s] CID [%s]", m.Name, m.Cid)
 			return err
 		}
 
@@ -134,12 +136,14 @@ func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multi
 		if f, ok := requestFiles[m.Cid]; ok {
 			err = saveRequestFile(f[0], tmpFilePath)
 		} else {
+			log.Debugf("File[%s] CID [%s] not found in the request content", m.Name, m.Cid)
 			err = us.Storage.DownloadFile(m.Cid, tmpFilePath)
 		}
 		if err != nil {
 			return handleStorageError(err)
 		}
 		if err := us.validateCID(tmpFilePath, m.Cid); err != nil {
+			log.Debugf("Failed to validate File[%s] cid: %s", m.Name, err.Error())
 			return err
 		}
 	}
@@ -152,23 +156,27 @@ func saveRequestFile(f *multipart.FileHeader, projectTmpFile string) error {
 
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
+		log.Errorf("Failed to create directory: %s", dir)
 		return err
 	}
 
 	dst, err := os.Create(filePath)
 	if err != nil {
+		log.Errorf("Failed to create file: %s", filePath)
 		return err
 	}
 	defer dst.Close()
 
 	file, err := f.Open()
 	if err != nil {
+		log.Errorf("Failed to Open file: %s", filePath)
 		return err
 	}
 	defer file.Close()
 
 	_, err = io.Copy(dst, file)
 	if err != nil {
+		log.Errorf("Failed to save file: %s", filePath)
 		return err
 	}
 	return nil
@@ -176,8 +184,10 @@ func saveRequestFile(f *multipart.FileHeader, projectTmpFile string) error {
 
 // Check if the expectedCID matches the actual CID for a given file
 func (us *UploadServiceImpl) validateCID(f string, expectedCID string) error {
+	log.Debugf("Validating File[%s] CID, expected: %s", f, expectedCID)
 	file, err := os.Open(f)
 	if err != nil {
+		log.Debugf("Unable to open File[%s] to calculate CID", f)
 		return NewBadRequestError(fmt.Sprintf("Unable to open File[%s] to calculate CID", f))
 	}
 	defer file.Close()
@@ -189,6 +199,7 @@ func (us *UploadServiceImpl) validateCID(f string, expectedCID string) error {
 		return err
 	}
 	if expectedCID != actualCID {
+		log.Debugf("File[%s] CID does not match expected value: %s", f, expectedCID)
 		return NewBadRequestError(fmt.Sprintf("File[%s] CID does not match expected value: %s", f, expectedCID))
 	}
 	return nil
@@ -208,33 +219,41 @@ func (us *UploadServiceImpl) calculateRootCid(rootPath string) (string, error) {
 func validateKeyAccess(a data.Authorization, pKey string, parcels []string) error {
 	canModify, err := a.UserCanModifyParcels(pKey, parcels)
 	if err != nil {
+		log.Infof("Error validating PublicKey[%s]", pKey)
 		return WrapInBadRequestError(err)
 	} else if !canModify {
+		log.Infof("PublicKey[%s] is not allow to modify parcels", pKey)
 		return StatusError{http.StatusUnauthorized, errors.New("address is not authorized to modify given parcels")}
 	}
 	return nil
 }
 
 func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.FileHeader, paths map[string][]string, cid string) error {
+	log.Infof("Processing  new content for RootCID[%s]. New files: %d", cid, len(fh))
 	for fileCID, fileHeaders := range fh {
 		fileHeader := fileHeaders[0]
+		log.Debugf("Processing file[%s], CID[%s]", fileHeader.Filename, fileCID)
 
 		// This anonymous function would allow the defers to work properly
 		// preventing resources from being piled up
 		err := func() error {
 			file, err := fileHeader.Open()
 			if err != nil {
+				log.Errorf("Failed to open file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
 				return WrapInInternalError(err)
 			}
 			defer file.Close()
 
 			_, err = us.Storage.SaveFile(fileCID, file)
 			if err != nil {
+				log.Errorf("Failed to store file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
 				return WrapInInternalError(err)
 			}
+			log.Infof("File[%s] stored successfully under CID[%s]. Bytes stored: %d", fileHeader.Filename, fileCID, fileHeader.Size)
 			return nil
 		}()
 		if err != nil {
+			log.Debugf("Failed to upload file[%s], CID[%s]: %s", fileHeader.Filename, fileCID, err.Error())
 			return err
 		}
 
@@ -249,6 +268,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 			return WrapInInternalError(err)
 		}
 	}
+	log.Infof("[Process New Files] New content for RootCID[%s] done", cid)
 	return nil
 }
 
@@ -256,6 +276,7 @@ func storeParcelsInformation(rootCID string, parcels []string, rc data.RedisClie
 	for _, parcel := range parcels {
 		err := rc.SetKey(parcel, rootCID)
 		if err != nil {
+			log.Errorf("Unable to store parcel[%s] Information: %s ", parcel, err.Error())
 			return WrapInInternalError(err)
 		}
 	}
@@ -267,7 +288,7 @@ func handleStorageError(err error) error {
 	case storage.NotFoundError:
 		return WrapInBadRequestError(e)
 	default:
-		return err
+		return NewInternalError("Failed to store request content")
 	}
 }
 
@@ -288,7 +309,7 @@ func groupFilePathsByCid(files *[]FileMetadata) map[string][]string {
 func cleanUpTmpFile(rootPath string) {
 	if _, err := os.Stat(rootPath); err == nil {
 		if err := os.RemoveAll(rootPath); err != nil {
-			log.Printf("Failed to remove tmp directory: %s", rootPath)
+			log.Errorf("Failed to remove tmp directory: %s", rootPath)
 		}
 	}
 }
@@ -296,10 +317,32 @@ func cleanUpTmpFile(rootPath string) {
 func checkCIDFormat(c string) error {
 	res, err := cid.Parse(c)
 	if err != nil {
+		log.Debugf("Invalid cid: %s", c)
 		return NewBadRequestError(fmt.Sprintf("Invalid cid: %s", c))
 	}
 	if err := verifcid.ValidateCid(res); err != nil {
+		log.Debugf("Invalid cid: %s", c)
 		return NewBadRequestError(fmt.Sprintf("Invalid cid: %s", c))
 	}
 	return nil
+}
+
+func logUploadRequest(r *UploadRequest) {
+	var md []string
+	for _, m := range *r.Manifest {
+		md = append(md, fmt.Sprintf("%s[%s]", m.Name, m.Cid))
+	}
+	var rd []string
+	for _, v := range r.UploadedFiles {
+		h := v[0]
+		rd = append(rd, fmt.Sprintf("%s[%d bytes]", h.Filename, h.Size))
+	}
+
+	log.WithFields(log.Fields{
+		"parcel":       r.Scene.Main,
+		"requestFiles": strings.Join(rd, ", "),
+		"manifest":     strings.Join(md, ", "),
+		"key":          r.Metadata.PubKey,
+		"signature":    r.Metadata.Signature,
+	}).Info("Incoming upload request")
 }

@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"path"
@@ -107,6 +108,7 @@ func buildUrl(basePath string, relPath string, args ...interface{}) string {
 func doGet(url string, response interface{}) error {
 	resp, err := http.Get(url)
 	if err != nil {
+		logrus.Errorf("Failed to retrieve information from URL[%s]: %s", url, err.Error())
 		return err
 	}
 	return json.NewDecoder(resp.Body).Decode(response)

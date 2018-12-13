@@ -23,7 +23,7 @@ type isSignatureValidTestData struct {
 	inputMsg       string
 	inputAddress   string
 	inputSignature string
-	evalResult     evalBooleanResult
+	evalResult     func(t assert.TestingT, value bool, msgAndArgs ...interface{}) bool
 }
 
 type evalBooleanResult func(err error, value bool, t *testing.T)
@@ -64,8 +64,8 @@ func TestIsSignatureValid(t *testing.T) {
 	for _, tc := range isSignatureValidTable {
 		t.Run(tc.testCaseName, func(t *testing.T) {
 			service := data.NewAuthorizationService(data.NewDclClient(""))
-			isValid, err := service.IsSignatureValid(tc.inputMsg, tc.inputSignature, tc.inputAddress)
-			tc.evalResult(err, isValid, t)
+			isValid := service.IsSignatureValid(tc.inputMsg, tc.inputSignature, tc.inputAddress)
+			tc.evalResult(t, isValid)
 		})
 	}
 }
@@ -132,30 +132,30 @@ var isSignatureValidTable = []isSignatureValidTestData{
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		evalResult:     expectTrue,
+		evalResult:     assert.True,
 	}, {
 		testCaseName:   "Validate signature with the not corresponding message",
 		inputMsg:       "not the message you signed",
 		inputAddress:   "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		evalResult:     expectFalse,
+		evalResult:     assert.False,
 	}, {
 		testCaseName:   "Validate signature with not the corresponding address",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "0x0000000000000000000000000000000000000000",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		evalResult:     expectFalse,
+		evalResult:     assert.False,
 	}, {
 		testCaseName:   "Invalid signature",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputSignature: "not hex, not a signtature",
-		evalResult:     expectError,
+		evalResult:     assert.False,
 	}, {
 		testCaseName:   "Invalid address",
 		inputMsg:       "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		inputAddress:   "not an address",
 		inputSignature: "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
-		evalResult:     expectError,
+		evalResult:     assert.False,
 	},
 }

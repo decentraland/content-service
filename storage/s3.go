@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	log "github.com/sirupsen/logrus"
 )
 
 type S3 struct {
@@ -38,6 +39,7 @@ func (sto *S3) GetFile(cid string) string {
 }
 
 func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
+	log.Debugf("Uploading file[%s] to S3", filename)
 	sess := session.Must(session.NewSession())
 
 	uploader := s3manager.NewUploader(sess)
@@ -50,7 +52,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 	})
 
 	if err != nil {
-		fmt.Printf("failed to upload file, %v", err)
+		log.Errorf("Fail to upload file: ", err)
 		return "", err
 	}
 
@@ -58,11 +60,13 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 }
 
 func (sto *S3) DownloadFile(cid string, filePath string) error {
+	log.Debugf("Downloading file[%s] to ", cid, filePath)
 	dir := filepath.Dir(filePath)
 	fp := filepath.Join(dir, filepath.Base(filePath))
 
 	err := os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
+		log.Errorf("Unable to generate path: %s", dir)
 		return err
 	}
 
@@ -71,10 +75,11 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 
 	f, err := os.Create(fp)
 	if err != nil {
+		log.Errorf("Failed to create file %q, %v", fp, err)
 		return fmt.Errorf("failed to create file %q, %v", fp, err)
 	}
 
-	_, err = downloader.Download(f, &s3.GetObjectInput{
+	n, err := downloader.Download(f, &s3.GetObjectInput{
 		Bucket: sto.Bucket,
 		Key:    &cid,
 	})
@@ -82,6 +87,7 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 	if err != nil {
 		return handleS3Error(err, cid)
 	}
+	log.Debugf("CID[%s] found. %s bytes downloaded from S3 to %s", cid, n, filePath)
 
 	return nil
 }
@@ -90,6 +96,7 @@ func handleS3Error(err error, cid string) error {
 	switch e := err.(type) {
 	case awserr.RequestFailure:
 		if e.StatusCode() == http.StatusNotFound {
+			log.Debugf("CID[%s] Not Found in S3", cid)
 			return NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
 		}
 		return err

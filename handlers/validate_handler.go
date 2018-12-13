@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/decentraland/content-service/data"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/go-redis/redis"
@@ -12,6 +13,7 @@ import (
 func GetParcelMetadata(ctx interface{}, r *http.Request) (Response, error) {
 	ms, ok := ctx.(MetadataService)
 	if !ok {
+		log.Fatal("Invalid Handler configuration")
 		return nil, NewInternalError("Invalid Configuration")
 	}
 
@@ -45,8 +47,10 @@ func NewMetadataService(client data.RedisClient) *MetadataServiceImpl {
 
 // Retrieves the Parcel metadata for the given id is found
 func (ms *MetadataServiceImpl) GetParcelMetadata(parcelId string) (map[string]interface{}, error) {
+	log.Debugf("Retrieving parcel metadata. Parcel[%s]", parcelId)
 	parcelMeta, err := ms.RedisClient.GetParcelMetadata(parcelId)
 	if err == redis.Nil {
+		log.Debugf("No metadata found for Parcel[%s]", parcelId)
 		return nil, nil
 	} else if err != nil {
 		return nil, err
