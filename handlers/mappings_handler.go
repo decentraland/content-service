@@ -4,6 +4,7 @@ import (
 	"github.com/decentraland/content-service/data"
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 )
@@ -18,6 +19,7 @@ type ParcelContent struct {
 func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
 	ms, ok := ctx.(MappingsService)
 	if !ok {
+		log.Fatal("Invalid Handler configuration")
 		return nil, NewInternalError("Invalid Configuration")
 	}
 
@@ -65,6 +67,7 @@ func NewMappingsService(client data.RedisClient, dcl data.Decentraland) *Mapping
 }
 
 func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
+	log.Debugf("Retrieving map information within coordinates (%d,%d) and (%d,%d)", x1, y1, x2, y2)
 	parcels, estates, err := ms.Dcl.GetMap(x1, y1, x2, y2)
 	if err != nil {
 		return nil, WrapInInternalError(err)

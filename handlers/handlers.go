@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/decentraland/content-service/validation"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -53,6 +53,7 @@ type ResponseHandler struct {
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := h.H(h.Ctx, w, r)
 	if err != nil {
+		log.Error(err)
 		handleError(w, err)
 	}
 }
@@ -109,6 +110,7 @@ func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleError(w http.ResponseWriter, err error) {
+	log.Errorf("Error: %s", err.Error())
 	switch e := err.(type) {
 	case Error:
 		writeJsonError(w, e.Status(), e.Error())
@@ -133,7 +135,7 @@ func writeJsonError(w http.ResponseWriter, code int, msg string) {
 }
 
 func unexpectedError(w http.ResponseWriter, err error) {
-	log.Println(err)
+	log.Error(err)
 	http.Error(w, http.StatusText(500), 500)
 }
 

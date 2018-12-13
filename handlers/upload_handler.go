@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/decentraland/content-service/validation"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -55,6 +56,7 @@ type commsConfig struct {
 func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(UploadCtx)
 	if !ok {
+		log.Fatal("Invalid Handler configuration")
 		return nil, NewInternalError("Invalid Configuration")
 	}
 
@@ -77,6 +79,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
+		log.Errorf("Invalid UploadContent request: %s", err.Error())
 		return nil, NewInternalError(err.Error())
 	}
 
@@ -90,11 +93,15 @@ func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, erro
 		return nil, err
 	}
 
-	if len(r.MultipartForm.File) > len(*manifestContent) {
+	uploadedFiles := r.MultipartForm.File
+
+	manifestSize := len(*manifestContent)
+	requestFilesNumber := len(uploadedFiles)
+
+	if requestFilesNumber > manifestSize {
+		log.Debugf("Request contains too many files. Max expected: %d, found: ", manifestSize, requestFilesNumber)
 		return nil, NewBadRequestError("Request contains too many files")
 	}
-
-	uploadedFiles := r.MultipartForm.File
 
 	scene, err := getScene(uploadedFiles, v)
 	if err != nil {
@@ -104,6 +111,7 @@ func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, erro
 	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene}
 	err = v.ValidateStruct(request)
 	if err != nil {
+		log.Debugf("Invalid UploadRequest: %s", err.Error())
 		return nil, WrapInBadRequestError(err)
 	}
 	return &request, nil
@@ -113,6 +121,7 @@ func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, erro
 func getMetadata(r *http.Request, v validation.Validator) (Metadata, error) {
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
+		log.Error("Metadata not  found in UploadRequest")
 		return Metadata{}, NewBadRequestError("Missing metadata part in multipart")
 	}
 	return parseSceneMetadata(metaMultipart[0], v)
@@ -124,11 +133,13 @@ func parseSceneMetadata(mStr string, v validation.Validator) (Metadata, error) {
 	var meta Metadata
 	err := json.Unmarshal([]byte(mStr), &meta)
 	if err != nil {
+		log.Debugf("Invalid metadata content: %s", err.Error())
 		return Metadata{}, WrapInBadRequestError(err)
 	}
 	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
 	err = v.ValidateStruct(meta)
 	if err != nil {
+		log.Debugf("Invalid metadata content: %s", err.Error())
 		return Metadata{}, WrapInBadRequestError(err)
 	}
 	return meta, nil
@@ -140,11 +151,13 @@ func getScene(files map[string][]*multipart.FileHeader, v validation.Validator) 
 		if header[0].Filename == "scene.json" {
 			sceneFile, err := header[0].Open()
 			if err != nil {
+				log.Debugf("Invalid scene.json: %s", err.Error())
 				return nil, WrapInBadRequestError(err)
 			}
 			return parseSceneJsonFile(sceneFile, v)
 		}
 	}
+	log.Error("Missing scene.json")
 	return nil, NewBadRequestError("Missing scene.json")
 }
 
@@ -154,10 +167,12 @@ func parseSceneJsonFile(file io.Reader, v validation.Validator) (*scene, error) 
 	var sce scene
 	err := json.NewDecoder(file).Decode(&sce)
 	if err != nil {
+		log.Debugf("Invalid scene.json content: %s", err.Error())
 		return nil, WrapInBadRequestError(err)
 	}
 	err = v.ValidateStruct(sce)
 	if err != nil {
+		log.Debugf("Invalid scene.json content: %s", err.Error())
 		return nil, WrapInBadRequestError(err)
 	}
 	return &sce, nil
@@ -167,7 +182,8 @@ func parseSceneJsonFile(file io.Reader, v validation.Validator) (*scene, error) 
 func getManifestContent(r *http.Request, v validation.Validator, cid string) (*[]FileMetadata, error) {
 	filesJSON, isset := r.MultipartForm.Value[cid]
 	if !isset {
-		return nil, NewBadRequestError("Missing contents part in multipart ")
+		log.Debug("Missing content in multipart")
+		return nil, NewBadRequestError("Missing content in multipart ")
 	}
 	return parseFilesMetadata(filesJSON[0], v)
 }

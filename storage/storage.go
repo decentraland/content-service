@@ -1,12 +1,11 @@
 package storage
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/decentraland/content-service/config"
+	log "github.com/sirupsen/logrus"
 )
 
 type Storage interface {
@@ -16,13 +15,14 @@ type Storage interface {
 }
 
 func NewStorage(conf *config.Storage) Storage {
+	log.Infof("Storage mode: %s", conf.StorageType)
 	switch config.StorageType(strings.ToUpper(conf.StorageType)) {
 	case config.LOCAL:
 		return buildLocalStorage(conf)
 	case config.REMOTE:
 		return NewS3(conf.RemoteConfig.Bucket, conf.RemoteConfig.ACL, conf.RemoteConfig.URL)
 	default:
-		log.Fatal(fmt.Sprintf("Invalid StorageType: [%s]. Alowed Values: [REMOTE, LOCAL]", conf.StorageType))
+		log.Fatalf("Invalid Storage Type: %s", conf.StorageType)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/universal-translator"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
 	enTranslations "gopkg.in/go-playground/validator.v9/translations/en"
 	"strings"
@@ -46,11 +47,14 @@ func setupTranslations(v *validator.Validate) ut.Translator {
 	addTranslation("prefix", "{0} field does not starts with {1}.", trans, v)
 
 	enTranslations.RegisterDefaultTranslations(v, trans)
+
 	return trans
 }
 
 func registerValidations(v *validator.Validate) {
-	v.RegisterValidation("prefix", validatePrefix)
+	if err := v.RegisterValidation("prefix", validatePrefix); err != nil {
+		logrus.Fatalf("Error registering validations: %s", err.Error())
+	}
 }
 
 func addTranslation(tag string, messageTemplate string, trans ut.Translator, v *validator.Validate) {
@@ -71,5 +75,7 @@ func translateErrors(errs []validator.FieldError, t ut.Translator) error {
 	for _, e := range errs {
 		translations = append(translations, e.Translate(t))
 	}
-	return errors.New(strings.Join(translations, ", "))
+	err := errors.New(strings.Join(translations, ", "))
+	logrus.Debugf("Validation error: %s", err.Error())
+	return err
 }

@@ -7,18 +7,27 @@ import (
 	"github.com/decentraland/content-service/routes"
 	gHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/storage"
 
 	"github.com/ipsn/go-ipfs/core"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	configParams := config.GetConfig("config")
+
+	log.SetFormatter(&log.TextFormatter{
+		TimestampFormat: "2006-01-02T15:04:05.000",
+		FullTimestamp:   true,
+	})
+
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
+	log.Info("Starting server")
 
 	router := InitializeApp(configParams)
 
