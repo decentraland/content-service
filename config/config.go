@@ -12,6 +12,7 @@ type Configuration struct {
 	Storage         Storage
 	Redis           Redis
 	DecentralandApi DecentralandApi
+	LogLevel        string
 }
 
 type DecentralandApi struct {
@@ -91,4 +92,6 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("redis.db", "REDIS_DB")
 	// DCL API
 	v.BindEnv("decentralandapi.landurl", "DCL_API")
+	// LOG LEVEL
+	v.BindEnv("logLevel", "LOG_LEVEL")
 }

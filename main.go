@@ -8,6 +8,7 @@ import (
 	gHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strings"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/storage"
@@ -19,13 +20,7 @@ import (
 func main() {
 	configParams := config.GetConfig("config")
 
-	log.SetFormatter(&log.TextFormatter{
-		TimestampFormat: "2006-01-02T15:04:05.000",
-		FullTimestamp:   true,
-	})
-
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogger(configParams)
 
 	log.Info("Starting server")
 
@@ -62,4 +57,19 @@ func InitializeApp(config *config.Configuration) *mux.Router {
 func initIpfsNode() (*core.IpfsNode, error) {
 	ctx, _ := context.WithCancel(context.Background())
 	return core.NewNode(ctx, nil)
+}
+
+func initLogger(c *config.Configuration) {
+	lvl, err := log.ParseLevel(strings.ToLower(c.LogLevel))
+	if err != nil {
+		log.Fatalf("Invalid log level: %s", c.LogLevel)
+	}
+	log.SetFormatter(&log.TextFormatter{
+		TimestampFormat: "2006-01-02T15:04:05.000",
+		FullTimestamp:   true,
+	})
+
+	log.SetReportCaller(true)
+	log.SetLevel(lvl)
+
 }
