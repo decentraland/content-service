@@ -17,7 +17,7 @@ test:
 
 integration:
 	docker start content_service_redis \
-        && RUN_IT=true /bin/bash -c 'go test -v main.go integration_test.go -count=1' \
+        && AWS_REGION=$(AWS_REGION) AWS_ACCESS_KEY=$(AWS_ACCESS_KEY) AWS_SECRET_KEY=$(AWS_SECRET_KEY) RUN_IT=true /bin/bash -c 'go test -v main.go integration_test.go -count=1' \
         && docker stop content_service_redis
 
 demo:

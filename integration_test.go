@@ -95,7 +95,9 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 		t.Fatal("Error parsing response body")
 	}
 
-	expected := "https://content-service.s3.amazonaws.com/" + CID
+	c := config.GetConfig("config_test")
+
+	expected := c.Storage.RemoteConfig.URL + CID
 
 	assert.Equal(t, expected, link.Href, fmt.Sprintf("Should redirect to %s. Recieved link to : %s", expected, link.Href))
 
@@ -182,17 +184,27 @@ func TestGetContent(t *testing.T) {
 	client := server.Client()
 
 	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
-	response, err := client.Get(fmt.Sprintf("%s/contents/%s", server.URL, testFileCID))
-	if err != nil {
-		t.Fatal()
-	}
-	assert.Equal(t, http.StatusOK, rUpload.StatusCode)
-
-	testContents, err := ioutil.ReadAll(response.Body)
+	resp, err := client.Get(fmt.Sprintf("%s/contents/%s", server.URL, testFileCID))
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, "something\n", string(testContents))
+
+	if resp.StatusCode == http.StatusMovedPermanently {
+		redirectURL := resp.Header.Get("Location")
+		resp, err = client.Get(redirectURL)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	testContents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(testContents) != "something\n" {
+		t.Errorf("Test file contents do not match.\nExpected 'something'\nGot %s", string(testContents))
+	}
 }
 
 func TestValidateContent(t *testing.T) {
