@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/validation"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/decentraland/content-service/storage"
@@ -16,6 +17,7 @@ type GetContentCtx struct {
 func GetContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
 	c, ok := ctx.(GetContentCtx)
 	if !ok {
+		log.Fatal("Invalid Handler configuration")
 		return NewInternalError("Invalid Configuration")
 	}
 	params := mux.Vars(r)
@@ -55,6 +57,7 @@ type ContentStatusRequest struct {
 func ContentStatus(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(ContentStatusCtx)
 	if !ok {
+		log.Fatal("Invalid Handler configuration")
 		return nil, NewInternalError("Invalid Configuration")
 	}
 

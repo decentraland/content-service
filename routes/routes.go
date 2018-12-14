@@ -5,6 +5,7 @@ import (
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
 	"github.com/decentraland/content-service/validation"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
 	"github.com/ipsn/go-ipfs/core"
@@ -17,6 +18,7 @@ func GetRouter(client data.RedisClient, storage storage.Storage, dclApi string, 
 }
 
 func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode) {
+	log.Debug("Initializing routes...")
 	r.Path("/mappings").
 		Methods("GET").
 		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
@@ -46,4 +48,6 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Methods("POST").
 		Headers("Content-Type", "application/json").
 		Handler(&handlers.ResponseHandler{Ctx: contentStatusCtx, H: handlers.ContentStatus})
+
+	log.Debug("... Route initialization done.")
 }
