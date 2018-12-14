@@ -24,7 +24,7 @@ func (sto *Local) GetFile(cid string) string {
 	return sto.Dir + cid
 }
 
-func (sto *Local) SaveFile(filename string, fileDesc io.ReadCloser) (string, error) {
+func (sto *Local) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 	path := filepath.Join(sto.Dir, filename)
 	dst, err := os.Create(path)
 	if err != nil {
@@ -37,4 +37,25 @@ func (sto *Local) SaveFile(filename string, fileDesc io.ReadCloser) (string, err
 	}
 
 	return path, nil
+}
+
+func (sto *Local) DownloadFile(cid string, fileName string) error {
+	path := filepath.Join(sto.Dir, cid)
+	in, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	if err != nil {
+		return err
+	}
+	return out.Close()
 }

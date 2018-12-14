@@ -11,7 +11,8 @@ import (
 
 type Storage interface {
 	GetFile(cid string) string
-	SaveFile(filename string, fileDesc io.ReadCloser) (string, error)
+	SaveFile(filename string, fileDesc io.Reader) (string, error)
+	DownloadFile(cid string, fileName string) error
 }
 
 func NewStorage(conf *config.Storage) Storage {
@@ -33,4 +34,12 @@ func buildLocalStorage(conf *config.Storage) Storage {
 		log.Fatal(err)
 	}
 	return sto
+}
+
+type NotFoundError struct {
+	Cause string
+}
+
+func (e NotFoundError) Error() string {
+	return e.Cause
 }

@@ -65,24 +65,24 @@ func NewOkEmptyResponse() *JsonResponse {
 	return &JsonResponse{StatusCode: http.StatusOK, Content: map[string]string{}, Headers: nil}
 }
 
-func NewBadRequestError(msg string) *StatusError {
+func NewBadRequestError(msg string) error {
 	return WrapInBadRequestError(errors.New(msg))
 }
 
-func NewInternalError(msg string) *StatusError {
+func NewInternalError(msg string) error {
 	return WrapInInternalError(errors.New(msg))
 }
 
-func NewNotFoundError(msg string) *StatusError {
-	return &StatusError{http.StatusNotFound, errors.New(msg)}
+func NewNotFoundError(msg string) error {
+	return StatusError{http.StatusNotFound, errors.New(msg)}
 }
 
-func WrapInBadRequestError(err error) *StatusError {
-	return &StatusError{http.StatusBadRequest, err}
+func WrapInBadRequestError(err error) error {
+	return StatusError{http.StatusBadRequest, err}
 }
 
-func WrapInInternalError(err error) *StatusError {
-	return &StatusError{http.StatusInternalServerError, err}
+func WrapInInternalError(err error) error {
+	return StatusError{http.StatusInternalServerError, err}
 }
 
 func ExtractContentFormJsonRequest(r *http.Request, c interface{}, v validation.Validator) error {
