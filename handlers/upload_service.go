@@ -50,33 +50,27 @@ func NewUploadService(storage storage.Storage, client data.RedisClient, node *co
 
 func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 
-	err := validateSignature(us.Auth, r.Metadata)
-	if err != nil {
+	if err := validateSignature(us.Auth, r.Metadata); err != nil {
 		return err
 	}
 
-	err = validateKeyAccess(us.Auth, r.Metadata.PubKey, r.Scene.Scene.Parcels)
-	if err != nil {
+	if err := validateKeyAccess(us.Auth, r.Metadata.PubKey, r.Scene.Scene.Parcels); err != nil {
 		return err
 	}
 
-	err = us.validateContentCID(r.UploadedFiles, r.Manifest, r.Metadata.RootCid)
-	if err != nil {
+	if err := us.validateContentCID(r.UploadedFiles, r.Manifest, r.Metadata.RootCid); err != nil {
 		return err
 	}
 
-	err = us.processUploadedFiles(r.UploadedFiles, groupFilePathsByCid(r.Manifest), r.Metadata.RootCid)
-	if err != nil {
+	if err := us.processUploadedFiles(r.UploadedFiles, groupFilePathsByCid(r.Manifest), r.Metadata.RootCid); err != nil {
 		return err
 	}
 
-	err = storeParcelsInformation(r.Metadata.RootCid, r.Scene.Scene.Parcels, us.RedisClient)
-	if err != nil {
+	if err := storeParcelsInformation(r.Metadata.RootCid, r.Scene.Scene.Parcels, us.RedisClient); err != nil {
 		return err
 	}
 
-	err = us.RedisClient.StoreMetadata(r.Metadata.RootCid, structs.Map(r.Metadata))
-	if err != nil {
+	if err := us.RedisClient.StoreMetadata(r.Metadata.RootCid, structs.Map(r.Metadata)); err != nil {
 		return WrapInInternalError(err)
 	}
 	return nil
@@ -134,10 +128,10 @@ func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multi
 		if f, ok := requestFiles[m.Cid]; ok {
 			err = saveRequestFile(f[0], tmpFilePath)
 		} else {
-			err = us.Storage.DownloadFile(m.Cid, tmpFilePath)
+			err = us.retrieveContent(m.Cid, tmpFilePath)
 		}
 		if err != nil {
-			return handleStorageError(err)
+			return err
 		}
 		if err := us.validateCID(tmpFilePath, m.Cid); err != nil {
 			return err
@@ -249,6 +243,26 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 			return WrapInInternalError(err)
 		}
 	}
+	return nil
+}
+
+// Retrieves the specify content by the CID from the storage and saves it into the storePath
+func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error {
+	stored, err := us.RedisClient.IsContentMember(cid)
+	if err != nil {
+		return NewInternalError(fmt.Sprintf("Failed to retrieve content CID[%s]", cid))
+	}
+
+	if !stored {
+		return NewBadRequestError(fmt.Sprintf("CID[%s] not found in storage and was not provided in the request", cid))
+	}
+
+	err = us.Storage.DownloadFile(cid, storePath)
+
+	if err != nil {
+		return handleStorageError(err)
+	}
+
 	return nil
 }
 
