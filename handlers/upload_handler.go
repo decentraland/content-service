@@ -99,7 +99,7 @@ func parseRequest(r *http.Request, v validation.Validator) (*UploadRequest, erro
 	requestFilesNumber := len(uploadedFiles)
 
 	if requestFilesNumber > manifestSize {
-		log.Debugf("Request contains too many files. Max expected: %d, found: ", manifestSize, requestFilesNumber)
+		log.Debugf("Request contains too many files. Max expected: %d, found: %d", manifestSize, requestFilesNumber)
 		return nil, NewBadRequestError("Request contains too many files")
 	}
 

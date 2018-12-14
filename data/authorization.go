@@ -25,7 +25,7 @@ func NewAuthorizationService(client Decentraland) *AuthorizationService {
 }
 
 func (service AuthorizationService) UserCanModifyParcels(pubkey string, parcelsList []string) (bool, error) {
-	log.Debugf("Checking Address[%] permissions", pubkey)
+	log.Debugf("Checking Address[%s] permissions", pubkey)
 	parcels, err := getParcels(parcelsList, service.dclClient)
 	if err != nil {
 		return false, err
@@ -108,7 +108,7 @@ func getParcels(parcelsList []string, dcl Decentraland) ([]*Parcel, error) {
 }
 
 func canModify(pubkey string, parcel *Parcel, dcl Decentraland) (bool, error) {
-	log.Debugf("Verifying Address [%s] permissions over Parcel[%s,%s]", pubkey, parcel.X, parcel.Y)
+	log.Debugf("Verifying Address [%s] permissions over Parcel[%d,%d]", pubkey, parcel.X, parcel.Y)
 	if pubkey == parcel.Owner {
 		return true, nil
 	} else if pubkey == parcel.UpdateOperator {
@@ -133,6 +133,6 @@ func canModify(pubkey string, parcel *Parcel, dcl Decentraland) (bool, error) {
 		}
 	}
 
-	log.Debugf("Address [%s] not allowed to modify Parcel[%s,%s]", pubkey, parcel.X, parcel.Y)
+	log.Debugf("Address [%s] not allowed to modify Parcel[%d,%d]", pubkey, parcel.X, parcel.Y)
 	return false, nil
 }
