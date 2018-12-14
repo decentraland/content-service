@@ -41,7 +41,7 @@ func (redis Redis) GetParcelMetadata(parcelID string) (map[string]interface{}, e
 
 	parcelMeta, err := getParcelInformationFromCollection(redis.Client, parcelID, metadataKeyPrefix)
 	if err != nil {
-		logrus.Errorf("Redis error: ", err)
+		logrus.Errorf("Redis error: %s", err.Error())
 		return nil, err
 	}
 
@@ -83,7 +83,7 @@ func (redis Redis) AddCID(cid string) error {
 func (redis Redis) IsContentMember(value string) (bool, error) {
 	res := redis.Client.SIsMember(uploadedElementsKey, value)
 	if err := res.Err(); err != nil {
-		logrus.Errorf("Redis error: ", err)
+		logrus.Errorf("Redis error: %s", err.Error())
 		return false, err
 	}
 	return res.Val(), nil
@@ -92,13 +92,13 @@ func (redis Redis) IsContentMember(value string) (bool, error) {
 func getParcelInformationFromCollection(client *redis.Client, parcelID string, keyPrefix string) (map[string]string, error) {
 	parcelCID, err := client.Get(parcelID).Result()
 	if err != nil {
-		logrus.Errorf("Redis error: ", err)
+		logrus.Errorf("Redis error: %s", err.Error())
 		return nil, err
 	}
 
 	parcelContent, err := client.HGetAll(keyPrefix + parcelCID).Result()
 	if err != nil {
-		logrus.Errorf("Redis error: ", err)
+		logrus.Errorf("Redis error: %s", err.Error())
 		return nil, err
 	}
 

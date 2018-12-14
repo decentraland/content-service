@@ -52,7 +52,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 	})
 
 	if err != nil {
-		log.Errorf("Fail to upload file: ", err)
+		log.Errorf("Fail to upload file: %s", err.Error())
 		return "", err
 	}
 
@@ -60,7 +60,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 }
 
 func (sto *S3) DownloadFile(cid string, filePath string) error {
-	log.Debugf("Downloading file[%s] to ", cid, filePath)
+	log.Debugf("Downloading Key[%s] to File[%s]", cid, filePath)
 	dir := filepath.Dir(filePath)
 	fp := filepath.Join(dir, filepath.Base(filePath))
 
@@ -87,7 +87,7 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 	if err != nil {
 		return handleS3Error(err, cid)
 	}
-	log.Debugf("CID[%s] found. %s bytes downloaded from S3 to %s", cid, n, filePath)
+	log.Debugf("CID[%s] found. %d bytes downloaded from S3 to %s", cid, n, filePath)
 
 	return nil
 }
