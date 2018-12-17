@@ -155,7 +155,7 @@ func Make(appName string, newrelicApiKey string) (Agent, error) {
 	app, err := newrelic.NewApplication(config)
 
 	if err != nil {
-		log.Errorf("Failed to initialize metrics agent: ", err.Error())
+		log.Errorf("Failed to initialize metrics agent: %s", err.Error())
 		return nil, err
 	}
 
