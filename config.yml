@@ -19,3 +19,7 @@ decentralandApi:
   landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
 
 logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
+
+metrics:
+  appName:  '' # Set METRICS_APP env variable to overwrite this value
+  key:      '' # Set METRICS_KEY env variable to overwrite this value

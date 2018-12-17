@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -41,20 +42,44 @@ type JsonResponse struct {
 }
 
 type Handler struct {
-	Ctx interface{}
-	H   func(ctx interface{}, w http.ResponseWriter, r *http.Request) error
+	Ctx   interface{}
+	H     func(ctx interface{}, w http.ResponseWriter, r *http.Request) error
+	Id    string
+	Agent metrics.Agent
 }
 
 type ResponseHandler struct {
-	Ctx interface{}
-	H   func(ctx interface{}, r *http.Request) (Response, error)
+	Ctx   interface{}
+	H     func(ctx interface{}, r *http.Request) (Response, error)
+	Id    string
+	Agent metrics.Agent
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tx := h.Agent.EndpointMetrics(h.Id, w, r)
+	defer tx.Close()
+
 	err := h.H(h.Ctx, w, r)
 	if err != nil {
+		tx.ReportError(err)
 		log.Error(err)
 		handleError(w, err)
+	}
+}
+
+func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tx := h.Agent.EndpointMetrics(h.Id, w, r)
+	defer tx.Close()
+
+	response, err := h.H(h.Ctx, r)
+	if err != nil {
+		tx.ReportError(err)
+		handleError(w, err)
+	} else {
+		err = response.WriteResponse(w)
+		if err != nil {
+			unexpectedError(w, err)
+		}
 	}
 }
 
@@ -95,18 +120,6 @@ func ExtractContentFormJsonRequest(r *http.Request, c interface{}, v validation.
 		return WrapInBadRequestError(err)
 	}
 	return nil
-}
-
-func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	response, err := h.H(h.Ctx, r)
-	if err != nil {
-		handleError(w, err)
-	} else {
-		err = response.WriteResponse(w)
-		if err != nil {
-			unexpectedError(w, err)
-		}
-	}
 }
 
 func handleError(w http.ResponseWriter, err error) {

@@ -56,6 +56,7 @@ require (
 	github.com/minio/sha256-simd v0.0.0-20171213220625-ad98a36ba0da // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mr-tron/base58 v0.0.0-20180922112544-9ad991d48a42 // indirect
+	github.com/newrelic/go-agent v2.1.0+incompatible
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
