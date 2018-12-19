@@ -88,6 +88,8 @@ github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 h1:1L6CVB+4xo+X++E
 github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422/go.mod h1:iXzbK+Wa6eePj3jQg/uY6Uoq5iOwY+GToD/bgaRadto=
 github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd h1:7diHeerlnJoMO/kCirN2ENlGHXcAYtQ1j1nrr+UBZXc=
 github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd/go.mod h1:i7fHGKFb0CfJTRzXhks1Y+cH19jn2VJ7uX5ysogkm5Y=
+github.com/ipsn/go-ipfs v0.0.0-20181218231732-efbfe11f7e03 h1:X1kCqkHy8wOIFa7o/wRBL0rjXZkcX1FySvNo/WrD5jw=
+github.com/ipsn/go-ipfs v0.0.0-20181218231732-efbfe11f7e03/go.mod h1:i7fHGKFb0CfJTRzXhks1Y+cH19jn2VJ7uX5ysogkm5Y=
 github.com/jackpal/gateway v1.0.4 h1:LS5EHkLuQ6jzaHwULi0vL+JO0mU/n4yUtK8oUjHHOlM=
 github.com/jackpal/gateway v1.0.4/go.mod h1:lTpwd4ACLXmpyiCTRtfiNyVnUmqT9RivzCDQetPfnjA=
 github.com/jackpal/go-nat-pmp v1.0.1 h1:i0LektDkO1QlrTm/cSuP+PyBCDnYvjPLGl4LdWEMiaA=

@@ -37,7 +37,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 // indirect
-	github.com/ipsn/go-ipfs v0.0.0-20181101225117-8c4b6281c4fd
+	github.com/ipsn/go-ipfs v0.0.0-20181218231732-efbfe11f7e03
 	github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jbenet/go-is-domain v0.0.0-20160119110217-ba9815c809e0 // indirect

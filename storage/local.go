@@ -47,7 +47,15 @@ func (sto *Local) DownloadFile(cid string, fileName string) error {
 	}
 	defer in.Close()
 
-	out, err := os.Create(fileName)
+	dir := filepath.Dir(fileName)
+	fp := filepath.Join(dir, filepath.Base(fileName))
+
+	err = os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	out, err := os.Create(fp)
 	if err != nil {
 		return err
 	}
