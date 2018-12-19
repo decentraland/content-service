@@ -13,6 +13,7 @@ type Configuration struct {
 	Redis           Redis
 	DecentralandApi DecentralandApi
 	LogLevel        string
+	Metrics         NewRelic
 }
 
 type DecentralandApi struct {
@@ -47,6 +48,11 @@ type RemoteStorage struct {
 type Server struct {
 	Port string
 	URL  string
+}
+
+type NewRelic struct {
+	AppName string
+	AppKey  string
 }
 
 // GetConfig populates a Configuration struct from a config file
@@ -94,4 +100,7 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("decentralandapi.landurl", "DCL_API")
 	// LOG LEVEL
 	v.BindEnv("logLevel", "LOG_LEVEL")
+	//Metrics
+	v.BindEnv("metrics.appName", "METRICS_APP")
+	v.BindEnv("metrics.key", "METRICS_KEY")
 }

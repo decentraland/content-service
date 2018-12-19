@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/decentraland/content-service/metrics"
 	"log"
 	"net/http"
 	"os"
@@ -46,7 +47,8 @@ func main() {
 		fmt.Scanln(&y2)
 	}
 
-	sto := storage.NewStorage(&conf.Storage)
+	agent, _ := metrics.Make("", "")
+	sto := storage.NewStorage(&conf.Storage, agent)
 
 	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", conf.Server.URL, x1, y1, x2, y2)
 	resp, err := http.Get(mappingsURL)

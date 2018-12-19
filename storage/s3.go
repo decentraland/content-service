@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/decentraland/content-service/metrics"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -21,13 +23,15 @@ type S3 struct {
 	Bucket *string
 	ACL    *string
 	URL    string
+	Agent  metrics.Agent
 }
 
-func NewS3(bucket, acl, url string) *S3 {
+func NewS3(bucket, acl, url string, agent metrics.Agent) *S3 {
 	sto := new(S3)
 	sto.Bucket = aws.String(bucket)
 	sto.ACL = aws.String(acl)
 	sto.URL = url
+	sto.Agent = agent
 	return sto
 }
 
@@ -39,6 +43,7 @@ func (sto *S3) GetFile(cid string) string {
 }
 
 func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
+	t := time.Now()
 	log.Debugf("Uploading file[%s] to S3", filename)
 	sess := session.Must(session.NewSession())
 
@@ -50,7 +55,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 		ACL:    sto.ACL,
 		Body:   fileDesc,
 	})
-
+	sto.Agent.RecordStorageTime(time.Since(t))
 	if err != nil {
 		log.Errorf("Fail to upload file: %s", err.Error())
 		return "", err
@@ -60,6 +65,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 }
 
 func (sto *S3) DownloadFile(cid string, filePath string) error {
+	t := time.Now()
 	log.Debugf("Downloading Key[%s] to File[%s]", cid, filePath)
 	dir := filepath.Dir(filePath)
 	fp := filepath.Join(dir, filepath.Base(filePath))
@@ -83,10 +89,12 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 		Bucket: sto.Bucket,
 		Key:    &cid,
 	})
+	sto.Agent.RecordRetrieveTime(time.Since(t))
 
 	if err != nil {
 		return handleS3Error(err, cid)
 	}
+	sto.Agent.RecordBytesRetrieved(n)
 	log.Debugf("CID[%s] found. %d bytes downloaded from S3 to %s", cid, n, filePath)
 
 	return nil

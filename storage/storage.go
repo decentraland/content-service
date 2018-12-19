@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/decentraland/content-service/metrics"
 	"io"
 	"strings"
 
@@ -14,13 +15,13 @@ type Storage interface {
 	DownloadFile(cid string, fileName string) error
 }
 
-func NewStorage(conf *config.Storage) Storage {
+func NewStorage(conf *config.Storage, agent metrics.Agent) Storage {
 	log.Infof("Storage mode: %s", conf.StorageType)
 	switch config.StorageType(strings.ToUpper(conf.StorageType)) {
 	case config.LOCAL:
 		return buildLocalStorage(conf)
 	case config.REMOTE:
-		return NewS3(conf.RemoteConfig.Bucket, conf.RemoteConfig.ACL, conf.RemoteConfig.URL)
+		return NewS3(conf.RemoteConfig.Bucket, conf.RemoteConfig.ACL, conf.RemoteConfig.URL, agent)
 	default:
 		log.Fatalf("Invalid Storage Type: %s", conf.StorageType)
 	}

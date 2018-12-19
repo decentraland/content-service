@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -185,6 +186,7 @@ var sceneValidation = []testDataValidation{
 
 func TestUploadRequestValidation(t *testing.T) {
 	validator := validation.NewValidator()
+	agent, _ := metrics.Make("", "")
 
 	for _, tc := range requestValidationTestCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -192,7 +194,7 @@ func TestUploadRequestValidation(t *testing.T) {
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
-			request, err := parseRequest(r, validator)
+			request, err := parseRequest(r, validator, agent)
 			tc.assert(t, request, err)
 		})
 	}

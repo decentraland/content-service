@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/metrics"
 	"github.com/fatih/structs"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/decentraland/content-service/storage"
 	"github.com/ipsn/go-ipfs/core"
@@ -37,14 +39,16 @@ type UploadServiceImpl struct {
 	RedisClient data.RedisClient
 	IpfsNode    *core.IpfsNode
 	Auth        data.Authorization
+	Agent       metrics.Agent
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent metrics.Agent) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:     storage,
 		RedisClient: client,
 		IpfsNode:    node,
 		Auth:        auth,
+		Agent:       agent,
 	}
 }
 
@@ -59,7 +63,11 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return err
 	}
 
-	if err := us.validateContentCID(r.UploadedFiles, r.Manifest, r.Metadata.RootCid); err != nil {
+	t := time.Now()
+	err := us.validateContentCID(r.UploadedFiles, r.Manifest, r.Metadata.RootCid)
+	us.Agent.RecordUploadRequestValidationTime(time.Since(t))
+
+	if err != nil {
 		return err
 	}
 
@@ -67,7 +75,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return err
 	}
 
-	if err := storeParcelsInformation(r.Metadata.RootCid, r.Scene.Scene.Parcels, us.RedisClient); err != nil {
+	if err := us.storeParcelsInformation(r.Metadata.RootCid, r.Scene.Scene.Parcels); err != nil {
 		return err
 	}
 
@@ -243,6 +251,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 				log.Errorf("Failed to store file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
 				return WrapInInternalError(err)
 			}
+			us.Agent.RecordBytesStored(fileHeader.Size)
 			log.Infof("File[%s] stored successfully under CID[%s]. Bytes stored: %d", fileHeader.Filename, fileCID, fileHeader.Size)
 			return nil
 		}()
@@ -288,9 +297,9 @@ func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error
 	return nil
 }
 
-func storeParcelsInformation(rootCID string, parcels []string, rc data.RedisClient) error {
+func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []string) error {
 	for _, parcel := range parcels {
-		err := rc.SetKey(parcel, rootCID)
+		err := us.RedisClient.SetKey(parcel, rootCID)
 		if err != nil {
 			log.Errorf("Unable to store parcel[%s] Information: %s ", parcel, err.Error())
 			return WrapInInternalError(err)

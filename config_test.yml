@@ -4,7 +4,11 @@ server:
 
 storage:
   storageType: 'LOCAL'
-  localPath:   'tmp/'
+  remoteConfig:
+    bucket: ''
+    url: ''
+    acl: ''
+  localPath: '/tmp/'
 
 redis:
   address:  'localhost:6379'
@@ -13,3 +17,9 @@ redis:
 
 decentralandApi:
   landUrl: 'https://api.decentraland.org/v1/'
+
+logLevel: 'ERROR'
+
+metrics:
+  appName:  ''
+  key:      ''

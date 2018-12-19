@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/routes"
 	gHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -34,8 +35,13 @@ func main() {
 }
 
 func InitializeApp(config *config.Configuration) *mux.Router {
+	agent, err := metrics.Make(config.Metrics.AppName, config.Metrics.AppKey)
+	if err != nil {
+		log.Fatal("Error initializing metrics agent")
+	}
+
 	// Initialize Redis client
-	client, err := data.NewRedisClient(config.Redis.Address, config.Redis.Password, config.Redis.DB)
+	client, err := data.NewRedisClient(config.Redis.Address, config.Redis.Password, config.Redis.DB, agent)
 	if err != nil {
 		log.Fatal("Error initializing Redis client")
 	}
@@ -47,9 +53,9 @@ func InitializeApp(config *config.Configuration) *mux.Router {
 		log.Fatal("Error initializing IPFS node")
 	}
 
-	sto := storage.NewStorage(&config.Storage)
+	sto := storage.NewStorage(&config.Storage, agent)
 
-	router := routes.GetRouter(client, sto, config.DecentralandApi.LandUrl, ipfsNode)
+	router := routes.GetRouter(client, sto, config.DecentralandApi.LandUrl, ipfsNode, agent)
 
 	return router
 }
