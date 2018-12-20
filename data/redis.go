@@ -25,8 +25,8 @@ type Redis struct {
 }
 
 const uploadedElementsKey = "uploaded-content"
-const metadataKeyPrefix = "metadata:"
-const contentKeyPrefix = "content:"
+const metadataKeyPrefix = "metadata_"
+const contentKeyPrefix = "content_"
 
 func NewRedisClient(address string, password string, db int, agent metrics.Agent) (*Redis, error) {
 	client := redis.NewClient(&redis.Options{
