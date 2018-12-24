@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/decentraland/content-service/data"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,19 +16,21 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/decentraland/content-service/storage"
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/storage"
 	"github.com/ipsn/go-ipfs/core"
 )
 
 var server *httptest.Server
 
+var runIntegrationTests = os.Getenv("RUN_IT") == "true"
+
 func TestMain(m *testing.M) {
 	// Start server
 	conf := config.GetConfig("config_test")
 
-	redisClient, err := initRedisClient(conf)
+	redisClient, err := data.NewRedisClient(conf.Redis.Address, conf.Redis.Password, conf.Redis.DB)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,6 +66,9 @@ type Link struct {
 }
 
 func TestContentsHandlerS3Redirect(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
 	const CID = "123456789"
 
 	client := getNoRedirectClient()
@@ -97,6 +103,9 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 }
 
 func TestInvalidCoordinates(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
 	x1, y1, x2, y2 := 45, 45, 44, 46
 	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 
@@ -126,6 +135,9 @@ func TestInvalidCoordinates(t *testing.T) {
 }
 
 func TestCoordinatesNotCached(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
 	x1, y1, x2, y2 := 120, 120, 120, 120
 	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 
@@ -162,6 +174,9 @@ func validateCoordinates(x int, y int) (*http.Response, error) {
 }
 
 func TestValidateCoordinatesNotInCache(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
 	x, y := -10, 10
 	response, err := validateCoordinates(x, y)
 	if err != nil {
@@ -175,6 +190,9 @@ func TestValidateCoordinatesNotInCache(t *testing.T) {
 }
 
 func TestUploadHandler(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
 	const metadataFile = "test/data/metadata.json"
 	const contentsFile = "test/data/contents.json"
 	const dataFolder = "test/data/demo"
@@ -201,7 +219,7 @@ func TestUploadHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if resp.StatusCode == http.StatusMovedPermanently {
 		redirectURL := resp.Header.Get("Location")
 		resp, err = client.Get(redirectURL)
