@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"errors"
 	"net/http"
 
 	"github.com/decentraland/content-service/storage"
@@ -24,7 +24,6 @@ func (handler *ContentsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		w.Header().Add("Content-Disposition", "Attachment")
 		http.ServeFile(w, r, location)
 	default:
-		log.Println("Storage has unregistered type")
-		http.Error(w, http.StatusText(500), 500)
+		handle500(w, errors.New("Storage has unregistered type"))
 	}
 }

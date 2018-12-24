@@ -1,10 +1,9 @@
 def err = null
 
 node {
-  try {
-    slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Started...*  \n\tCommit Number: *${env.GIT_COMMIT}* \n\tBuild Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
+  //  try {  slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Started...*  \n\tCommit Number: *${env.GIT_COMMIT}* \n\tBuild Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     stage('Clone repo') {
-          sshagent(credentials : ['content-service']) {
+          /*sshagent(credentials : ['content-service']) {
           sh '''
           #Retrieveing the job name. This is used as the first part of the image name
           PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
@@ -18,11 +17,14 @@ node {
             ;;
           esac
           git clone ${REPOURL}/${PROJECT}.git && cd ${PROJECT} || cd ${PROJECT}
+          git checkout ${BRANCH_NAME}
+          git reset --hard
           git fetch
           git pull
-          git checkout ${BRANCH_NAME}
+
           '''
-        }
+        }*/
+      checkout scm
     }
     stage('Build Image') {
           sshagent(credentials : ['content-service']) {
@@ -46,7 +48,11 @@ node {
           #So far, the last image is tagged as latest.
           #This must change to commit number
           cd ${PROJECT}
-          docker build -t ${ECREGISTRY}/${PROJECT}:latest .
+          LASTCOMMIT=`git rev-parse HEAD`
+          echo " ------------------------------------------ "
+          echo "| Building commit ${LASTCOMMIT} from branch `git checkout`...         |"
+          echo " ------------------------------------------ "
+          docker build -t ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT} .
           '''
           }
     }
@@ -65,6 +71,7 @@ node {
               ;;
             esac
             cd ${PROJECT}
+            LASTCOMMIT=`git rev-parse HEAD`
             echo " ------------------------------------------ "
             echo "| Starting redis....         |"
             echo " ------------------------------------------ "
@@ -72,7 +79,7 @@ node {
             echo " ----------------------------- "
             echo "| starting golang....         |"
             echo " ----------------------------- "
-            docker run -d --name content_service_golang -p 8000:8000 --rm ${ECREGISTRY}/${PROJECT}:latest
+            docker run -d --name content_service_golang -p 8000:8000 --rm ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
             if test $? -ne 0; then
               echo "ERROR!!, `docker logs content_service_golang`"
               docker stop -t 1 content_service_redis content_service_golang
@@ -104,6 +111,7 @@ node {
           #Retrieveing the job name. This is used as the first part of the image name
           PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
           REPOURL="git@github.com:decentraland"
+          LASTCOMMIT=`cd ${PROJECT} && git rev-parse HEAD`
           test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
           case ${BRANCH_NAME} in
               master) ECREGISTRY="245402993223.dkr.ecr.us-east-1.amazonaws.com"
@@ -116,8 +124,13 @@ node {
           echo " ------------------------------------------ "
           echo "| Waiting for container to finish....         |"
           echo " ------------------------------------------ "
-          docker push ${ECREGISTRY}/${PROJECT}:latest
-          docker rmi -f ${ECREGISTRY}/${PROJECT}:latest
+          cd ${PROJECT}
+          LASTCOMMIT=`git rev-parse HEAD`
+          echo " ------------------------------------------ "
+          echo "| Building commit ${LASTCOMMIT} . `git checkout`...         |"
+          echo " ------------------------------------------ "
+          docker push ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
+          docker rmi -f ${ECREGISTRY}/${PROJECT}:${LASTCOMMIT}
           '''
     }
     stage('Launching Deploy') {
@@ -129,40 +142,36 @@ node {
             echo "| Launching deploy job....                 |"
             echo " ------------------------------------------ "
             aws ecr get-login --no-include-email | bash
+            cd ${PROJECT}
+            LASTCOMMIT=`git rev-parse HEAD`
             case $BRANCH_NAME in
               master)
-                      cd ${PROJECT}
-                      git checkout master
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-prod ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 prod master
+                      ./terraform-run.sh us-east-1 prod master ${PROJECT} ${LASTCOMMIT}
               ;;
 
               development)
-                      cd ${PROJECT}
-                      git checkout development
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev development
+                      ./terraform-run.sh us-east-1 dev development ${PROJECT} ${LASTCOMMIT}
               ;;
 
               *)
-                      cd ${PROJECT}
-                      git checkout $BRANCH_NAME
                       test -h ${JENKINS_HOME}/.aws && unlink ${JENKINS_HOME}/.aws
                       ln -s ${JENKINS_HOME}/.aws-dev ${JENKINS_HOME}/.aws
                       cd .terraform/main
-                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME
+                      ./terraform-run.sh us-east-1 dev $BRANCH_NAME ${PROJECT} ${LASTCOMMIT}
               ;;
             esac
           '''
     }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Finished OK*\n\tCommit Number: *${env.GIT_COMMIT}*   \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
-  } catch (caughtError) { //End of Try
+  /*} catch (caughtError) { //End of Try
     err = caughtError
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: '#FF0000', message: "Project/Branch - *${env.JOB_NAME}* \n\tError: ${err}\n\tCommit Number: *${env.GIT_COMMIT}*   \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     currentBuild.result = "FAILURE"
-  }
+  }*/
 }

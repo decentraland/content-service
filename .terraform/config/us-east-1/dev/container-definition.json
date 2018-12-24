@@ -1,0 +1,43 @@
+[
+  {
+    "environment": [{
+      "name": "commit-number",
+      "value": "tag-number"
+    },{
+      "name": "hostname",
+      "value": "content-service-golang-dev"
+    },
+    {
+      "name": "name",
+      "value": "content-service-golang-dev"
+    },
+    {
+      "name": "AWS_REGION",
+      "value": "us-east-1"
+    },
+    {
+      "name": "AWS_ACCESS_KEY",
+      "value": "AKIAJWN42GFHWVY5LPIQ" 
+    },
+    {
+      "name": "AWS_SECRET_KEY",
+      "value": "K583KyxsnHMpT8Yle2cPKj3BY6w1QCvHbuYULGO7"
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "content-service-dev",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "content-service-golang"
+      }
+    },
+    "portMappings": [{
+      "containerPort": 8000,
+      "hostPort": 8000
+    }],
+    "essential": true,
+    "image": "872049612737.dkr.ecr.us-east-1.amazonaws.com/content-service:tag-number",
+    "memoryReservation": 8192,
+    "name": "content-service-golang-dev"
+  }
+]

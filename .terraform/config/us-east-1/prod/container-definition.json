@@ -1,6 +1,9 @@
 [
   {
     "environment": [{
+      "name": "commit-number",
+      "value": "tag-number"
+    },{
       "name": "hostname",
       "value": "content-service-golang-dev"
     },
@@ -14,7 +17,7 @@
     },
     {
       "name": "AWS_ACCESS_KEY",
-      "value": "AKIAJWN42GFHWVY5LPIQ" 
+      "value": "AKIAJWN42GFHWVY5LPIQ"
     },
     {
       "name": "AWS_SECRET_KEY",
@@ -23,7 +26,7 @@
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/fargate/service/content-service-dev",
+        "awslogs-group": "content-service-dev",
         "awslogs-region": "us-east-1",
         "awslogs-stream-prefix": "content-service-golang"
       }
@@ -33,7 +36,7 @@
       "hostPort": 8000
     }],
     "essential": true,
-    "image": "872049612737.dkr.ecr.us-east-1.amazonaws.com/content-service:latest",
+    "image": "872049612737.dkr.ecr.us-east-1.amazonaws.com/content-service:tag-number",
     "memoryReservation": 8192,
     "name": "content-service-golang-dev"
   }
