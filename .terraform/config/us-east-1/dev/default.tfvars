@@ -1,5 +1,5 @@
 region = "us-east-1"
-env = "dev"
+env = "stg"
 cluster = "cl-worldteam"
 execution_role_arn = "arn:aws:iam::872049612737:role/ecsTaskExecutionRole"
 certificate_arn = "arn:aws:acm:us-east-1:872049612737:certificate/ab0afbe5-9f13-4edc-80ef-1cc7967339eb"
