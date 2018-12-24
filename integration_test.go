@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/decentraland/content-service/data"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,55 +14,56 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
-	"github.com/decentraland/content-service/storage"
-	"github.com/ipsn/go-ipfs/core"
 )
 
-var server *httptest.Server
-
-var runIntegrationTests = os.Getenv("RUN_IT") == "true"
-
-func TestMain(m *testing.M) {
-	// Start server
-	conf := config.GetConfig("config_test")
-
-	redisClient, err := data.NewRedisClient(conf.Redis.Address, conf.Redis.Password, conf.Redis.DB)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var ipfsNode *core.IpfsNode
-	ipfsNode, err = initIpfsNode()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	storage := storage.NewStorage(conf)
-
-	router := GetRouter(conf, redisClient, ipfsNode, storage)
-	server = httptest.NewServer(router)
-	defer server.Close()
-	code := m.Run()
-
-	os.Exit(code)
+type uploadTestConfig struct {
+	name           string
+	metadataPath   string
+	contentDir     string
+	manifest       string
+	contentFilter  func(file string) bool
+	expectedStatus int
 }
 
-func getNoRedirectClient() *http.Client {
-	// Configure http.Client to avoid following redirects
-	client := server.Client()
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-	return client
+type validateCoordConfig struct {
+	name           string
+	x              string
+	y              string
+	expectedStatus int
 }
 
 type Link struct {
 	A    xml.Name `xml:"a"`
 	Href string   `xml:"href,attr"`
+}
+
+var server *httptest.Server
+
+var runIntegrationTests = os.Getenv("RUN_IT") == "true"
+
+var okUploadContent = &uploadTestConfig{
+	manifest:     "test/data/contents.json",
+	contentDir:   "test/data/demo",
+	metadataPath: "test/data/metadata.json",
+	contentFilter: func(file string) bool {
+		return file[len(file)-1:] == "/"
+	},
+}
+
+func TestMain(m *testing.M) {
+	// Start server
+	router := InitializeApp(config.GetConfig("config_test"))
+
+	server = httptest.NewServer(router)
+	defer server.Close()
+	code := m.Run()
+
+	os.Exit(code)
 }
 
 func TestContentsHandlerS3Redirect(t *testing.T) {
@@ -86,9 +87,7 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 		}
 	}
 
-	if response.StatusCode != http.StatusMovedPermanently {
-		t.Error("Contents handler should respond with status code 301. Recieved code: ", response.StatusCode)
-	}
+	assert.Equal(t, http.StatusMovedPermanently, response.StatusCode)
 
 	link := new(Link)
 	err = xml.NewDecoder(response.Body).Decode(link)
@@ -96,10 +95,12 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 		t.Fatal("Error parsing response body")
 	}
 
-	expected := "https://content-service.s3.amazonaws.com/" + CID
-	if link.Href != expected {
-		t.Errorf("Should redirect to %s. Recieved link to : %s", expected, link.Href)
-	}
+	c := config.GetConfig("config_test")
+
+	expected := c.Storage.RemoteConfig.URL + CID
+
+	assert.Equal(t, expected, link.Href, fmt.Sprintf("Should redirect to %s. Recieved link to : %s", expected, link.Href))
+
 }
 
 func TestInvalidCoordinates(t *testing.T) {
@@ -116,22 +117,17 @@ func TestInvalidCoordinates(t *testing.T) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != http.StatusOK {
-		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
-	}
+	assert.Equal(t, http.StatusOK, response.StatusCode)
 
-	if contentType := response.Header.Get("Content-Type"); contentType != "application/json" {
-		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
-	}
+	contentType := response.Header.Get("Content-Type")
+	assert.Equal(t, "application/json", contentType)
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		t.Error(err)
 	}
 	bodyString := string(body)
-	if bodyString != "{}" {
-		t.Errorf("Mappings handler should return empty JSON when requesting invalid coordinates.\nRecieved:\n%s", bodyString)
-	}
+	assert.Equal(t, "{}", bodyString)
 }
 
 func TestCoordinatesNotCached(t *testing.T) {
@@ -166,56 +162,29 @@ func TestCoordinatesNotCached(t *testing.T) {
 	}
 }
 
-func validateCoordinates(x int, y int) (*http.Response, error) {
-	query := fmt.Sprintf("/validate?x=%d&y=%d", x, y)
-
-	client := getNoRedirectClient()
-	return client.Get(server.URL + query)
-}
-
-func TestValidateCoordinatesNotInCache(t *testing.T) {
-	if !runIntegrationTests {
-		t.Skip("Skipping integration test. To run it set RUN_IT=true")
-	}
-	x, y := -10, 10
-	response, err := validateCoordinates(x, y)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusNotFound {
-		t.Error("Validate handler should respond with status code 400 when coordinates not in cache. Recieved code: ", response.StatusCode)
-	}
-}
-
 func TestUploadHandler(t *testing.T) {
 	if !runIntegrationTests {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")
 	}
-	const metadataFile = "test/data/metadata.json"
-	const contentsFile = "test/data/contents.json"
-	const dataFolder = "test/data/demo"
-
-	req, err := newfileUploadRequest(metadataFile, contentsFile, dataFolder)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	client := server.Client()
-	response, err := client.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	response := execRequest(buildUploadRequest(okUploadContent, t), t)
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		t.Error("Upload unsuccessful. Got response code: ", response.StatusCode)
+		t.Fatalf("Upload unsuccessful. Got response code: %d", response.StatusCode)
 	}
+}
 
-	// Test downloading test.txt
+func TestGetContent(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
+	rUpload := execRequest(buildUploadRequest(okUploadContent, t), t)
+	assert.Equal(t, http.StatusOK, rUpload.StatusCode)
+
+	client := server.Client()
+
 	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
-	resp, err := client.Get(server.URL + "/contents/" + testFileCID)
+	resp, err := client.Get(fmt.Sprintf("%s/contents/%s", server.URL, testFileCID))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,84 +205,100 @@ func TestUploadHandler(t *testing.T) {
 	if string(testContents) != "something\n" {
 		t.Errorf("Test file contents do not match.\nExpected 'something'\nGot %s", string(testContents))
 	}
+}
 
-	// Test validate handler
-	x, y := 54, -136
-	response, err = validateCoordinates(x, y)
-	if err != nil {
-		t.Fatal(err)
+func TestValidateContent(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
 	}
-	defer response.Body.Close()
+	rUpload := execRequest(buildUploadRequest(okUploadContent, t), t)
+	assert.Equal(t, http.StatusOK, rUpload.StatusCode)
 
-	if response.StatusCode != http.StatusOK {
-		t.Error("Validate handler should respond with status code 200. Recieved code: ", response.StatusCode)
+	for _, tc := range validateTc {
+		t.Run(tc.name, func(t *testing.T) {
+			query := fmt.Sprintf("/validate?x=%s&y=%s", tc.x, tc.y)
+			client := getNoRedirectClient()
+			resp, err := client.Get(server.URL + query)
+			if err != nil {
+				t.Fatal()
+			}
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+		})
 	}
 }
 
-func newfileUploadRequest(metadataFile string, contentsFile string, dataFolder string) (*http.Request, error) {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
+func TestContentStatus(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
+	rUpload := execRequest(buildUploadRequest(okUploadContent, t), t)
+	assert.Equal(t, http.StatusOK, rUpload.StatusCode)
 
 	var contentsJSON []handlers.FileMetadata
-	c, err := os.Open(contentsFile)
+	c, err := os.Open(okUploadContent.manifest)
 	if err != nil {
-		return nil, err
+		t.Fail()
 	}
 	defer c.Close()
 	err = json.NewDecoder(c).Decode(&contentsJSON)
 	if err != nil {
-		return nil, err
+		t.Fail()
 	}
 
+	var list []string
 	for _, content := range contentsJSON {
-		if content.Name[len(content.Name)-1:] == "/" {
-			continue
-		}
-
-		part, err := writer.CreateFormFile(content.Cid, filepath.Base(content.Name))
-		if err != nil {
-			return nil, err
-		}
-
-		dataPath := filepath.Join(dataFolder, content.Name)
-		var f *os.File
-		f, err = os.Open(dataPath)
-		if err != nil {
-			log.Printf("Cannot open %s", dataPath)
-			return nil, err
-		}
-		_, err = io.Copy(part, f)
-		if err != nil {
-			return nil, err
+		if !strings.HasSuffix(content.Name, "/") {
+			list = append(list, fmt.Sprintf("\"%s\"", content.Cid))
 		}
 	}
 
-	var metadataBytes []byte
-	metadataBytes, err = ioutil.ReadFile(metadataFile)
+	list = append(list, "\"Not_A_CID\"")
+
+	body := fmt.Sprintf("{\"content\": [%s]}", strings.Join(list, ","))
+
+	req, err := http.NewRequest("POST", server.URL+"/content/status", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
 	if err != nil {
-		return nil, err
-	}
-	var contentsBytes []byte
-	contentsBytes, err = ioutil.ReadFile(contentsFile)
-	if err != nil {
-		return nil, err
+		t.Fail()
 	}
 
-	_ = writer.WriteField("metadata", string(metadataBytes))
-	rootCID := getRootCID(metadataFile)
-	_ = writer.WriteField(rootCID, string(contentsBytes))
-
-	err = writer.Close()
+	client := server.Client()
+	response, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		t.Fail()
+	}
+	defer response.Body.Close()
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+
+	result := make(map[string]bool)
+	err = json.NewDecoder(response.Body).Decode(&result)
+	if err != nil {
+		t.Fatal("Error parsing response body")
 	}
 
-	req, err := http.NewRequest("POST", server.URL+"/mappings", body)
-	if err != nil {
-		return nil, err
+	for k, v := range result {
+		if k == "Not_A_CID" {
+			assert.False(t, v)
+		} else {
+			assert.True(t, v)
+		}
 	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	return req, err
+}
+
+func TestPartialUpload(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
+	rUpload := execRequest(buildUploadRequest(okUploadContent, t), t)
+	assert.Equal(t, http.StatusOK, rUpload.StatusCode)
+
+	for _, tc := range redeployTC {
+		t.Run(tc.name, func(t *testing.T) {
+			rUpload := execRequest(buildUploadRequest(&tc, t), t)
+			assert.Equal(t, tc.expectedStatus, rUpload.StatusCode)
+		})
+	}
 }
 
 func getRootCID(metadataFile string) string {
@@ -328,4 +313,171 @@ func getRootCID(metadataFile string) string {
 		log.Fatal(err)
 	}
 	return meta.Value
+}
+
+func (conf *uploadTestConfig) readManifest() (*[]handlers.FileMetadata, error) {
+	var manifest []handlers.FileMetadata
+	c, err := os.Open(conf.manifest)
+	if err != nil {
+		return nil, err
+	}
+	defer c.Close()
+	err = json.NewDecoder(c).Decode(&manifest)
+	if err != nil {
+		return nil, err
+	}
+
+	return &manifest, nil
+}
+
+func execRequest(r *http.Request, t *testing.T) *http.Response {
+	client := server.Client()
+	response, err := client.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
+func buildUploadRequest(config *uploadTestConfig, t *testing.T) *http.Request {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	err := loadUploadContent(config, writer)
+	if err != nil {
+		t.Fatal()
+	}
+
+	metadataFile := config.metadataPath
+	var metadataBytes []byte
+	metadataBytes, err = ioutil.ReadFile(metadataFile)
+	if err != nil {
+		t.Fatal()
+	}
+	var contentsBytes []byte
+	contentsBytes, err = ioutil.ReadFile(config.manifest)
+	if err != nil {
+		t.Fatal()
+	}
+
+	_ = writer.WriteField("metadata", string(metadataBytes))
+	rootCID := getRootCID(metadataFile)
+	_ = writer.WriteField(rootCID, string(contentsBytes))
+
+	err = writer.Close()
+	if err != nil {
+		t.Fatal()
+	}
+
+	req, err := http.NewRequest("POST", server.URL+"/mappings", body)
+	if err != nil {
+		t.Fatal()
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req
+}
+
+func loadUploadContent(c *uploadTestConfig, w *multipart.Writer) error {
+
+	manifest, err := c.readManifest()
+	if err != nil {
+		return err
+	}
+
+	for _, content := range *manifest {
+		if c.contentFilter(content.Name) {
+			continue
+		}
+
+		part, err := w.CreateFormFile(content.Cid, content.Name)
+		if err != nil {
+			return err
+		}
+
+		dataPath := filepath.Join(c.contentDir, content.Name)
+		var f *os.File
+		f, err = os.Open(dataPath)
+		if err != nil {
+			log.Printf("Cannot open %s", dataPath)
+			return err
+		}
+		_, err = io.Copy(part, f)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getNoRedirectClient() *http.Client {
+	// Configure http.Client to avoid following redirects
+	client := server.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return client
+}
+
+var validateTc = []validateCoordConfig{
+	{
+		name:           "Valid parcel",
+		x:              "54",
+		y:              "-136",
+		expectedStatus: http.StatusOK,
+	},
+	{
+		name:           "Invalid parcel",
+		x:              "-10",
+		y:              "10",
+		expectedStatus: http.StatusNotFound,
+	},
+	{
+		name:           "Invalid Coordinate",
+		x:              "-10",
+		y:              "s",
+		expectedStatus: http.StatusNotFound,
+	},
+}
+
+var redeployTC = []uploadTestConfig{
+	{
+		name:         "Full re deploy",
+		manifest:     "test/data/contents.json",
+		contentDir:   "test/data/demo",
+		metadataPath: "test/data/metadata.json",
+		contentFilter: func(file string) bool {
+			return file[len(file)-1:] == "/"
+		},
+		expectedStatus: http.StatusOK,
+	},
+	{
+		name:         "No New content",
+		manifest:     "test/data/contents.json",
+		contentDir:   "test/data/demo",
+		metadataPath: "test/data/metadata.json",
+		contentFilter: func(file string) bool {
+			return file != "scene.json"
+		},
+		expectedStatus: http.StatusOK,
+	},
+	{
+		name:         "Partial re deploy",
+		manifest:     "test/data/contents.json",
+		contentDir:   "test/data/demo",
+		metadataPath: "test/data/metadata.json",
+		contentFilter: func(file string) bool {
+			return file != "scene.json" && file != "assets/test.txt"
+		},
+		expectedStatus: http.StatusOK,
+	},
+	{
+		name:         "Missing content",
+		manifest:     "test/data/missing-content.json",
+		contentDir:   "test/data/demo",
+		metadataPath: "test/data/metadata.json",
+		contentFilter: func(file string) bool {
+			return file[len(file)-1:] == "/" || file == "the-non-existing-asset.json"
+		},
+		expectedStatus: http.StatusBadRequest,
+	},
 }

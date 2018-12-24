@@ -10,3 +10,5 @@ a.out
 .idea/*
 .DS_Store
 tmp/
+
+coverage.out

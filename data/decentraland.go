@@ -3,9 +3,12 @@ package data
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/decentraland/content-service/metrics"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 )
 
 type parcelResponse struct {
@@ -54,16 +57,17 @@ type Decentraland interface {
 
 type DclClient struct {
 	ApiUrl string
+	Agent  metrics.Agent
 }
 
-func NewDclClient(apiUrl string) *DclClient {
-	return &DclClient{apiUrl}
+func NewDclClient(apiUrl string, agent metrics.Agent) *DclClient {
+	return &DclClient{apiUrl, agent}
 }
 
 // Retrieves a parcel information from Decentraland
 func (dcl DclClient) GetParcel(x, y int) (*Parcel, error) {
 	var jsonResponse parcelResponse
-	err := doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d", x, y), &jsonResponse)
+	err := dcl.doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d", x, y), &jsonResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +78,7 @@ func (dcl DclClient) GetParcel(x, y int) (*Parcel, error) {
 //Retrieves the Estate by its Id
 func (dcl DclClient) GetEstate(id int) (*Estate, error) {
 	var jsonResponse estateResponse
-	err := doGet(buildUrl(dcl.ApiUrl, "estates/%d", id), &jsonResponse)
+	err := dcl.doGet(buildUrl(dcl.ApiUrl, "estates/%d", id), &jsonResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +93,7 @@ func (dcl DclClient) GetEstate(id int) (*Estate, error) {
 // Retrieves all parcels information in the given quadrant
 func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error) {
 	var jsonResponse MapResponse
-	err := doGet(buildUrl(dcl.ApiUrl, "map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2), &jsonResponse)
+	err := dcl.doGet(buildUrl(dcl.ApiUrl, "map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2), &jsonResponse)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -104,9 +108,12 @@ func buildUrl(basePath string, relPath string, args ...interface{}) string {
 	return url
 }
 
-func doGet(url string, response interface{}) error {
+func (dcl DclClient) doGet(url string, response interface{}) error {
+	t := time.Now()
 	resp, err := http.Get(url)
+	dcl.Agent.RecordDCLResponseTime(time.Since(t))
 	if err != nil {
+		logrus.Errorf("Failed to retrieve information from URL[%s]: %s", url, err.Error())
 		return err
 	}
 	return json.NewDecoder(resp.Body).Decode(response)

@@ -1,44 +1,59 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/decentraland/content-service/data"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 )
 
-type ValidateHandler struct {
+func GetParcelMetadata(ctx interface{}, r *http.Request) (Response, error) {
+	ms, ok := ctx.(MetadataService)
+	if !ok {
+		log.Fatal("Invalid Handler configuration")
+		return nil, NewInternalError("Invalid Configuration")
+	}
+
+	params := mux.Vars(r)
+
+	parcelMeta, err := ms.GetParcelMetadata(fmt.Sprintf("%+s,%+s", params["x"], params["y"]))
+	if err != nil {
+		return nil, WrapInInternalError(err)
+	}
+
+	if parcelMeta == nil {
+		return nil, NewNotFoundError("Parcel metadata not found")
+	}
+
+	return NewOkJsonResponse(parcelMeta), nil
+}
+
+// Logic Layer
+
+type MetadataService interface {
+	GetParcelMetadata(parcelId string) (map[string]interface{}, error)
+}
+
+type MetadataServiceImpl struct {
 	RedisClient data.RedisClient
 }
 
-func (handler *ValidateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func NewMetadataService(client data.RedisClient) *MetadataServiceImpl {
+	return &MetadataServiceImpl{client}
+}
 
-	parcelID := fmt.Sprintf("%+s,%+s", params["x"], params["y"])
-
-	parcelMeta, err := handler.RedisClient.GetParcelMetadata(parcelID)
+// Retrieves the Parcel metadata for the given id is found
+func (ms *MetadataServiceImpl) GetParcelMetadata(parcelId string) (map[string]interface{}, error) {
+	log.Debugf("Retrieving parcel metadata. Parcel[%s]", parcelId)
+	parcelMeta, err := ms.RedisClient.GetParcelMetadata(parcelId)
 	if err == redis.Nil {
-		handle400(w, 404, "Parcel metadata not found")
-		return
+		log.Debugf("No metadata found for Parcel[%s]", parcelId)
+		return nil, nil
 	} else if err != nil {
-		handle500(w, err)
-		return
+		return nil, err
 	}
-
-	metadataJSON, err := json.Marshal(parcelMeta)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err = w.Write(metadataJSON)
-	if err != nil {
-		handle500(w, err)
-		return
-	}
+	return parcelMeta, nil
 }
