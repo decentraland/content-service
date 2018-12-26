@@ -53,6 +53,7 @@ func NewUploadService(storage storage.Storage, client data.RedisClient, node *co
 }
 
 func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
+	log.Debug("Processing Upload request")
 	logUploadRequest(r)
 
 	if err := validateSignature(us.Auth, r.Metadata); err != nil {
@@ -87,6 +88,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
 func validateSignature(a data.Authorization, m Metadata) error {
+	log.Debugf("Validating signature: %s", m.Signature)
 	if !a.IsSignatureValid(m.RootCid, m.Signature, m.PubKey) {
 		log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
 		return NewBadRequestError("Signature is invalid")
@@ -96,6 +98,7 @@ func validateSignature(a data.Authorization, m Metadata) error {
 
 // Retrieves an error if the calculated global CID differs from the expected CID
 func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, rootCid string) error {
+	log.Debugf("Validating content. RootCID: %s", rootCid)
 	if err := checkCIDFormat(rootCid); err != nil {
 		return err
 	}
@@ -122,6 +125,7 @@ func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multi
 
 // Consolidate all the scene content under a tmp directory
 func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, projectTmpFile string) error {
+	log.Debug("Consolidating Content...")
 	for _, m := range *manifest {
 		log.Debugf("Verifying Manifest File[%s] CID [%s]", m.Name, m.Cid)
 		if strings.HasSuffix(m.Name, "/") {
@@ -219,6 +223,7 @@ func (us *UploadServiceImpl) calculateRootCid(rootPath string) (string, error) {
 
 // Retrieves an error if the given pKey does not have permissions to modify the parcels
 func validateKeyAccess(a data.Authorization, pKey string, parcels []string) error {
+	log.Debugf("Validating address: %s", pKey)
 	canModify, err := a.UserCanModifyParcels(pKey, parcels)
 	if err != nil {
 		log.Infof("Error validating PublicKey[%s]", pKey)

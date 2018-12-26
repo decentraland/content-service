@@ -77,5 +77,5 @@ func initLogger(c *config.Configuration) {
 
 	log.SetReportCaller(true)
 	log.SetLevel(lvl)
-
+	log.Infof("Log level: %s", c.LogLevel)
 }

@@ -65,9 +65,11 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	}
 	sendRequestData(c.Agent, r)
 
+	log.Debug("About to parse Upload request...")
 	tParse := time.Now()
 	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent)
 	c.Agent.RecordUploadRequestParseTime(time.Since(tParse))
+	log.Debug("Upload request parsed")
 
 	if err != nil {
 		return nil, err
