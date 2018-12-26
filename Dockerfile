@@ -8,9 +8,5 @@ COPY . .
 RUN go get
 RUN go build
 
-# FROM alpine:latest
-# RUN apk --no-cache add ca-certificates
-# WORKDIR /root/
-# COPY --from=builder /go/src/github.com/decentraland/content-service/content-service .
 EXPOSE 8000
 CMD ["./content-service "]
