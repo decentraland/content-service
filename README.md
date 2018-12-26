@@ -1,5 +1,17 @@
 # Content Service
 
+## Requirements
+
+
+- [Go 1.11](https://golang.org/dl/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+## Setup Environment 
+
+```
+$ make init
+```
+
 ## Configuration
 
 In the base dir you can find the `config.yml` as follows:

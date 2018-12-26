@@ -1,5 +1,5 @@
 region = "us-east-1"
-env = "dev"
+env = "stg"
 cluster = "cl-worldteam"
 execution_role_arn = "arn:aws:iam::872049612737:role/ecsTaskExecutionRole"
 security_groups = ["sg-042ee236e279c74a3"]

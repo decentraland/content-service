@@ -1,10 +1,9 @@
 def err = null
 
 node {
-  try {
-    slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Started...*  \n\tCommit Number: *${env.GIT_COMMIT}* \n\tBuild Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
+  //  try {  slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Started...*  \n\tCommit Number: *${env.GIT_COMMIT}* \n\tBuild Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     stage('Clone repo') {
-          sshagent(credentials : ['content-service']) {
+          /*sshagent(credentials : ['content-service']) {
           sh '''
           #Retrieveing the job name. This is used as the first part of the image name
           PROJECT=`echo ${JOB_NAME} | awk -F/ '{ print $1 }'`
@@ -24,7 +23,8 @@ node {
           git pull
 
           '''
-        }
+        }*/
+      checkout scm
     }
     stage('Build Image') {
           sshagent(credentials : ['content-service']) {
@@ -169,9 +169,9 @@ node {
           '''
     }
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: 'good', message: "Project/Branch - *${env.JOB_NAME}* \n\tStatus: *Finished OK*\n\tCommit Number: *${env.GIT_COMMIT}*   \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
-  } catch (caughtError) { //End of Try
+  /*} catch (caughtError) { //End of Try
     err = caughtError
     slackSend baseUrl: 'https://hooks.slack.com/services/', channel: '#pipeline-outputs', color: '#FF0000', message: "Project/Branch - *${env.JOB_NAME}* \n\tError: ${err}\n\tCommit Number: *${env.GIT_COMMIT}*   \n\t Build Number: *${env.BUILD_NUMBER}* \n\tURL: (<${env.BUILD_URL}|Open>)", teamDomain: 'decentralandteam', tokenCredentialId: 'slack-notification-pipeline-output'
     currentBuild.result = "FAILURE"
-  }
+  }*/
 }

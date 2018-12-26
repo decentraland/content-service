@@ -2,25 +2,46 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
 	"fmt"
+	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/routes"
+	gHandlers "github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"net/http"
+	"strings"
 
 	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/storage"
 
-	"github.com/go-redis/redis"
-	"github.com/gorilla/mux"
 	"github.com/ipsn/go-ipfs/core"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	configParams := config.GetConfig("config")
 
+	initLogger(configParams)
+
+	log.Info("Starting server")
+
+	router := InitializeApp(configParams)
+
+	//CORS
+	corsObj := gHandlers.AllowedOrigins([]string{"*"})
+
+	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
+	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj)(router)))
+}
+
+func InitializeApp(config *config.Configuration) *mux.Router {
+	agent, err := metrics.Make(config.Metrics.AppName, config.Metrics.AppKey)
+	if err != nil {
+		log.Fatal("Error initializing metrics agent")
+	}
+
 	// Initialize Redis client
-	client, err := initRedisClient(configParams)
+	client, err := data.NewRedisClient(config.Redis.Address, config.Redis.Password, config.Redis.DB, agent)
 	if err != nil {
 		log.Fatal("Error initializing Redis client")
 	}
@@ -32,50 +53,29 @@ func main() {
 		log.Fatal("Error initializing IPFS node")
 	}
 
-	sto := storage.NewStorage(configParams)
+	sto := storage.NewStorage(&config.Storage, agent)
 
-	router := GetRouter(configParams, client, ipfsNode, sto)
+	router := routes.GetRouter(client, sto, config.DecentralandApi.LandUrl, ipfsNode, agent)
 
-	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
-	log.Fatal(http.ListenAndServe(serverURL, router))
-}
-
-func initRedisClient(config *config.Configuration) (*redis.Client, error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:     config.Redis.Address,
-		Password: config.Redis.Password,
-		DB:       config.Redis.DB,
-	})
-
-	err := client.Set("key", "value", 0).Err()
-
-	return client, err
+	return router
 }
 
 func initIpfsNode() (*core.IpfsNode, error) {
 	ctx, _ := context.WithCancel(context.Background())
-
 	return core.NewNode(ctx, nil)
 }
 
-func GetRouter(config *config.Configuration, client *redis.Client, node *core.IpfsNode, storage storage.Storage) *mux.Router {
-	r := mux.NewRouter()
-
-	r.Handle("/mappings", &handlers.MappingsHandler{RedisClient: client}).Methods("GET").Queries("nw", "{x1},{y1}", "se", "{x2},{y2}")
-
-	uploadHandler := handlers.UploadHandler{
-		Storage: storage,
-		RedisClient:  client,
-		IpfsNode:     node,
+func initLogger(c *config.Configuration) {
+	lvl, err := log.ParseLevel(strings.ToLower(c.LogLevel))
+	if err != nil {
+		log.Fatalf("Invalid log level: %s", c.LogLevel)
 	}
-	r.Handle("/mappings", &uploadHandler).Methods("POST")
+	log.SetFormatter(&log.TextFormatter{
+		TimestampFormat: "2006-01-02T15:04:05.000",
+		FullTimestamp:   true,
+	})
 
-	contentsHandler := handlers.ContentsHandler{
-		Storage: storage,
-	}
-	r.Handle("/contents/{cid}", &contentsHandler).Methods("GET")
+	log.SetReportCaller(true)
+	log.SetLevel(lvl)
 
-	r.Handle("/validate", &handlers.ValidateHandler{RedisClient: client}).Methods("GET").Queries("x", "{x}", "y", "{y}")
-
-	return r
 }

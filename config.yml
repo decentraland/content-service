@@ -1,15 +1,25 @@
 server:
-  port: '8000'
-  url: 'http://127.0.0.1:8000/'
+  port: '8000'                    # Set SERVER_PORT env variable to overwrite this value
+  url:  'http://localhost:8000/'  # Set SERVER_URL env variable to overwrite this value
 
-s3Storage:
-  bucket: 'content-service.decentraland.zone'
-  acl: 'public-read'
-  url: 'https://s3.amazonaws.com/content-service.decentraland.zone/'
-
-localStorage: 'tmp'
+storage:
+  storageType: 'LOCAL' # Set STORAGE_TYPE env variable to overwrite this value, Possible values 'REMOTE' and 'LOCAL'
+  remoteConfig:
+    bucket: ''  # Set AWS_S3_BUCKET env variable to overwrite this value
+    url:    ''  # Set AWS_S3_URL env variable to overwrite this value
+    acl:    ''  # Set AWS_S3_ACL env variable to overwrite this value
+  localPath: 'tmp/' # Set LOCAL_STORAGE_PATH env variable to overwrite this value
 
 redis:
-  address: 'content-s-redis-dev.on6tjm.ng.0001.use1.cache.amazonaws.com:6379'
-  password: ''
-  DB: 0
+  address:  'content_service_redis:6379' # Set REDIS_ADDRESS env variable to overwrite this value
+  password: ''                           # Set REDIS_PASSWORD env variable to overwrite this value
+  DB:       0                            # Set REDIS_DB env variable to overwrite this value
+  
+decentralandApi:
+  landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
+
+logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
+
+metrics:
+  appName:  '' # Set METRICS_APP env variable to overwrite this value
+  key:      '' # Set METRICS_KEY env variable to overwrite this value
