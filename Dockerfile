@@ -13,4 +13,4 @@ RUN go build
 # WORKDIR /root/
 # COPY --from=builder /go/src/github.com/decentraland/content-service/content-service .
 EXPOSE 8000
-CMD ["./content-service"]
+CMD ["./content-service "]
