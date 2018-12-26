@@ -147,7 +147,9 @@ func (t *dummyTx) Close()                {}
 func (t *dummyTx) ReportError(err error) {}
 
 func Make(appName string, newrelicApiKey string) (Agent, error) {
+	log.Debug("Initializing Metrics Agent")
 	if newrelicApiKey == "" {
+		log.Debug("No Agent configuration found")
 		return &dummy{}, nil
 	}
 
