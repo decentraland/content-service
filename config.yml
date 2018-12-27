@@ -1,4 +1,4 @@
-erver:
+server:
   port: '8000'                    # Set SERVER_PORT env variable to overwrite this value
   url:  'http://localhost:8000/'  # Set SERVER_URL env variable to overwrite this value
 
@@ -11,9 +11,6 @@ storage:
   localPath: 'tmp/' # Set LOCAL_STORAGE_PATH env variable to overwrite this value
 
 redis:
-  address:  'content_service_redis:6379' # Set REDIS_ADDRESS env variable to overwrite this value
-  password: ''                           # Set REDIS_PASSWORD env variable to overwrite this value
-  DB:       0                            # Set REDIS_DB env variable to overwrite this value
   address:  'content_service_redis:6379' # Set REDIS_ADDRESS env variable to overwrite this value
   password: ''                           # Set REDIS_PASSWORD env variable to overwrite this value
   DB:       0                            # Set REDIS_DB env variable to overwrite this value
