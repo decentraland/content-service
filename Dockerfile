@@ -1,4 +1,4 @@
-FROM golang:1.11.0
+FROM golang:1.11.0 as builder
 WORKDIR /go/src/github.com/decentraland/content-service/
 ENV GO111MODULE=on
 ENV GOPATH=/go
