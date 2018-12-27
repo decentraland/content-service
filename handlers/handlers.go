@@ -69,6 +69,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("Request received at endpoint: %s", h.Id)
 	tx := h.Agent.EndpointMetrics(h.Id, w, r)
 	defer tx.Close()
 

@@ -40,25 +40,25 @@ func (a *newrelicAgent) RecordBytesRetrieved(fileSize int64) {
 }
 
 func (a *newrelicAgent) RecordUploadRequestValidationTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("UploadValidationTime[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("UploadValidationTime[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
 
 func (a *newrelicAgent) RecordRetrieveTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("StorageDownloadTime[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("StorageDownloadTime[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
 
 func (a *newrelicAgent) RecordStorageTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("StorageTime[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("StorageTime[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
 
 func (a *newrelicAgent) RecordDCLResponseTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("DCLResponseTime[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("DCLResponseTime[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
@@ -76,13 +76,13 @@ func (a *newrelicAgent) RecordManifestSize(size int) {
 }
 
 func (a *newrelicAgent) RecordUploadProcessTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("UploadProcessTime[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("UploadProcessTime[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
 
 func (a *newrelicAgent) RecordUploadRequestParseTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("UploadParseTime[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("UploadParseTime[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
@@ -98,7 +98,7 @@ func (a *newrelicAgent) RecordUploadReqSize(size int) {
 }
 
 func (a *newrelicAgent) RecordIsMemberTime(t time.Duration) {
-	if err := a.app.RecordCustomMetric("IsMemberDuration[msec|call]", toMillis(t.Nanoseconds())); err != nil {
+	if err := a.app.RecordCustomMetric("IsMemberDuration[msec|call]", toMillis(t)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
@@ -166,6 +166,6 @@ func Make(appName string, newrelicApiKey string) (Agent, error) {
 	return &newrelicAgent{app: app}, nil
 }
 
-func toMillis(duration int64) float64 {
-	return float64(duration / int64(time.Millisecond))
+func toMillis(d time.Duration) float64 {
+	return float64(d.Nanoseconds() / int64(time.Millisecond))
 }
