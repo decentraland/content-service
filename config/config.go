@@ -102,5 +102,5 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("logLevel", "LOG_LEVEL")
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
-	v.BindEnv("metrics.key", "METRICS_KEY")
+	v.BindEnv("metrics.appKey", "METRICS_KEY")
 }
