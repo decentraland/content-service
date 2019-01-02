@@ -21,6 +21,10 @@ type Agent interface {
 	RecordDCLResponseTime(t time.Duration)
 	RecordUploadRequestValidationTime(t time.Duration)
 	EndpointMetrics(tx string, w http.ResponseWriter, r *http.Request) Transaction
+	RecordGetParcelMetadata(t time.Duration)
+	RecordGetParcelContent(t time.Duration)
+	RecordStoreContent(t time.Duration)
+	RecordStoreMetadata(t time.Duration)
 }
 
 type newrelicAgent struct {
@@ -64,7 +68,7 @@ func (a *newrelicAgent) RecordDCLResponseTime(t time.Duration) {
 }
 
 func (a *newrelicAgent) RecordUploadRequestFiles(files int) {
-	if err := a.app.RecordCustomMetric("UloadRequestFiles[files]", float64(files)); err != nil {
+	if err := a.app.RecordCustomMetric("UploadRequestFiles[files]", float64(files)); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
@@ -103,6 +107,30 @@ func (a *newrelicAgent) RecordIsMemberTime(t time.Duration) {
 	}
 }
 
+func (a *newrelicAgent) RecordGetParcelMetadata(t time.Duration) {
+	if err := a.app.RecordCustomMetric("GetParcelMetadata[msec|call]", toMillis(t)); err != nil {
+		log.Errorf("Metrics agent failed: %s", err.Error())
+	}
+}
+
+func (a *newrelicAgent) RecordGetParcelContent(t time.Duration) {
+	if err := a.app.RecordCustomMetric("GetParcelContent[msec|call]", toMillis(t)); err != nil {
+		log.Errorf("Metrics agent failed: %s", err.Error())
+	}
+}
+
+func (a *newrelicAgent) RecordStoreContent(t time.Duration) {
+	if err := a.app.RecordCustomMetric("StoreContent[msec|call]", toMillis(t)); err != nil {
+		log.Errorf("Metrics agent failed: %s", err.Error())
+	}
+}
+
+func (a *newrelicAgent) RecordStoreMetadata(t time.Duration) {
+	if err := a.app.RecordCustomMetric("StoreMetadata[msec|call]", toMillis(t)); err != nil {
+		log.Errorf("Metrics agent failed: %s", err.Error())
+	}
+}
+
 type dummy struct{}
 
 func (d *dummy) RecordBytesStored(fileSize int64)                  {}
@@ -117,6 +145,10 @@ func (d *dummy) RecordUploadProcessTime(t time.Duration)           {}
 func (d *dummy) RecordUploadRequestParseTime(t time.Duration)      {}
 func (d *dummy) RecordIsMemberTime(t time.Duration)                {}
 func (d *dummy) RecordStorageTime(t time.Duration)                 {}
+func (d *dummy) RecordGetParcelMetadata(t time.Duration)           {}
+func (d *dummy) RecordGetParcelContent(t time.Duration)            {}
+func (d *dummy) RecordStoreContent(t time.Duration)                {}
+func (d *dummy) RecordStoreMetadata(t time.Duration)               {}
 func (d *dummy) EndpointMetrics(tx string, w http.ResponseWriter, r *http.Request) Transaction {
 	return &dummyTx{}
 }

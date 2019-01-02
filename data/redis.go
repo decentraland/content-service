@@ -34,14 +34,12 @@ func NewRedisClient(address string, password string, db int, agent metrics.Agent
 		Password: password,
 		DB:       db,
 	})
-
 	err := client.Set("key", "value", 0).Err()
-
 	return &Redis{Client: client, Agent: agent}, err
 }
 
 func (r Redis) GetParcelMetadata(parcelID string) (map[string]interface{}, error) {
-
+	t := time.Now()
 	parcelMeta, err := r.getParcelInformationFromCollection(parcelID, metadataKeyPrefix)
 	if err != nil {
 		logrus.Errorf("Redis error: %s", err.Error())
@@ -60,19 +58,29 @@ func (r Redis) GetParcelMetadata(parcelID string) (map[string]interface{}, error
 			metadata[key] = value
 		}
 	}
+	r.Agent.RecordGetParcelMetadata(time.Since(t))
 	return metadata, nil
 }
 
 func (r Redis) GetParcelContent(parcelID string) (map[string]string, error) {
-	return r.getParcelInformationFromCollection(parcelID, contentKeyPrefix)
+	t := time.Now()
+	res, err := r.getParcelInformationFromCollection(parcelID, contentKeyPrefix)
+	r.Agent.RecordGetParcelContent(time.Since(t))
+	return res, err
 }
 
 func (r Redis) StoreContent(key string, field string, value string) error {
-	return r.Client.HSet(contentKeyPrefix+key, field, value).Err()
+	t := time.Now()
+	res := r.Client.HSet(contentKeyPrefix+key, field, value)
+	r.Agent.RecordStoreContent(time.Since(t))
+	return res.Err()
 }
 
 func (r Redis) StoreMetadata(key string, fields map[string]interface{}) error {
-	return r.Client.HMSet(metadataKeyPrefix+key, fields).Err()
+	t := time.Now()
+	res := r.Client.HMSet(metadataKeyPrefix+key, fields)
+	r.Agent.RecordStoreMetadata(time.Since(t))
+	return res.Err()
 }
 
 func (r Redis) SetKey(key string, value interface{}) error {
