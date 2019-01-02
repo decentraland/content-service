@@ -56,14 +56,16 @@ var okUploadContent = &uploadTestConfig{
 }
 
 func TestMain(m *testing.M) {
-	// Start server
-	router := InitializeApp(config.GetConfig("config_test"))
+	if runIntegrationTests {
+		// Start server
+		router := InitializeApp(config.GetConfig("config_test"))
 
-	server = httptest.NewServer(router)
-	defer server.Close()
-	code := m.Run()
+		server = httptest.NewServer(router)
+		defer server.Close()
+		code := m.Run()
 
-	os.Exit(code)
+		os.Exit(code)
+	}
 }
 
 func TestContentsHandlerS3Redirect(t *testing.T) {
