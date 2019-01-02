@@ -54,7 +54,7 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 
 type MappingsService interface {
 	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
-	GetParcelInformation(parcelId string) (ParcelContent, error)
+	GetParcelInformation(parcelId string) (*ParcelContent, error)
 }
 
 type MappingsServiceImpl struct {
