@@ -47,7 +47,7 @@ func (r Redis) GetParcelMetadata(parcelID string) (map[string]interface{}, error
 	}
 
 	if parcelMeta == nil {
-		logrus.Debug("Parcel[%s] Metadata not found", parcelID)
+		logrus.Debugf("Parcel[%s] Metadata not found", parcelID)
 		return nil, nil
 	}
 
@@ -72,7 +72,7 @@ func (r Redis) GetParcelContent(parcelID string) (map[string]string, error) {
 	res, err := r.getParcelInformationFromCollection(parcelID, contentKeyPrefix)
 	r.Agent.RecordGetParcelContent(time.Since(t))
 	if res == nil {
-		logrus.Debug("Parcel[%s] Content not found", parcelID)
+		logrus.Debugf("Parcel[%s] Content not found", parcelID)
 		return nil, nil
 	}
 	return res, err
