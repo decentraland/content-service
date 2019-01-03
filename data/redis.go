@@ -46,6 +46,11 @@ func (r Redis) GetParcelMetadata(parcelID string) (map[string]interface{}, error
 		return nil, err
 	}
 
+	if parcelMeta == nil {
+		logrus.Debugf("Parcel[%s] Metadata not found", parcelID)
+		return nil, nil
+	}
+
 	metadata := make(map[string]interface{})
 	for key, value := range parcelMeta {
 		if key == "validityType" || key == "sequence" {
@@ -66,6 +71,10 @@ func (r Redis) GetParcelContent(parcelID string) (map[string]string, error) {
 	t := time.Now()
 	res, err := r.getParcelInformationFromCollection(parcelID, contentKeyPrefix)
 	r.Agent.RecordGetParcelContent(time.Since(t))
+	if res == nil {
+		logrus.Debugf("Parcel[%s] Content not found", parcelID)
+		return nil, nil
+	}
 	return res, err
 }
 
@@ -105,6 +114,11 @@ func (r Redis) IsContentMember(value string) (bool, error) {
 
 func (r Redis) getParcelInformationFromCollection(parcelID string, keyPrefix string) (map[string]string, error) {
 	parcelCID, err := r.Client.Get(parcelID).Result()
+
+	if err == redis.Nil {
+		return nil, nil
+	}
+
 	if err != nil {
 		logrus.Errorf("Redis error: %s", err.Error())
 		return nil, err

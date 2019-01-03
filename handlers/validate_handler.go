@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 
-	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 )
 
@@ -49,10 +48,7 @@ func NewMetadataService(client data.RedisClient) *MetadataServiceImpl {
 func (ms *MetadataServiceImpl) GetParcelMetadata(parcelId string) (map[string]interface{}, error) {
 	log.Debugf("Retrieving parcel metadata. Parcel[%s]", parcelId)
 	parcelMeta, err := ms.RedisClient.GetParcelMetadata(parcelId)
-	if err == redis.Nil {
-		log.Debugf("No metadata found for Parcel[%s]", parcelId)
-		return nil, nil
-	} else if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return parcelMeta, nil

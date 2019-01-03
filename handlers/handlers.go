@@ -76,6 +76,7 @@ func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	response, err := h.H(h.Ctx, r)
 	if err != nil {
 		tx.ReportError(err)
+		log.Error(err)
 		handleError(w, err)
 	} else {
 		err = response.WriteResponse(w)
