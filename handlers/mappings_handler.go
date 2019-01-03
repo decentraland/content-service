@@ -96,7 +96,7 @@ func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (*ParcelCon
 	}
 
 	metadata, err := ms.RedisClient.GetParcelMetadata(parcelId)
-	if content == nil || err != nil {
+	if metadata == nil || err != nil {
 		return nil, err
 	}
 	return &ParcelContent{ParcelID: parcelId, Contents: content, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
