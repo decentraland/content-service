@@ -224,4 +224,4 @@ You will recieve a prompt to input the map coordinates for the NW and SE parcels
 This program connects to the server url provided in `config.yml`. It stores the data files in the dir specified by `localstorage` and populates the Redis instance defined in the `redis` field.
 
 ## Copyright info
-This repository is protected with a standard Apache 2 licence. See the terms and conditions in the [LICENSE](https://github.com/decentraland/content-service/blob/master/LICENSE) file.
+This repository is protected with a standard Apache 2 license. See the terms and conditions in the [LICENSE](https://github.com/decentraland/content-service/blob/master/LICENSE) file.
