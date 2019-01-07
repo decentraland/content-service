@@ -14,6 +14,7 @@ type Configuration struct {
 	DecentralandApi DecentralandApi
 	LogLevel        string
 	Metrics         NewRelic
+	Limits          Limits
 }
 
 type DecentralandApi struct {
@@ -30,6 +31,11 @@ type Storage struct {
 	StorageType  string
 	RemoteConfig RemoteStorage
 	LocalPath    string
+}
+
+type Limits struct {
+	ParcelContentLimit int64
+	MaxSceneElements   int
 }
 
 type StorageType string
@@ -103,4 +109,7 @@ func readEnvVariables(v *viper.Viper) {
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
+	//Limits
+	v.BindEnv("limits.parcelContentLimit", "LIMIT_PARCEL_CONTENT")
+	v.BindEnv("limits.maxSceneElements", "LIMIT_SCENE_ELEMENTS")
 }

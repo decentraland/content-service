@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
@@ -17,6 +19,7 @@ type UploadCtx struct {
 	StructValidator validation.Validator
 	Service         UploadService
 	Agent           metrics.Agent
+	Limits          config.Limits
 }
 
 type FileMetadata struct {
@@ -67,7 +70,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 	log.Debug("About to parse Upload request...")
 	tParse := time.Now()
-	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent)
+	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent, c.Limits.MaxSceneElements)
 	c.Agent.RecordUploadRequestParseTime(time.Since(tParse))
 	log.Debug("Upload request parsed")
 
@@ -88,7 +91,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 // Extracts all the information from the http request
 // If any part is missing or is invalid it will retrieve an error
-func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent) (*UploadRequest, error) {
+func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, filesPerScene int) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
 		log.Errorf("Invalid UploadContent request: %s", err.Error())
@@ -104,12 +107,16 @@ func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent) 
 	if err != nil {
 		return nil, err
 	}
+
+	manifestSize := len(*manifestContent)
 	agent.RecordManifestSize(len(*manifestContent))
+	if manifestSize > filesPerScene {
+		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
+	}
 
 	uploadedFiles := r.MultipartForm.File
 	agent.RecordUploadRequestFiles(len(uploadedFiles))
 
-	manifestSize := len(*manifestContent)
 	requestFilesNumber := len(uploadedFiles)
 
 	if requestFilesNumber > manifestSize {

@@ -35,26 +35,32 @@ type UploadService interface {
 }
 
 type UploadServiceImpl struct {
-	Storage     storage.Storage
-	RedisClient data.RedisClient
-	IpfsNode    *core.IpfsNode
-	Auth        data.Authorization
-	Agent       metrics.Agent
+	Storage         storage.Storage
+	RedisClient     data.RedisClient
+	IpfsNode        *core.IpfsNode
+	Auth            data.Authorization
+	Agent           metrics.Agent
+	ParcelSizeLimit int64
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent metrics.Agent) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent metrics.Agent, parcelSizeLimit int64) *UploadServiceImpl {
 	return &UploadServiceImpl{
-		Storage:     storage,
-		RedisClient: client,
-		IpfsNode:    node,
-		Auth:        auth,
-		Agent:       agent,
+		Storage:         storage,
+		RedisClient:     client,
+		IpfsNode:        node,
+		Auth:            auth,
+		Agent:           agent,
+		ParcelSizeLimit: parcelSizeLimit,
 	}
 }
 
 func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	log.Debug("Processing Upload request")
 	logUploadRequest(r)
+
+	if err := us.validateRequestSize(r); err != nil {
+		return err
+	}
 
 	if err := validateSignature(us.Auth, r.Metadata); err != nil {
 		return err
@@ -302,6 +308,21 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 	return nil
 }
 
+func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {
+	maxSize := int64(len(r.Scene.Scene.Parcels)) * us.ParcelSizeLimit
+
+	size, err := us.estimateRequestSize(r)
+	if err != nil {
+		return err
+	}
+
+	if size > maxSize {
+		log.Errorf(fmt.Sprintf("UploadRequest RootCid[%s] exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", r.Metadata.RootCid, maxSize, size))
+		return NewBadRequestError(fmt.Sprintf("UploadRequest exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", maxSize, size))
+	}
+	return nil
+}
+
 func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error) {
 	size := int64(0)
 	for _, m := range *r.Manifest {
@@ -315,6 +336,7 @@ func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error
 			size += s
 		}
 	}
+	log.Debugf(fmt.Sprintf("UploadRequest size: %d", size))
 	return size, nil
 }
 
