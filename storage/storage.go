@@ -13,6 +13,7 @@ type Storage interface {
 	GetFile(cid string) string
 	SaveFile(filename string, fileDesc io.Reader) (string, error)
 	DownloadFile(cid string, fileName string) error
+	FileSize(cid string) (int64, error)
 }
 
 func NewStorage(conf *config.Storage, agent metrics.Agent) Storage {

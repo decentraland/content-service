@@ -282,18 +282,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 
 // Retrieves the specify content by the CID from the storage and saves it into the storePath
 func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error {
-	stored, err := us.RedisClient.IsContentMember(cid)
-	if err != nil {
-		log.Errorf("Failed to verify content, CID[%s]: %s", cid, err.Error())
-		return NewInternalError(fmt.Sprintf("Failed to retrieve content CID[%s]", cid))
-	}
-
-	if !stored {
-		log.Debugf("CID[%s] not found in storage and was not provided in the request", cid)
-		return NewBadRequestError(fmt.Sprintf("CID[%s] not found in storage and was not provided in the request", cid))
-	}
-
-	err = us.Storage.DownloadFile(cid, storePath)
+	err := us.Storage.DownloadFile(cid, storePath)
 
 	if err != nil {
 		return handleStorageError(err)
@@ -313,16 +302,40 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 	return nil
 }
 
+func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error) {
+	size := int64(0)
+	for _, m := range *r.Manifest {
+		if f, ok := r.UploadedFiles[m.Cid]; ok {
+			size += f[0].Size
+		} else {
+			s, err := us.retrieveUploadedFileSize(m.Cid)
+			if err != nil {
+				return 0, err
+			}
+			size += s
+		}
+	}
+	return size, nil
+}
+
+func (us *UploadServiceImpl) retrieveUploadedFileSize(cid string) (int64, error) {
+	size, err := us.Storage.FileSize(cid)
+	if err != nil {
+		return 0, handleStorageError(err)
+	}
+	return size, nil
+}
+
 func handleStorageError(err error) error {
 	switch e := err.(type) {
 	case storage.NotFoundError:
 		return WrapInBadRequestError(e)
 	default:
-		return NewInternalError("Failed to store request content")
+		return NewInternalError(fmt.Sprintf("Storage Error: %s", err.Error()))
 	}
 }
 
-// Gruops all the files in the list by file CID
+// Groups all the files in the list by file CID
 // The map will cointain an entry for each CID, and the associated value would be a list of all the paths
 func groupFilePathsByCid(files *[]FileMetadata) map[string][]string {
 	filesPaths := make(map[string][]string)
