@@ -16,6 +16,7 @@ type RedisClient interface {
 	StoreMetadata(key string, fields map[string]interface{}) error
 	SetKey(key string, value interface{}) error
 	AddCID(cid string) error
+	IsContentMember(value string) (bool, error)
 }
 
 type Redis struct {
@@ -97,6 +98,18 @@ func (r Redis) SetKey(key string, value interface{}) error {
 
 func (r Redis) AddCID(cid string) error {
 	return r.Client.SAdd(uploadedElementsKey, cid).Err()
+}
+
+func (r Redis) IsContentMember(value string) (bool, error) {
+	t := time.Now()
+	res := r.Client.SIsMember(uploadedElementsKey, value)
+	r.Agent.RecordIsMemberTime(time.Since(t))
+
+	if err := res.Err(); err != nil {
+		logrus.Errorf("Redis error: %s", err.Error())
+		return false, err
+	}
+	return res.Val(), nil
 }
 
 func (r Redis) getParcelInformationFromCollection(parcelID string, keyPrefix string) (map[string]string, error) {

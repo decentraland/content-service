@@ -194,7 +194,7 @@ func TestUploadRequestValidation(t *testing.T) {
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
-			request, err := parseRequest(r, validator, agent)
+			request, err := parseRequest(r, validator, agent, 10000)
 			tc.assert(t, request, err)
 		})
 	}

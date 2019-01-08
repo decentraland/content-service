@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/metrics"
@@ -12,13 +13,13 @@ import (
 	"github.com/ipsn/go-ipfs/core"
 )
 
-func GetRouter(client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode, agent metrics.Agent) *mux.Router {
+func GetRouter(client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode, agent metrics.Agent, limits config.Limits) *mux.Router {
 	r := mux.NewRouter()
-	setupApiInitialVersion(r, client, storage, dclApi, node, agent)
+	setupApiInitialVersion(r, client, storage, dclApi, node, agent, limits)
 	return r
 }
 
-func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode, agent metrics.Agent) {
+func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode, agent metrics.Agent, limits config.Limits) {
 	log.Debug("Initializing routes...")
 	r.Path("/mappings").
 		Methods("GET").
@@ -27,8 +28,9 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),
-		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(dclApi, agent)), agent),
+		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(dclApi, agent)), agent, limits.ParcelContentLimit),
 		Agent:           agent,
+		Limits:          limits,
 	}
 
 	r.Path("/mappings").
