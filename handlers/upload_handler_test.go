@@ -194,7 +194,7 @@ func TestUploadRequestValidation(t *testing.T) {
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
-			request, err := parseRequest(r, validator, agent, 10000)
+			request, err := parseRequest(r, validator, agent, tc.maxFiles)
 			tc.assert(t, request, err)
 		})
 	}
@@ -243,6 +243,7 @@ type requestValidation struct {
 	cid      string
 	sceneCid string
 	metadata *Metadata
+	maxFiles int
 	assert   func(t assert.TestingT, uploadRequest *UploadRequest, err error)
 }
 
@@ -285,7 +286,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		},
-		assert: requestAssertion,
+		maxFiles: 1000,
+		assert:   requestAssertion,
 	}, {
 		name: "Invalid Scene - Missing parcels",
 		scene: &scene{
@@ -311,7 +313,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		},
-		assert: requestErrorAssertion,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
 	}, {
 		name:     "Missing Scene.json file",
 		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
@@ -325,7 +328,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		},
-		assert: requestErrorAssertion,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
 	}, {
 		name: "Invalid Metadata - Missing Signaturet",
 		scene: &scene{
@@ -353,7 +357,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		},
-		assert: requestErrorAssertion,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
 	}, {
 		name: "Missing Metadata",
 		scene: &scene{
@@ -373,6 +378,37 @@ var requestValidationTestCases = []requestValidation{
 		},
 		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
 		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
+	}, {
+		name: "Max files number exceeded",
+		scene: &scene{
+			Display: display{
+				Title: "suspicious_liskov",
+			},
+			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Scene: sceneData{
+				Parcels: []string{"54,-136"},
+				Base:    "54,-136",
+			},
+			Communications: commsConfig{
+				Type:       "webrtc",
+				Signalling: "https://rendezvous.decentraland.org",
+			},
+			Main: "scene.js",
+		},
+		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		metadata: &Metadata{
+			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Validity:     "2018-12-12T14:49:14.074000000Z",
+			ValidityType: 0,
+			Sequence:     2,
+			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+		},
+		maxFiles: 0,
 		assert:   requestErrorAssertion,
 	},
 }

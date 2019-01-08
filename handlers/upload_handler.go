@@ -111,6 +111,7 @@ func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, 
 	manifestSize := len(*manifestContent)
 	agent.RecordManifestSize(len(*manifestContent))
 	if manifestSize > filesPerScene {
+		log.Errorf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
 		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
 	}
 
