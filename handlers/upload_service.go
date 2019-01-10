@@ -326,6 +326,9 @@ func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {
 func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error) {
 	size := int64(0)
 	for _, m := range *r.Manifest {
+		if strings.HasSuffix(m.Name, "/") {
+			continue
+		}
 		if f, ok := r.UploadedFiles[m.Cid]; ok {
 			size += f[0].Size
 		} else {
