@@ -129,7 +129,7 @@ func TestInvalidCoordinates(t *testing.T) {
 		t.Error(err)
 	}
 	bodyString := string(body)
-	assert.Equal(t, "{}", bodyString)
+	assert.Equal(t, "[]", bodyString)
 }
 
 func TestCoordinatesNotCached(t *testing.T) {
@@ -159,8 +159,8 @@ func TestCoordinatesNotCached(t *testing.T) {
 		t.Fatal(err)
 	}
 	bodyString := string(body)
-	if bodyString != "{}" {
-		t.Errorf("Mappings handler should return empty JSON when coordinates not in cache.\nRecieved:\n%s", bodyString)
+	if bodyString != "[]" {
+		t.Errorf("Mappings handler should return empty JSON List when coordinates not in cache.\nRecieved:\n%s", bodyString)
 	}
 }
 
