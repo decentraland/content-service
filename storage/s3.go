@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -109,6 +110,7 @@ func handleS3Error(err error, cid string) error {
 		}
 		return err
 	default:
-		return err
+		log.Error(err.Error())
+		return errors.New("An error occurred while accessing content Storage")
 	}
 }

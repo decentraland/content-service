@@ -72,7 +72,7 @@ func (r Redis) GetParcelContent(parcelID string) (map[string]string, error) {
 	res, err := r.getParcelInformationFromCollection(parcelID, contentKeyPrefix)
 	r.Agent.RecordGetParcelContent(time.Since(t))
 	if res == nil {
-		logrus.Debugf("Parcel[%s] Content not found", parcelID)
+		logrus.Tracef("Parcel[%s] Content not found", parcelID)
 		return nil, nil
 	}
 	return res, err
