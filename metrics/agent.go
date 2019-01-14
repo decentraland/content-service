@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"fmt"
 	"github.com/newrelic/go-agent"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -25,6 +26,7 @@ type Agent interface {
 	RecordGetParcelContent(t time.Duration)
 	RecordStoreContent(t time.Duration)
 	RecordStoreMetadata(t time.Duration)
+	RecordDCLAPIError(status int)
 }
 
 type newrelicAgent struct {
@@ -131,6 +133,12 @@ func (a *newrelicAgent) RecordStoreMetadata(t time.Duration) {
 	}
 }
 
+func (a *newrelicAgent) RecordDCLAPIError(status int) {
+	if err := a.app.RecordCustomMetric(fmt.Sprintf("DecentralandAPIError%d", status), float64(1)); err != nil {
+		log.Errorf("Metrics agent failed: %s", err.Error())
+	}
+}
+
 type dummy struct{}
 
 func (d *dummy) RecordBytesStored(fileSize int64)                  {}
@@ -149,6 +157,7 @@ func (d *dummy) RecordGetParcelMetadata(t time.Duration)           {}
 func (d *dummy) RecordGetParcelContent(t time.Duration)            {}
 func (d *dummy) RecordStoreContent(t time.Duration)                {}
 func (d *dummy) RecordStoreMetadata(t time.Duration)               {}
+func (d *dummy) RecordDCLAPIError(status int)                      {}
 func (d *dummy) EndpointMetrics(tx string, w http.ResponseWriter, r *http.Request) Transaction {
 	return &dummyTx{}
 }
