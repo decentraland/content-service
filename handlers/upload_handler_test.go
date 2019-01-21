@@ -6,12 +6,20 @@ import (
 	"fmt"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
+
+const validRootCid = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
+const validSignature = "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b"
+const validTestPubKey = "0xa08a656ac52c0b32902a76e122d2973b022caa0e"
+const sceneJsonCID = "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4"
 
 func TestRequestMetadataValidation(t *testing.T) {
 	runValidationTests(metadataValidations, t)
@@ -45,73 +53,73 @@ var metadataValidations = []testDataValidation{
 	{
 		caseName: "Valid Metadata",
 		s: Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Value:        validRootCid,
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		errorsAssertion: assert.Nil,
 	}, {
 		caseName: "Missing Root CID",
 		s: Metadata{
 			Value:        "",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			PubKey:       validTestPubKey,
 			RootCid:      "",
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Missing Signature",
 		s: Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			Value:        validRootCid,
 			Signature:    "",
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Invalid Signature",
 		s: Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			Value:        validRootCid,
 			Signature:    "not a valid signature",
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Missing Key",
 		s: Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Value:        validRootCid,
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
 			PubKey:       "",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			RootCid:      validRootCid,
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Invalid key",
 		s: Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Value:        validRootCid,
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
 			PubKey:       "Not the key you are looking for",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			RootCid:      validRootCid,
 		},
 		errorsAssertion: assert.NotNil,
 	},
@@ -121,7 +129,7 @@ var fileMetadataValidations = []testDataValidation{
 	{
 		caseName: "Valid FileMetadata",
 		s: FileMetadata{
-			Cid:  "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+			Cid:  sceneJsonCID,
 			Name: "scene.json",
 		},
 		errorsAssertion: assert.Nil,
@@ -137,7 +145,7 @@ var fileMetadataValidations = []testDataValidation{
 	{
 		caseName: "Missing File Name",
 		s: FileMetadata{
-			Cid:  "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+			Cid:  sceneJsonCID,
 			Name: "",
 		},
 		errorsAssertion: assert.NotNil,
@@ -151,7 +159,7 @@ var sceneValidation = []testDataValidation{
 			Display: display{
 				Title: "suspicious_liskov",
 			},
-			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Owner: validTestPubKey,
 			Scene: sceneData{
 				Parcels: []string{"54,-136"},
 				Base:    "54,-136",
@@ -169,7 +177,7 @@ var sceneValidation = []testDataValidation{
 			Display: display{
 				Title: "suspicious_liskov",
 			},
-			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Owner: validTestPubKey,
 			Scene: sceneData{
 				Parcels: []string{""},
 				Base:    "",
@@ -190,7 +198,7 @@ func TestUploadRequestValidation(t *testing.T) {
 
 	for _, tc := range requestValidationTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			r, err := buildUploadRequest(tc.cid, tc.scene, tc.sceneCid, tc.metadata)
+			r, err := buildUploadRequest(tc.cid, tc.scene, tc.sceneCid, tc.metadata, nil)
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
@@ -201,12 +209,25 @@ func TestUploadRequestValidation(t *testing.T) {
 
 }
 
-func buildUploadRequest(rootCID string, scene *scene, sceneCID string, metadata *Metadata) (*http.Request, error) {
+func buildUploadRequest(rootCID string, scene *scene, sceneCID string, metadata *Metadata, content *fileContent) (*http.Request, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
 	manifest := []FileMetadata{
 		{Cid: sceneCID, Name: "scene.json"},
+	}
+
+	if content != nil {
+		manifest = append(manifest, *content.fm)
+		part, err := writer.CreateFormFile(content.fm.Cid, content.fm.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(part, strings.NewReader(content.content))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if metadata != nil {
@@ -246,6 +267,11 @@ type requestValidation struct {
 	assert   func(t assert.TestingT, uploadRequest *UploadRequest, err error)
 }
 
+type fileContent struct {
+	fm      *FileMetadata
+	content string
+}
+
 func requestErrorAssertion(t assert.TestingT, uploadRequest *UploadRequest, err error) {
 	assert.NotNil(t, err, "Expected error")
 	assert.Nil(t, uploadRequest, "UploadRequest should be nil")
@@ -263,7 +289,7 @@ var requestValidationTestCases = []requestValidation{
 			Display: display{
 				Title: "suspicious_liskov",
 			},
-			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Owner: validTestPubKey,
 			Scene: sceneData{
 				Parcels: []string{"54,-136"},
 				Base:    "54,-136",
@@ -274,16 +300,16 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Value:        validRootCid,
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		assert: requestAssertion,
 	}, {
@@ -292,7 +318,7 @@ var requestValidationTestCases = []requestValidation{
 			Display: display{
 				Title: "suspicious_liskov",
 			},
-			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Owner: validTestPubKey,
 			Scene: sceneData{},
 			Communications: commsConfig{
 				Type:       "webrtc",
@@ -300,30 +326,30 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Value:        validRootCid,
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		assert: requestErrorAssertion,
 	}, {
 		name:     "Missing Scene.json file",
-		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-			Signature:    "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b",
+			Value:        validRootCid,
+			Signature:    validSignature,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		assert: requestErrorAssertion,
 	}, {
@@ -332,7 +358,7 @@ var requestValidationTestCases = []requestValidation{
 			Display: display{
 				Title: "suspicious_liskov",
 			},
-			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Owner: validTestPubKey,
 			Scene: sceneData{
 				Parcels: []string{"54,-136"},
 				Base:    "54,-136",
@@ -343,15 +369,15 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			Value:        validRootCid,
 			Validity:     "2018-12-12T14:49:14.074000000Z",
 			ValidityType: 0,
 			Sequence:     2,
-			PubKey:       "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-			RootCid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
 		},
 		assert: requestErrorAssertion,
 	}, {
@@ -360,7 +386,7 @@ var requestValidationTestCases = []requestValidation{
 			Display: display{
 				Title: "suspicious_liskov",
 			},
-			Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+			Owner: validTestPubKey,
 			Scene: sceneData{
 				Parcels: []string{"54,-136"},
 				Base:    "54,-136",
@@ -371,8 +397,137 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn",
-		sceneCid: "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4",
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
 		assert:   requestErrorAssertion,
 	},
+}
+
+type namingCase struct {
+	name    string
+	content *fileContent
+}
+
+func TestMultipartNaming(t *testing.T) {
+	s := &scene{
+		Display:        display{Title: "suspicious_liskov"},
+		Owner:          validTestPubKey,
+		Scene:          sceneData{Parcels: []string{"54,-136"}, Base: "54,-136"},
+		Communications: commsConfig{Type: "webrtc", Signalling: "https://rendezvous.decentraland.org"},
+		Main:           "scene.js",
+	}
+
+	m := &Metadata{
+		Value:        validRootCid,
+		Signature:    validSignature,
+		Validity:     "2018-12-12T14:49:14.074000000Z",
+		ValidityType: 0,
+		Sequence:     2,
+		PubKey:       validTestPubKey,
+		RootCid:      validRootCid,
+	}
+
+	dummyAgent, _ := metrics.Make("", "")
+	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
+	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent}
+
+	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
+
+	for _, tc := range namingTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			request, err := buildUploadRequest(validRootCid, s, sceneJsonCID, m, tc.content)
+			if err != nil {
+				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
+			}
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, request)
+
+			status := rr.Code
+
+			assert.Equal(t, http.StatusOK, status)
+
+			name, ok := service.uploadedContent[tc.content.fm.Cid]
+
+			assert.True(t, ok)
+			assert.Equal(t, tc.content.fm.Name, name)
+		})
+	}
+}
+
+var namingTestCases = []namingCase{
+	{
+		name: "Alphanumeric",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "ABCDEFGHIJKLMNOPQRSTUVWabcdefghijklmnopqrstuv0123456789.txt",
+			},
+			content: uuid.New().String(),
+		},
+	}, {
+		name: "White Spaces",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "one two three.txt",
+			},
+			content: uuid.New().String(),
+		},
+	}, {
+		name: "Pound Char",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "mambo#5.txt",
+			},
+			content: uuid.New().String(),
+		},
+	}, {
+		name: "Compare Chars",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "<mambo>.txt",
+			},
+			content: uuid.New().String(),
+		},
+	}, {
+		name: "Percent Char",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "%mambo%.txt",
+			},
+			content: uuid.New().String(),
+		},
+	}, {
+		name: "Braces",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "[{mambo}].txt",
+			},
+			content: uuid.New().String(),
+		},
+	}, {
+		name: "Slashes",
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "\\|//.txt",
+			},
+			content: uuid.New().String(),
+		},
+	},
+}
+
+type uploadServiceMock struct {
+	uploadedContent map[string]string
+}
+
+func (s *uploadServiceMock) ProcessUpload(r *UploadRequest) error {
+	for k, v := range r.UploadedFiles {
+		s.uploadedContent[k] = v[0].Filename
+	}
+	return nil
 }
