@@ -4,7 +4,6 @@ require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
-	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/aws/aws-sdk-go v1.15.47
 	github.com/bifurcation/mint v0.0.0-20180715133206-93c51c6ce115 // indirect
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d // indirect
@@ -27,7 +26,7 @@ require (
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/mock v1.1.1
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/google/uuid v1.0.0 // indirect
+	github.com/google/uuid v1.0.0
 	github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/handlers v1.4.0
@@ -36,7 +35,6 @@ require (
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
-	github.com/ipfs/go-ipfs v0.4.18-0.20181004204134-4409bad36422 // indirect
 	github.com/ipsn/go-ipfs v0.0.0-20181218231732-efbfe11f7e03
 	github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -46,7 +44,6 @@ require (
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lucas-clemente/aes12 v0.0.0-20171027163421-cd47fb39b79f // indirect
-	github.com/lucas-clemente/quic-go v0.10.0 // indirect
 	github.com/lucas-clemente/quic-go-certificates v0.0.0-20160823095156-d2f86524cced // indirect
 	github.com/magiconair/properties v1.8.0
 	github.com/mattn/go-colorable v0.0.9 // indirect
@@ -60,7 +57,6 @@ require (
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
-	github.com/polydawn/refmt v0.0.0-20181101235710-2700834540f8 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
