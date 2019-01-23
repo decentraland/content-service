@@ -475,7 +475,7 @@ func TestMultipartNaming(t *testing.T) {
 
 	dummyAgent, _ := metrics.Make("", "")
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent}
+	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: &ContentTypeFilter{""}}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
 
@@ -510,7 +510,8 @@ var namingTestCases = []namingCase{
 			},
 			content: uuid.New().String(),
 		},
-	}, {
+	},
+	{
 		name: "White Spaces",
 		content: &fileContent{
 			fm: &FileMetadata{
