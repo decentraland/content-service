@@ -23,3 +23,4 @@ logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
 metrics:
   appName:  '' # Set METRICS_APP env variable to overwrite this value
   appKey:      '' # Set METRICS_KEY env variable to overwrite this value
+  analyticsKey: '' # Set ANALYTICS_KEY env variable to overwrite this value

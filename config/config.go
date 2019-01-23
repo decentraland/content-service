@@ -13,7 +13,7 @@ type Configuration struct {
 	Redis           Redis
 	DecentralandApi DecentralandApi
 	LogLevel        string
-	Metrics         NewRelic
+	Metrics         Metrics
 }
 
 type DecentralandApi struct {
@@ -50,9 +50,10 @@ type Server struct {
 	URL  string
 }
 
-type NewRelic struct {
-	AppName string
-	AppKey  string
+type Metrics struct {
+	AppName      string
+	AppKey       string
+	AnalyticsKey string
 }
 
 // GetConfig populates a Configuration struct from a config file

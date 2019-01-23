@@ -39,10 +39,10 @@ type UploadServiceImpl struct {
 	RedisClient data.RedisClient
 	IpfsNode    *core.IpfsNode
 	Auth        data.Authorization
-	Agent       metrics.Agent
+	Agent       *metrics.Agent
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent metrics.Agent) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:     storage,
 		RedisClient: client,
@@ -72,7 +72,8 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return err
 	}
 
-	if err := us.processUploadedFiles(r.UploadedFiles, groupFilePathsByCid(r.Manifest), r.Metadata.RootCid); err != nil {
+	pathsByCid := groupFilePathsByCid(r.Manifest)
+	if err := us.processUploadedFiles(r.UploadedFiles, pathsByCid, r.Metadata.RootCid); err != nil {
 		return err
 	}
 
@@ -83,6 +84,9 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	if err := us.RedisClient.StoreMetadata(r.Metadata.RootCid, structs.Map(r.Metadata)); err != nil {
 		return WrapInInternalError(err)
 	}
+
+	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Scene.Scene.Parcels, pathsByCid)
+
 	return nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	"github.com/google/uuid"
@@ -194,7 +195,7 @@ var sceneValidation = []testDataValidation{
 
 func TestUploadRequestValidation(t *testing.T) {
 	validator := validation.NewValidator()
-	agent, _ := metrics.Make("", "")
+	agent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
 
 	for _, tc := range requestValidationTestCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -427,7 +428,7 @@ func TestMultipartNaming(t *testing.T) {
 		RootCid:      validRootCid,
 	}
 
-	dummyAgent, _ := metrics.Make("", "")
+	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
 	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent}
 
