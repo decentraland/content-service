@@ -2,18 +2,21 @@ package config
 
 import (
 	log "github.com/sirupsen/logrus"
+	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 // Configuration holds global config parameters
 type Configuration struct {
-	Server          Server
-	Storage         Storage
-	Redis           Redis
-	DecentralandApi DecentralandApi
-	LogLevel        string
-	Metrics         NewRelic
+	Server                Server
+	Storage               Storage
+	Redis                 Redis
+	DecentralandApi       DecentralandApi
+	LogLevel              string
+	Metrics               NewRelic
+	ForbiddenContentTypes []string
 }
 
 type DecentralandApi struct {
@@ -103,4 +106,15 @@ func readEnvVariables(v *viper.Viper) {
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
+
+	//Forbidden content types
+	contentEnv := os.Getenv("FORBIDDEN_TYPES")
+	if len(contentEnv) > 0 {
+		elements := strings.Split(contentEnv, ",")
+		var types []string
+		for _, t := range elements {
+			types = append(types, strings.Trim(t, " "))
+		}
+		v.Set("forbiddenContentTypes", types)
+	}
 }

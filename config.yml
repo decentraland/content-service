@@ -23,3 +23,12 @@ logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
 metrics:
   appName:  '' # Set METRICS_APP env variable to overwrite this value
   appKey:      '' # Set METRICS_KEY env variable to overwrite this value
+
+forbiddenContentTypes:    # Set FORBIDDEN_TYPES (a comma separated string whit all the types to filer) env variable to overwrite this value. Example 'application/x-sh, video.*'
+  - 'application/x-sh'
+  - 'application/zip'
+  - 'application/x-msdos-program'
+  - 'application/x-apple-diskimage'
+  - 'application/x-debian-package'
+  - 'application/java-archive'
+  - 'video.*'

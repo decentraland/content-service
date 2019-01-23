@@ -198,11 +198,18 @@ func TestUploadRequestValidation(t *testing.T) {
 
 	for _, tc := range requestValidationTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			r, err := buildUploadRequest(tc.cid, tc.scene, tc.sceneCid, tc.metadata, nil)
+			r, err := buildUploadRequest(tc.cid, tc.scene, tc.sceneCid, tc.metadata, tc.content)
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
-			request, err := parseRequest(r, validator, agent)
+			var filter *ContentTypeFilter
+			if tc.filter == nil {
+				filter = &ContentTypeFilter{filterPattern: ""}
+			} else {
+				filter = tc.filter
+			}
+
+			request, err := parseRequest(r, validator, agent, filter)
 			tc.assert(t, request, err)
 		})
 	}
@@ -264,6 +271,8 @@ type requestValidation struct {
 	cid      string
 	sceneCid string
 	metadata *Metadata
+	content  *fileContent
+	filter   *ContentTypeFilter
 	assert   func(t assert.TestingT, uploadRequest *UploadRequest, err error)
 }
 
@@ -400,6 +409,43 @@ var requestValidationTestCases = []requestValidation{
 		cid:      validRootCid,
 		sceneCid: sceneJsonCID,
 		assert:   requestErrorAssertion,
+	}, {
+		name: "Filter Content Type",
+		scene: &scene{
+			Display: display{
+				Title: "suspicious_liskov",
+			},
+			Owner: validTestPubKey,
+			Scene: sceneData{
+				Parcels: []string{"54,-136"},
+				Base:    "54,-136",
+			},
+			Communications: commsConfig{
+				Type:       "webrtc",
+				Signalling: "https://rendezvous.decentraland.org",
+			},
+			Main: "scene.js",
+		},
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
+		metadata: &Metadata{
+			Value:        validRootCid,
+			Signature:    validSignature,
+			Validity:     "2018-12-12T14:49:14.074000000Z",
+			ValidityType: 0,
+			Sequence:     2,
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
+		},
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "RandomFile",
+			},
+			content: uuid.New().String(),
+		},
+		filter: &ContentTypeFilter{"application/octet-stream"},
+		assert: requestErrorAssertion,
 	},
 }
 
@@ -530,4 +576,49 @@ func (s *uploadServiceMock) ProcessUpload(r *UploadRequest) error {
 		s.uploadedContent[k] = v[0].Filename
 	}
 	return nil
+}
+
+type filterCase struct {
+	name           string
+	filters        []string
+	contentType    string
+	expectedResult bool
+}
+
+func TestContentTypeFilter_FilterType(t *testing.T) {
+	for _, tc := range fiterTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := NewContentTypeFilter(tc.filters)
+			assert.Equal(t, tc.expectedResult, f.FilterType(tc.contentType))
+		})
+	}
+}
+
+var fiterTestCases = []filterCase{
+	{
+		name:           "Filter Matching Content-type",
+		filters:        []string{"application/x-sh", "application/zip"},
+		contentType:    "application/zip",
+		expectedResult: true,
+	}, {
+		name:           "Allow not Matching Content-type",
+		filters:        []string{"application/x-sh", "application/zip"},
+		contentType:    "application/octet-stream",
+		expectedResult: false,
+	}, {
+		name:           "Filter based on regex",
+		filters:        []string{"video.*"},
+		contentType:    "video/mp4",
+		expectedResult: true,
+	}, {
+		name:           "Allow everything",
+		filters:        []string{},
+		contentType:    "video/mp4",
+		expectedResult: false,
+	}, {
+		name:           "Allow everything - no filters",
+		filters:        nil,
+		contentType:    "video/mp4",
+		expectedResult: false,
+	},
 }
