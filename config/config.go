@@ -104,4 +104,5 @@ func readEnvVariables(v *viper.Viper) {
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
+	v.BindEnv("metrics.analyticsKey", "ANALYTICS_KEY")
 }
