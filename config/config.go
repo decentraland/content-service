@@ -107,8 +107,8 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("metrics.appName", "METRICS_APP")
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
 
-	//Forbidden content types
-	contentEnv := os.Getenv("FORBIDDEN_TYPES")
+	//Allowed content types
+	contentEnv := os.Getenv("ALLOWED_TYPES")
 	if len(contentEnv) > 0 {
 		elements := strings.Split(contentEnv, ",")
 		var types []string
