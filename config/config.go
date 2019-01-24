@@ -10,13 +10,13 @@ import (
 
 // Configuration holds global config parameters
 type Configuration struct {
-	Server                Server
-	Storage               Storage
-	Redis                 Redis
-	DecentralandApi       DecentralandApi
-	LogLevel              string
-	Metrics               NewRelic
-	ForbiddenContentTypes []string
+	Server              Server
+	Storage             Storage
+	Redis               Redis
+	DecentralandApi     DecentralandApi
+	LogLevel            string
+	Metrics             NewRelic
+	AllowedContentTypes []string
 }
 
 type DecentralandApi struct {
@@ -115,6 +115,6 @@ func readEnvVariables(v *viper.Viper) {
 		for _, t := range elements {
 			types = append(types, strings.Trim(t, " "))
 		}
-		v.Set("forbiddenContentTypes", types)
+		v.Set("allowedContentTypes", types)
 	}
 }

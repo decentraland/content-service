@@ -64,18 +64,16 @@ type ContentTypeFilter struct {
 	filterPattern string
 }
 
+// Retrieves a new content filter. If the lis is empty all content types will be allowed
 func NewContentTypeFilter(types []string) *ContentTypeFilter {
 	if len(types) == 0 {
-		return &ContentTypeFilter{filterPattern: ""}
+		return &ContentTypeFilter{filterPattern: ".*"}
 	}
 	pattern := "(" + strings.Join(types, "?)|(") + "?)"
 	return &ContentTypeFilter{filterPattern: pattern}
 }
 
-func (f *ContentTypeFilter) FilterType(t string) bool {
-	if len(f.filterPattern) == 0 {
-		return false
-	}
+func (f *ContentTypeFilter) IsAllowed(t string) bool {
 	r := regexp.MustCompile(f.filterPattern)
 	return r.MatchString(t)
 }
@@ -161,7 +159,7 @@ func validateContentTypes(files map[string][]*multipart.FileHeader, filter *Cont
 	for _, v := range files {
 		for _, f := range v {
 			t := f.Header.Get("Content-Type")
-			if filter.FilterType(t) {
+			if !filter.IsAllowed(t) {
 				return NewBadRequestError(fmt.Sprintf("Invalid  Content-type: %s File: %s", t, f.Filename))
 			}
 		}

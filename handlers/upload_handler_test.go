@@ -204,7 +204,7 @@ func TestUploadRequestValidation(t *testing.T) {
 			}
 			var filter *ContentTypeFilter
 			if tc.filter == nil {
-				filter = &ContentTypeFilter{filterPattern: ""}
+				filter = &ContentTypeFilter{filterPattern: ".*"}
 			} else {
 				filter = tc.filter
 			}
@@ -444,7 +444,7 @@ var requestValidationTestCases = []requestValidation{
 			},
 			content: uuid.New().String(),
 		},
-		filter: &ContentTypeFilter{"application/octet-stream"},
+		filter: NewContentTypeFilter([]string{"application/javascript", "application/json"}),
 		assert: requestErrorAssertion,
 	},
 }
@@ -475,7 +475,7 @@ func TestMultipartNaming(t *testing.T) {
 
 	dummyAgent, _ := metrics.Make("", "")
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: &ContentTypeFilter{""}}
+	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"})}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
 
@@ -590,36 +590,36 @@ func TestContentTypeFilter_FilterType(t *testing.T) {
 	for _, tc := range fiterTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewContentTypeFilter(tc.filters)
-			assert.Equal(t, tc.expectedResult, f.FilterType(tc.contentType))
+			assert.Equal(t, tc.expectedResult, f.IsAllowed(tc.contentType))
 		})
 	}
 }
 
 var fiterTestCases = []filterCase{
 	{
-		name:           "Filter Matching Content-type",
-		filters:        []string{"application/x-sh", "application/zip"},
-		contentType:    "application/zip",
+		name:           "IsAllowed Matching Content-type",
+		filters:        []string{"application/octet-stream", "application/zip"},
+		contentType:    "application/octet-stream",
 		expectedResult: true,
 	}, {
-		name:           "Allow not Matching Content-type",
-		filters:        []string{"application/x-sh", "application/zip"},
-		contentType:    "application/octet-stream",
+		name:           "FIler not Matching Content-type",
+		filters:        []string{"application/octet-stream"},
+		contentType:    "application/zip",
 		expectedResult: false,
 	}, {
-		name:           "Filter based on regex",
+		name:           "Allow based on regex",
 		filters:        []string{"video.*"},
 		contentType:    "video/mp4",
 		expectedResult: true,
 	}, {
-		name:           "Allow everything",
-		filters:        []string{},
+		name:           "Allow everything - regex",
+		filters:        []string{".*"},
 		contentType:    "video/mp4",
-		expectedResult: false,
+		expectedResult: true,
 	}, {
-		name:           "Allow everything - no filters",
+		name:           "IsAllowed everything - no filters",
 		filters:        nil,
 		contentType:    "video/mp4",
-		expectedResult: false,
+		expectedResult: true,
 	},
 }
