@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +19,7 @@ type UploadCtx struct {
 	StructValidator validation.Validator
 	Service         UploadService
 	Agent           metrics.Agent
+	Filter          *ContentTypeFilter
 }
 
 type FileMetadata struct {
@@ -57,6 +60,24 @@ type commsConfig struct {
 	Signalling string `json:"signalling"`
 }
 
+type ContentTypeFilter struct {
+	filterPattern string
+}
+
+// Retrieves a new content filter. If the lis is empty all content types will be allowed
+func NewContentTypeFilter(types []string) *ContentTypeFilter {
+	if len(types) == 0 {
+		return &ContentTypeFilter{filterPattern: ".*"}
+	}
+	pattern := "(" + strings.Join(types, "?)|(") + "?)"
+	return &ContentTypeFilter{filterPattern: pattern}
+}
+
+func (f *ContentTypeFilter) IsAllowed(t string) bool {
+	r := regexp.MustCompile(f.filterPattern)
+	return r.MatchString(t)
+}
+
 func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(UploadCtx)
 	if !ok {
@@ -67,7 +88,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 	log.Debug("About to parse Upload request...")
 	tParse := time.Now()
-	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent)
+	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent, c.Filter)
 	c.Agent.RecordUploadRequestParseTime(time.Since(tParse))
 	log.Debug("Upload request parsed")
 
@@ -88,7 +109,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 // Extracts all the information from the http request
 // If any part is missing or is invalid it will retrieve an error
-func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent) (*UploadRequest, error) {
+func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, filter *ContentTypeFilter) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
 		log.Errorf("Invalid UploadContent request: %s", err.Error())
@@ -108,6 +129,9 @@ func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent) 
 
 	uploadedFiles := r.MultipartForm.File
 	agent.RecordUploadRequestFiles(len(uploadedFiles))
+	if err := validateContentTypes(uploadedFiles, filter); err != nil {
+		return nil, err
+	}
 
 	manifestSize := len(*manifestContent)
 	requestFilesNumber := len(uploadedFiles)
@@ -129,6 +153,18 @@ func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent) 
 		return nil, WrapInBadRequestError(err)
 	}
 	return &request, nil
+}
+
+func validateContentTypes(files map[string][]*multipart.FileHeader, filter *ContentTypeFilter) error {
+	for _, v := range files {
+		for _, f := range v {
+			t := f.Header.Get("Content-Type")
+			if !filter.IsAllowed(t) {
+				return NewBadRequestError(fmt.Sprintf("Invalid  Content-type: %s File: %s", t, f.Filename))
+			}
+		}
+	}
+	return nil
 }
 
 // Extracts the request Metadata

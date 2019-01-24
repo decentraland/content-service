@@ -55,7 +55,7 @@ func InitializeApp(config *config.Configuration) *mux.Router {
 
 	sto := storage.NewStorage(&config.Storage, agent)
 
-	router := routes.GetRouter(client, sto, config.DecentralandApi.LandUrl, ipfsNode, agent)
+	router := routes.GetRouter(client, sto, ipfsNode, agent, config)
 
 	return router
 }
