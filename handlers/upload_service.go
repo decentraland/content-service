@@ -229,7 +229,7 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string) erro
 		log.Infof("Error validating PublicKey[%s]", pKey)
 		return WrapInBadRequestError(err)
 	} else if !canModify {
-		log.Infof("PublicKey[%s] is not allow to modify parcels", pKey)
+		log.Infof("PublicKey[%s] is not allowed to modify parcels", pKey)
 		return StatusError{http.StatusUnauthorized, errors.New("address is not authorized to modify given parcels")}
 	}
 	return nil
