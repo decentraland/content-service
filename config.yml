@@ -33,3 +33,4 @@ allowedContentTypes:    # Set ALLOWED_TYPES (a comma separated string whit all t
   - 'audio.*'
   - 'model.*'
   - 'application/xml'
+  - 'text.*'
