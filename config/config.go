@@ -15,7 +15,7 @@ type Configuration struct {
 	Redis               Redis
 	DecentralandApi     DecentralandApi
 	LogLevel            string
-	Metrics             NewRelic
+	Metrics             Metrics
 	AllowedContentTypes []string
 }
 
@@ -53,9 +53,10 @@ type Server struct {
 	URL  string
 }
 
-type NewRelic struct {
-	AppName string
-	AppKey  string
+type Metrics struct {
+	AppName      string
+	AppKey       string
+	AnalyticsKey string
 }
 
 // GetConfig populates a Configuration struct from a config file
@@ -106,6 +107,7 @@ func readEnvVariables(v *viper.Viper) {
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
+	v.BindEnv("metrics.analyticsKey", "ANALYTICS_KEY")
 
 	//Allowed content types
 	contentEnv := os.Getenv("ALLOWED_TYPES")

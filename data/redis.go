@@ -21,14 +21,14 @@ type RedisClient interface {
 
 type Redis struct {
 	Client *redis.Client
-	Agent  metrics.Agent
+	Agent  *metrics.Agent
 }
 
 const uploadedElementsKey = "uploaded-content"
 const metadataKeyPrefix = "metadata_"
 const contentKeyPrefix = "content_"
 
-func NewRedisClient(address string, password string, db int, agent metrics.Agent) (*Redis, error) {
+func NewRedisClient(address string, password string, db int, agent *metrics.Agent) (*Redis, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     address,
 		Password: password,

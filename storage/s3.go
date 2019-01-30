@@ -24,10 +24,10 @@ type S3 struct {
 	Bucket *string
 	ACL    *string
 	URL    string
-	Agent  metrics.Agent
+	Agent  *metrics.Agent
 }
 
-func NewS3(bucket, acl, url string, agent metrics.Agent) *S3 {
+func NewS3(bucket, acl, url string, agent *metrics.Agent) *S3 {
 	sto := new(S3)
 	sto.Bucket = aws.String(bucket)
 	sto.ACL = aws.String(acl)

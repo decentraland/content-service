@@ -45,14 +45,14 @@ type Handler struct {
 	Ctx   interface{}
 	H     func(ctx interface{}, w http.ResponseWriter, r *http.Request) error
 	Id    string
-	Agent metrics.Agent
+	Agent *metrics.Agent
 }
 
 type ResponseHandler struct {
 	Ctx   interface{}
 	H     func(ctx interface{}, r *http.Request) (Response, error)
 	Id    string
-	Agent metrics.Agent
+	Agent *metrics.Agent
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

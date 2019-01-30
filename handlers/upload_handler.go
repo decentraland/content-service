@@ -18,7 +18,7 @@ import (
 type UploadCtx struct {
 	StructValidator validation.Validator
 	Service         UploadService
-	Agent           metrics.Agent
+	Agent           *metrics.Agent
 	Filter          *ContentTypeFilter
 }
 
@@ -109,7 +109,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 // Extracts all the information from the http request
 // If any part is missing or is invalid it will retrieve an error
-func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, filter *ContentTypeFilter) (*UploadRequest, error) {
+func parseRequest(r *http.Request, v validation.Validator, agent *metrics.Agent, filter *ContentTypeFilter) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
 		log.Errorf("Invalid UploadContent request: %s", err.Error())
@@ -255,7 +255,7 @@ func parseFilesMetadata(metadataStr string, v validation.Validator) (*[]FileMeta
 	return filesMeta, nil
 }
 
-func sendRequestData(a metrics.Agent, r *http.Request) {
+func sendRequestData(a *metrics.Agent, r *http.Request) {
 	s := r.Header.Get("Content-length")
 	val, err := strconv.Atoi(s)
 	if err != nil {
