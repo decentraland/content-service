@@ -6,7 +6,8 @@ ENV GOCACHE=/root/.cache/go-build
 ENV GOOS=linux
 COPY . .
 RUN go get
-RUN go build
+RUN GIT_COMMIT=$(git rev-list -1 HEAD) && \
+      go build -ldflags "-X github.com/decentraland/content-service/handlers.commitHash=$GIT_COMMIT"
 
 EXPOSE 8000
 CMD ["./content-service"]

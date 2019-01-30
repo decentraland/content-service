@@ -47,11 +47,15 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMetadataService(client), H: handlers.GetParcelMetadata, Agent: agent, Id: "ValidateParcel"})
 
 	contentStatusCtx := handlers.ContentStatusCtx{Service: &handlers.ContentServiceImpl{RedisClient: client}, Validator: validation.NewValidator()}
-
 	r.Path("/content/status").
 		Methods("POST").
 		Headers("Content-Type", "application/json").
 		Handler(&handlers.ResponseHandler{Ctx: contentStatusCtx, H: handlers.ContentStatus, Agent: agent, Id: "ContentStatus"})
+
+	checker := handlers.HealthChecker{Storage: storage, Redis: client, Dcl: data.NewDclClient(conf.DecentralandApi.LandUrl, agent)}
+	r.Path("/check").
+		Methods("GET").
+		Handler(&handlers.ResponseHandler{Ctx: checker, H: handlers.HealthCheck, Agent: agent, Id: "HealthCheck"})
 
 	log.Debug("... Route initialization done.")
 }
