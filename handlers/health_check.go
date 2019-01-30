@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
+	"path"
 )
 
 var commitHash = "Not available"
@@ -17,20 +18,20 @@ type HealthChecker struct {
 	Dcl     data.Decentraland
 }
 
-func (hc *HealthChecker) Check() (bool, []string) {
+func (hc *HealthChecker) Check() (bool, map[string]string) {
 	logrus.Info("Checking status")
-	var failures []string
+	failures := map[string]string{}
 
 	if ok, err := hc.checkDecentralandConnection(); !ok {
-		failures = append(failures, err)
+		failures["DCL-API"] = err
 	}
 
 	if ok, err := hc.checkStorage(); !ok {
-		failures = append(failures, err)
+		failures["Storage"] = err
 	}
 
 	if ok, err := hc.checkRedis(); !ok {
-		failures = append(failures, err)
+		failures["DB"] = err
 	}
 	return len(failures) == 0, failures
 }
@@ -47,7 +48,8 @@ func (hc *HealthChecker) checkDecentralandConnection() (bool, string) {
 func (hc *HealthChecker) checkStorage() (bool, string) {
 	// The file won't exist, but the error should reflect that
 	// Any other error means there is something wrong with the storage
-	err := hc.Storage.DownloadFile(uuid.New().String(), "")
+	rndId := uuid.New().String()
+	err := hc.Storage.DownloadFile(rndId, path.Join("/tmp", rndId))
 	if err != nil {
 		switch e := err.(type) {
 		case storage.NotFoundError:
@@ -70,8 +72,8 @@ func (hc *HealthChecker) checkRedis() (bool, string) {
 }
 
 type CheckResponse struct {
-	Version  string   `json:"version"`
-	Failures []string `json:"errors"`
+	Version  string            `json:"version"`
+	Failures map[string]string `json:"errors"`
 }
 
 func HealthCheck(ctx interface{}, r *http.Request) (Response, error) {
