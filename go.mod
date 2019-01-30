@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/aws/aws-sdk-go v1.15.47
 	github.com/bifurcation/mint v0.0.0-20180715133206-93c51c6ce115 // indirect
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d // indirect
 	github.com/btcsuite/btcd v0.0.0-20180924021209-2a560b2036be // indirect
 	github.com/cenkalti/backoff v2.0.0+incompatible // indirect
@@ -57,6 +58,7 @@ require (
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
+	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
@@ -66,10 +68,12 @@ require (
 	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d // indirect
 	github.com/warpfork/go-wish v0.0.0-20180510122957-5ad1f5abf436 // indirect
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc // indirect
+	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go4.org v0.0.0-20180809161055-417644f6feb5 // indirect
 	golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b // indirect
 	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 // indirect
 	golang.org/x/sys v0.0.0-20180926160741-c2ed4eda69e7 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.23.0
+	gopkg.in/segmentio/analytics-go.v3 v3.0.1
 )

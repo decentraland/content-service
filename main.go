@@ -35,7 +35,7 @@ func main() {
 }
 
 func InitializeApp(config *config.Configuration) *mux.Router {
-	agent, err := metrics.Make(config.Metrics.AppName, config.Metrics.AppKey)
+	agent, err := metrics.Make(config.Metrics)
 	if err != nil {
 		log.Fatal("Error initializing metrics agent")
 	}

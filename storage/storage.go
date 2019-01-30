@@ -15,7 +15,7 @@ type Storage interface {
 	DownloadFile(cid string, fileName string) error
 }
 
-func NewStorage(conf *config.Storage, agent metrics.Agent) Storage {
+func NewStorage(conf *config.Storage, agent *metrics.Agent) Storage {
 	log.Infof("Storage mode: %s", conf.StorageType)
 	switch config.StorageType(strings.ToUpper(conf.StorageType)) {
 	case config.LOCAL:

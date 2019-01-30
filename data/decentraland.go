@@ -59,10 +59,10 @@ type Decentraland interface {
 
 type DclClient struct {
 	ApiUrl string
-	Agent  metrics.Agent
+	Agent  *metrics.Agent
 }
 
-func NewDclClient(apiUrl string, agent metrics.Agent) *DclClient {
+func NewDclClient(apiUrl string, agent *metrics.Agent) *DclClient {
 	return &DclClient{apiUrl, agent}
 }
 

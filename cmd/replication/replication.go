@@ -47,7 +47,7 @@ func main() {
 		fmt.Scanln(&y2)
 	}
 
-	agent, _ := metrics.Make("", "")
+	agent, _ := metrics.Make(config.Metrics{AnalyticsKey: "", AppKey: "", AppName: ""})
 	sto := storage.NewStorage(&conf.Storage, agent)
 
 	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", conf.Server.URL, x1, y1, x2, y2)

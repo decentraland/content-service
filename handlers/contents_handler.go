@@ -5,6 +5,7 @@ import (
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
 
 	"github.com/decentraland/content-service/storage"
 	"github.com/gorilla/mux"
@@ -29,8 +30,12 @@ func GetContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
 		w.Header().Add("Cache-Control", "max-age:31536000, public")
 		http.Redirect(w, r, storeValue, 301)
 	case *storage.Local:
-		w.Header().Add("Content-Disposition", "Attachment")
-		http.ServeFile(w, r, storeValue)
+		if _, err := os.Stat(storeValue); err == nil {
+			w.Header().Add("Content-Disposition", "Attachment")
+			http.ServeFile(w, r, storeValue)
+		} else {
+			return NewNotFoundError(storeValue)
+		}
 	default:
 		return NewInternalError("Storage has unregistered type")
 	}

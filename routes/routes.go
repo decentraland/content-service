@@ -13,13 +13,13 @@ import (
 	"github.com/ipsn/go-ipfs/core"
 )
 
-func GetRouter(client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent metrics.Agent, conf *config.Configuration) *mux.Router {
+func GetRouter(client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent *metrics.Agent, conf *config.Configuration) *mux.Router {
 	r := mux.NewRouter()
 	setupApiInitialVersion(r, client, storage, node, agent, conf)
 	return r
 }
 
-func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent metrics.Agent, conf *config.Configuration) {
+func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent *metrics.Agent, conf *config.Configuration) {
 	log.Debug("Initializing routes...")
 	r.Path("/mappings").
 		Methods("GET").
