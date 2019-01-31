@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
@@ -53,6 +54,7 @@ type ContentService interface {
 
 type ContentServiceImpl struct {
 	RedisClient data.RedisClient
+	Storage		storage.Storage
 }
 
 type ContentStatusRequest struct {
@@ -87,7 +89,31 @@ func (s *ContentServiceImpl) CheckContentStatus(content []string) (map[string]bo
 		if err != nil {
 			return nil, WrapInInternalError(err)
 		}
+
+		if !uploaded {
+			if uploaded, err = s.checkContentInStorage(cid); err != nil {
+				return nil,  WrapInInternalError(err)
+			}
+		}
 		resp[cid] = uploaded
 	}
 	return resp, nil
+}
+
+func (s *ContentServiceImpl) checkContentInStorage(cid string) (bool, error) {
+	_, err := s.Storage.FileSize(cid)
+	if err != nil {
+		switch e := err.(type) {
+		case storage.NotFoundError:
+			return false, nil
+		default:
+			log.Infof("Unexpected error: %s", e.Error())
+			return false, errors.New("unexpected error")
+		}
+	}
+	if err = s.RedisClient.AddCID(cid); err != nil {
+		log.Infof("Unexpected error: %s", err.Error())
+		return false, errors.New("unexpected error")
+	}
+	return true, nil
 }
