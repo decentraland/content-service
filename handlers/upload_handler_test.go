@@ -513,7 +513,8 @@ func TestMultipartNaming(t *testing.T) {
 
 	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"})}
+	limits := config.Limits{ParcelContentLimit: 150000, MaxSceneElements: 1000}
+	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
 
@@ -625,7 +626,7 @@ type filterCase struct {
 }
 
 func TestContentTypeFilter_FilterType(t *testing.T) {
-	for _, tc := range fiterTestCases {
+	for _, tc := range filterTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewContentTypeFilter(tc.filters)
 			assert.Equal(t, tc.expectedResult, f.IsAllowed(tc.contentType))
@@ -633,7 +634,7 @@ func TestContentTypeFilter_FilterType(t *testing.T) {
 	}
 }
 
-var fiterTestCases = []filterCase{
+var filterTestCases = []filterCase{
 	{
 		name:           "IsAllowed Matching Content-type",
 		filters:        []string{"application/octet-stream", "application/zip"},
