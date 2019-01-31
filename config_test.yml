@@ -18,7 +18,7 @@ redis:
 decentralandApi:
   landUrl: 'https://api.decentraland.org/v1/'
 
-logLevel: 'ERROR'
+logLevel: 'INFO'
 
 metrics:
   appName:  ''

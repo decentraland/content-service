@@ -54,7 +54,7 @@ type ContentService interface {
 
 type ContentServiceImpl struct {
 	RedisClient data.RedisClient
-	Storage		storage.Storage
+	Storage     storage.Storage
 }
 
 type ContentStatusRequest struct {
@@ -92,7 +92,7 @@ func (s *ContentServiceImpl) CheckContentStatus(content []string) (map[string]bo
 
 		if !uploaded {
 			if uploaded, err = s.checkContentInStorage(cid); err != nil {
-				return nil,  WrapInInternalError(err)
+				return nil, WrapInInternalError(err)
 			}
 		}
 		resp[cid] = uploaded
