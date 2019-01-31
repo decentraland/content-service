@@ -11,9 +11,14 @@ import (
 
 type ParcelContent struct {
 	ParcelID  string            `json:"parcel_id"`
-	Contents  map[string]string `json:"contents"`
+	Content   []*ContentElement `json:"content"`
 	RootCID   string            `json:"root_cid"`
 	Publisher string            `json:"publisher"`
+}
+
+type ContentElement struct {
+	File string `json:"file"`
+	Cid  string `json:"hash"`
 }
 
 func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
@@ -72,7 +77,7 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 	if err != nil {
 		return nil, WrapInInternalError(err)
 	}
-	mapContents := []ParcelContent{}
+	var mapContents []ParcelContent
 	for k := range consolidateParcelsIds(parcels, estates) {
 		content, err := ms.GetParcelInformation(k)
 		if err != nil {
@@ -95,11 +100,17 @@ func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (*ParcelCon
 		return nil, err
 	}
 
+	var elements []*ContentElement
+
+	for name, cid := range content {
+		elements = append(elements, &ContentElement{File: name, Cid: cid})
+	}
+
 	metadata, err := ms.RedisClient.GetParcelMetadata(parcelId)
 	if metadata == nil || err != nil {
 		return nil, err
 	}
-	return &ParcelContent{ParcelID: parcelId, Contents: content, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
+	return &ParcelContent{ParcelID: parcelId, Content: elements, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
 }
 
 func consolidateParcelsIds(parcels []*data.Parcel, estates []*data.Estate) map[string]struct{} {
