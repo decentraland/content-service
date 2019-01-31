@@ -13,24 +13,24 @@ import (
 	"github.com/ipsn/go-ipfs/core"
 )
 
-func GetRouter(client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode, agent metrics.Agent, limits config.Limits) *mux.Router {
+func GetRouter(client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent *metrics.Agent, conf *config.Configuration) *mux.Router {
 	r := mux.NewRouter()
-	setupApiInitialVersion(r, client, storage, dclApi, node, agent, limits)
+	setupApiInitialVersion(r, client, storage, node, agent, conf)
 	return r
 }
 
-func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, dclApi string, node *core.IpfsNode, agent metrics.Agent, limits config.Limits) {
+func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent *metrics.Agent, conf *config.Configuration) {
 	log.Debug("Initializing routes...")
 	r.Path("/mappings").
 		Methods("GET").
 		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
-		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMappingsService(client, data.NewDclClient(dclApi, agent)), H: handlers.GetMappings, Agent: agent, Id: "GetMappings"})
+		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), H: handlers.GetMappings, Agent: agent, Id: "GetMappings"})
 
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),
-		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(dclApi, agent)), agent, limits.ParcelContentLimit),
+		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelContentLimit),
 		Agent:           agent,
-		Limits:          limits,
+		Filter:          handlers.NewContentTypeFilter(conf.AllowedContentTypes),
 	}
 
 	r.Path("/mappings").
@@ -47,11 +47,15 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMetadataService(client), H: handlers.GetParcelMetadata, Agent: agent, Id: "ValidateParcel"})
 
 	contentStatusCtx := handlers.ContentStatusCtx{Service: &handlers.ContentServiceImpl{RedisClient: client}, Validator: validation.NewValidator()}
-
 	r.Path("/content/status").
 		Methods("POST").
 		Headers("Content-Type", "application/json").
 		Handler(&handlers.ResponseHandler{Ctx: contentStatusCtx, H: handlers.ContentStatus, Agent: agent, Id: "ContentStatus"})
+
+	checker := handlers.HealthChecker{Storage: storage, Redis: client, Dcl: data.NewDclClient(conf.DecentralandApi.LandUrl, agent)}
+	r.Path("/check").
+		Methods("GET").
+		Handler(&handlers.ResponseHandler{Ctx: checker, H: handlers.HealthCheck, Agent: agent, Id: "HealthCheck"})
 
 	log.Debug("... Route initialization done.")
 }

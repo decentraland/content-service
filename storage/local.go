@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,7 +44,7 @@ func (sto *Local) DownloadFile(cid string, fileName string) error {
 	path := filepath.Join(sto.Dir, cid)
 	in, err := os.Open(path)
 	if err != nil {
-		return err
+		return NotFoundError{fmt.Sprintf("Not found: %s", cid)}
 	}
 	defer in.Close()
 

@@ -47,7 +47,7 @@ func main() {
 		fmt.Scanln(&y2)
 	}
 
-	agent, _ := metrics.Make("", "")
+	agent, _ := metrics.Make(config.Metrics{AnalyticsKey: "", AppKey: "", AppName: ""})
 	sto := storage.NewStorage(&conf.Storage, agent)
 
 	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", conf.Server.URL, x1, y1, x2, y2)
@@ -88,20 +88,20 @@ func main() {
 			log.Fatal(err)
 		}
 
-		for filePath, cid := range parcel.Contents {
-			downloadURL := fmt.Sprintf("%scontents?%s", conf.Server.URL, cid)
+		for _, element := range parcel.Content {
+			downloadURL := fmt.Sprintf("%scontents?%s", conf.Server.URL, element.Cid)
 			resp, err := http.Get(downloadURL)
 			if err != nil {
 				log.Fatal(err)
 			}
 			defer resp.Body.Close()
 
-			_, err = sto.SaveFile(cid, resp.Body)
+			_, err = sto.SaveFile(element.Cid, resp.Body)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			err = client.HSet("content_"+parcelMetadata.RootCid, filePath, cid).Err()
+			err = client.HSet("content_"+parcelMetadata.RootCid, element.File, element.Cid).Err()
 			if err != nil {
 				log.Fatal(err)
 			}

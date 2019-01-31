@@ -2,19 +2,22 @@ package config
 
 import (
 	log "github.com/sirupsen/logrus"
+	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 // Configuration holds global config parameters
 type Configuration struct {
-	Server          Server
-	Storage         Storage
-	Redis           Redis
-	DecentralandApi DecentralandApi
-	LogLevel        string
-	Metrics         NewRelic
-	Limits          Limits
+	Server              Server
+	Storage             Storage
+	Redis               Redis
+	DecentralandApi     DecentralandApi
+	LogLevel            string
+	Metrics             Metrics
+	AllowedContentTypes []string
+	Limits              Limits
 }
 
 type DecentralandApi struct {
@@ -56,9 +59,10 @@ type Server struct {
 	URL  string
 }
 
-type NewRelic struct {
-	AppName string
-	AppKey  string
+type Metrics struct {
+	AppName      string
+	AppKey       string
+	AnalyticsKey string
 }
 
 // GetConfig populates a Configuration struct from a config file
@@ -109,7 +113,19 @@ func readEnvVariables(v *viper.Viper) {
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
+	v.BindEnv("metrics.analyticsKey", "ANALYTICS_KEY")
 	//Limits
 	v.BindEnv("limits.parcelContentLimit", "LIMIT_PARCEL_CONTENT")
 	v.BindEnv("limits.maxSceneElements", "LIMIT_SCENE_ELEMENTS")
+
+	//Allowed content types
+	contentEnv := os.Getenv("ALLOWED_TYPES")
+	if len(contentEnv) > 0 {
+		elements := strings.Split(contentEnv, ",")
+		var types []string
+		for _, t := range elements {
+			types = append(types, strings.Trim(t, " "))
+		}
+		v.Set("allowedContentTypes", types)
+	}
 }

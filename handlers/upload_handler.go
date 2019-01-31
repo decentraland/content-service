@@ -10,6 +10,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +19,8 @@ import (
 type UploadCtx struct {
 	StructValidator validation.Validator
 	Service         UploadService
-	Agent           metrics.Agent
+	Agent           *metrics.Agent
+	Filter          *ContentTypeFilter
 	Limits          config.Limits
 }
 
@@ -60,6 +62,24 @@ type commsConfig struct {
 	Signalling string `json:"signalling"`
 }
 
+type ContentTypeFilter struct {
+	filterPattern string
+}
+
+// Retrieves a new content filter. If the lis is empty all content types will be allowed
+func NewContentTypeFilter(types []string) *ContentTypeFilter {
+	if len(types) == 0 {
+		return &ContentTypeFilter{filterPattern: ".*"}
+	}
+	pattern := "(" + strings.Join(types, "?)|(") + "?)"
+	return &ContentTypeFilter{filterPattern: pattern}
+}
+
+func (f *ContentTypeFilter) IsAllowed(t string) bool {
+	r := regexp.MustCompile(f.filterPattern)
+	return r.MatchString(t)
+}
+
 func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	c, ok := ctx.(UploadCtx)
 	if !ok {
@@ -70,7 +90,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 	log.Debug("About to parse Upload request...")
 	tParse := time.Now()
-	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent, c.Limits.MaxSceneElements)
+	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent, c.Filter, c.Limits.MaxSceneElements)
 	c.Agent.RecordUploadRequestParseTime(time.Since(tParse))
 	log.Debug("Upload request parsed")
 
@@ -91,7 +111,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 // Extracts all the information from the http request
 // If any part is missing or is invalid it will retrieve an error
-func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, filesPerScene int) (*UploadRequest, error) {
+func parseRequest(r *http.Request, v validation.Validator, agent *metrics.Agent, filter *ContentTypeFilter, filesPerScene int) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
 		log.Errorf("Invalid UploadContent request: %s", err.Error())
@@ -117,6 +137,9 @@ func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, 
 
 	uploadedFiles := r.MultipartForm.File
 	agent.RecordUploadRequestFiles(len(uploadedFiles))
+	if err := validateContentTypes(uploadedFiles, filter); err != nil {
+		return nil, err
+	}
 
 	requestFilesNumber := len(uploadedFiles)
 
@@ -137,6 +160,18 @@ func parseRequest(r *http.Request, v validation.Validator, agent metrics.Agent, 
 		return nil, WrapInBadRequestError(err)
 	}
 	return &request, nil
+}
+
+func validateContentTypes(files map[string][]*multipart.FileHeader, filter *ContentTypeFilter) error {
+	for _, v := range files {
+		for _, f := range v {
+			t := f.Header.Get("Content-Type")
+			if !filter.IsAllowed(t) {
+				return NewBadRequestError(fmt.Sprintf("Invalid  Content-type: %s File: %s", t, f.Filename))
+			}
+		}
+	}
+	return nil
 }
 
 // Extracts the request Metadata
@@ -227,7 +262,7 @@ func parseFilesMetadata(metadataStr string, v validation.Validator) (*[]FileMeta
 	return filesMeta, nil
 }
 
-func sendRequestData(a metrics.Agent, r *http.Request) {
+func sendRequestData(a *metrics.Agent, r *http.Request) {
 	s := r.Header.Get("Content-length")
 	val, err := strconv.Atoi(s)
 	if err != nil {

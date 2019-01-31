@@ -35,7 +35,7 @@ func main() {
 }
 
 func InitializeApp(config *config.Configuration) *mux.Router {
-	agent, err := metrics.Make(config.Metrics.AppName, config.Metrics.AppKey)
+	agent, err := metrics.Make(config.Metrics)
 	if err != nil {
 		log.Fatal("Error initializing metrics agent")
 	}
@@ -55,7 +55,7 @@ func InitializeApp(config *config.Configuration) *mux.Router {
 
 	sto := storage.NewStorage(&config.Storage, agent)
 
-	router := routes.GetRouter(client, sto, config.DecentralandApi.LandUrl, ipfsNode, agent, config.Limits)
+	router := routes.GetRouter(client, sto, ipfsNode, agent, config)
 
 	return router
 }

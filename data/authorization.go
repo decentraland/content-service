@@ -108,10 +108,13 @@ func getParcels(parcelsList []string, dcl Decentraland) ([]*Parcel, error) {
 }
 
 func canModify(pubkey string, parcel *Parcel, dcl Decentraland) (bool, error) {
+	var check = strings.ToLower(pubkey)
+
 	log.Debugf("Verifying Address [%s] permissions over Parcel[%d,%d]", pubkey, parcel.X, parcel.Y)
-	if pubkey == parcel.Owner {
+
+	if check == parcel.Owner {
 		return true, nil
-	} else if pubkey == parcel.UpdateOperator {
+	} else if check == parcel.UpdateOperator {
 		return true, nil
 	} else if parcel.EstateID != "" {
 		estateID, err := strconv.Atoi(parcel.EstateID)
@@ -126,9 +129,9 @@ func canModify(pubkey string, parcel *Parcel, dcl Decentraland) (bool, error) {
 			return false, err
 		}
 
-		if pubkey == estate.Owner {
+		if check == estate.Owner {
 			return true, nil
-		} else if pubkey == estate.UpdateOperator {
+		} else if check == estate.UpdateOperator {
 			return true, nil
 		}
 	}

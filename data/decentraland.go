@@ -2,9 +2,11 @@ package data
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/sirupsen/logrus"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -57,10 +59,10 @@ type Decentraland interface {
 
 type DclClient struct {
 	ApiUrl string
-	Agent  metrics.Agent
+	Agent  *metrics.Agent
 }
 
-func NewDclClient(apiUrl string, agent metrics.Agent) *DclClient {
+func NewDclClient(apiUrl string, agent *metrics.Agent) *DclClient {
 	return &DclClient{apiUrl, agent}
 }
 
@@ -104,8 +106,8 @@ func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error) {
 func buildUrl(basePath string, relPath string, args ...interface{}) string {
 	u, _ := url.Parse(basePath)
 	u.Path = path.Join(u.Path, fmt.Sprintf(relPath, args...))
-	url, _ := url.PathUnescape(u.String())
-	return url
+	urlResult, _ := url.PathUnescape(u.String())
+	return urlResult
 }
 
 func (dcl DclClient) doGet(url string, response interface{}) error {
@@ -116,5 +118,19 @@ func (dcl DclClient) doGet(url string, response interface{}) error {
 		logrus.Errorf("Failed to retrieve information from URL[%s]: %s", url, err.Error())
 		return err
 	}
+	if resp.StatusCode >= 400 {
+		logrus.Errorf("[DCL API FAILED] Request failed to URL[%s] with Status[%d]: %s", url, resp.StatusCode, bodyToString(resp))
+		dcl.Agent.RecordDCLAPIError(resp.StatusCode)
+		return errors.New("DCL Replied with an error")
+	}
 	return json.NewDecoder(resp.Body).Decode(response)
+}
+
+func bodyToString(r *http.Response) string {
+	defer r.Body.Close()
+	respBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return ""
+	}
+	return string(respBytes)
 }

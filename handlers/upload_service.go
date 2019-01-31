@@ -39,11 +39,11 @@ type UploadServiceImpl struct {
 	RedisClient     data.RedisClient
 	IpfsNode        *core.IpfsNode
 	Auth            data.Authorization
-	Agent           metrics.Agent
+	Agent           *metrics.Agent
 	ParcelSizeLimit int64
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent metrics.Agent, parcelSizeLimit int64) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:         storage,
 		RedisClient:     client,
@@ -78,7 +78,8 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return err
 	}
 
-	if err := us.processUploadedFiles(r.UploadedFiles, groupFilePathsByCid(r.Manifest), r.Metadata.RootCid); err != nil {
+	pathsByCid := groupFilePathsByCid(r.Manifest)
+	if err := us.processUploadedFiles(r.UploadedFiles, pathsByCid, r.Metadata.RootCid); err != nil {
 		return err
 	}
 
@@ -89,6 +90,9 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	if err := us.RedisClient.StoreMetadata(r.Metadata.RootCid, structs.Map(r.Metadata)); err != nil {
 		return WrapInInternalError(err)
 	}
+
+	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Scene.Scene.Parcels, pathsByCid)
+
 	return nil
 }
 
@@ -235,7 +239,7 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string) erro
 		log.Infof("Error validating PublicKey[%s]", pKey)
 		return WrapInBadRequestError(err)
 	} else if !canModify {
-		log.Infof("PublicKey[%s] is not allow to modify parcels", pKey)
+		log.Infof("PublicKey[%s] is not allowed to modify parcels", pKey)
 		return StatusError{http.StatusUnauthorized, errors.New("address is not authorized to modify given parcels")}
 	}
 	return nil

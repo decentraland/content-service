@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -23,10 +24,10 @@ type S3 struct {
 	Bucket *string
 	ACL    *string
 	URL    string
-	Agent  metrics.Agent
+	Agent  *metrics.Agent
 }
 
-func NewS3(bucket, acl, url string, agent metrics.Agent) *S3 {
+func NewS3(bucket, acl, url string, agent *metrics.Agent) *S3 {
 	sto := new(S3)
 	sto.Bucket = aws.String(bucket)
 	sto.ACL = aws.String(acl)
@@ -126,6 +127,7 @@ func handleS3Error(err error, cid string) error {
 		}
 		return err
 	default:
-		return err
+		log.Error(err.Error())
+		return errors.New("An error occurred while accessing content Storage")
 	}
 }

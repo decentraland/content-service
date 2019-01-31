@@ -16,7 +16,7 @@ type Storage interface {
 	FileSize(cid string) (int64, error)
 }
 
-func NewStorage(conf *config.Storage, agent metrics.Agent) Storage {
+func NewStorage(conf *config.Storage, agent *metrics.Agent) Storage {
 	log.Infof("Storage mode: %s", conf.StorageType)
 	switch config.StorageType(strings.ToUpper(conf.StorageType)) {
 	case config.LOCAL:

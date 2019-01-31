@@ -18,7 +18,7 @@ func GetParcelMetadata(ctx interface{}, r *http.Request) (Response, error) {
 
 	params := mux.Vars(r)
 
-	parcelMeta, err := ms.GetParcelMetadata(fmt.Sprintf("%+s,%+s", params["x"], params["y"]))
+	parcelMeta, err := ms.GetParcelMetadata(fmt.Sprintf("%s,%s", params["x"], params["y"]))
 	if err != nil {
 		return nil, WrapInInternalError(err)
 	}
