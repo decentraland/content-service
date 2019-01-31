@@ -31,6 +31,7 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelContentLimit),
 		Agent:           agent,
 		Filter:          handlers.NewContentTypeFilter(conf.AllowedContentTypes),
+		Limits:          conf.Limits,
 	}
 
 	r.Path("/mappings").
