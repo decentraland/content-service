@@ -1,5 +1,12 @@
 # Content Service
 
+Our vision of a decentralized platform can't rely on a single centralized server storing an only copy of the virtual world's content. The Content Service allows anyone to host their own instance of the server that stores the world data, guaranteeing its availability. By having multiple servers distributed around the world that replicate the data, we can also ensure the content will have fast download speeds, independently of the location.
+
+The content hosted in each server includes all the files that make up Decentraland scenes, including .ts scripts, 3D models, texture images, audio files and videos. Currently, each server stores the entirety of the data of all of Genesis city. In future releases of the content service, you'll be able to host a server that only holds the data for specific parcels, to ensure that your scene is always available without depending on any third party.
+
+When a user is near a parcel, the Decentraland client checks the blockchain to know what content exists there. The LAND token for that parcel includes a reference that indirectly points to a chunk of content in the content server, which the client downloads to display in place.
+
+
 ## Requirements
 
 The following dependencies need to be installed to run a content service server.
