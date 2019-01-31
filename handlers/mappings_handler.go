@@ -11,7 +11,7 @@ import (
 
 type ParcelContent struct {
 	ParcelID  string            `json:"parcel_id"`
-	Content   []*ContentElement `json:"content"`
+	Contents  []*ContentElement `json:"contents"`
 	RootCID   string            `json:"root_cid"`
 	Publisher string            `json:"publisher"`
 }
@@ -110,7 +110,7 @@ func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (*ParcelCon
 	if metadata == nil || err != nil {
 		return nil, err
 	}
-	return &ParcelContent{ParcelID: parcelId, Content: elements, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
+	return &ParcelContent{ParcelID: parcelId, Contents: elements, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
 }
 
 func consolidateParcelsIds(parcels []*data.Parcel, estates []*data.Estate) map[string]struct{} {

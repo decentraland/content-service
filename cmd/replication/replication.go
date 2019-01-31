@@ -88,7 +88,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		for _, element := range parcel.Content {
+		for _, element := range parcel.Contents {
 			downloadURL := fmt.Sprintf("%scontents?%s", conf.Server.URL, element.Cid)
 			resp, err := http.Get(downloadURL)
 			if err != nil {
