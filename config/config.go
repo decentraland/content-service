@@ -18,6 +18,7 @@ type Configuration struct {
 	Metrics             Metrics
 	AllowedContentTypes []string
 	Limits              Limits
+	Workdir             string
 }
 
 type DecentralandApi struct {
@@ -117,6 +118,8 @@ func readEnvVariables(v *viper.Viper) {
 	//Limits
 	v.BindEnv("limits.parcelContentLimit", "LIMIT_PARCEL_CONTENT")
 	v.BindEnv("limits.maxSceneElements", "LIMIT_SCENE_ELEMENTS")
+
+	v.BindEnv("workdir", "WORK_DIR")
 
 	//Allowed content types
 	contentEnv := os.Getenv("ALLOWED_TYPES")

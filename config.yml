@@ -16,7 +16,7 @@ redis:
   DB:       0                            # Set REDIS_DB env variable to overwrite this value
 
 decentralandApi:
-  landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
+  landUrl: 'https://api.decentraland.zone/v1/' # Set DCL_API env variable to overwrite this value
 
 logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
 
@@ -38,3 +38,5 @@ allowedContentTypes:    # Set ALLOWED_TYPES (a comma separated string whit all t
 limits:
   parcelContentLimit: 15000000 # Bytes/Parcel. Set LIMIT_PARCEL_CONTENT env variable to overwrite this value
   maxSceneElements: 1000000 # Set LIMIT_SCENE_ELEMENTS env variable to overwrite this value
+
+workdir: '/tmp' # Set WORK_DIR env variable to overwrite this value
