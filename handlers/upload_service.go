@@ -41,9 +41,10 @@ type UploadServiceImpl struct {
 	Auth            data.Authorization
 	Agent           *metrics.Agent
 	ParcelSizeLimit int64
+	Workdir         string
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:         storage,
 		RedisClient:     client,
@@ -51,6 +52,7 @@ func NewUploadService(storage storage.Storage, client data.RedisClient, node *co
 		Auth:            auth,
 		Agent:           agent,
 		ParcelSizeLimit: parcelSizeLimit,
+		Workdir:         workdir,
 	}
 }
 
@@ -113,7 +115,7 @@ func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multi
 		return err
 	}
 
-	rootDir := filepath.Join("/tmp", rootCid)
+	rootDir := filepath.Join(us.Workdir, rootCid)
 	defer cleanUpTmpFile(rootDir)
 
 	log.Infof("Consolidating scene content for CID[%s]", rootCid)

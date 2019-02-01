@@ -24,14 +24,20 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 	r.Path("/mappings").
 		Methods("GET").
 		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
-		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), H: handlers.GetMappings, Agent: agent, Id: "GetMappings"})
+		Handler(
+			&handlers.ResponseHandler{
+				Ctx:   handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent)),
+				H:     handlers.GetMappings,
+				Agent: agent,
+				Id:    "GetMappings"})
 
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),
-		Service:         handlers.NewUploadService(storage, client, node, data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelContentLimit),
-		Agent:           agent,
-		Filter:          handlers.NewContentTypeFilter(conf.AllowedContentTypes),
-		Limits:          conf.Limits,
+		Service: handlers.NewUploadService(storage, client, node,
+			data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelContentLimit, conf.Workdir),
+		Agent:  agent,
+		Filter: handlers.NewContentTypeFilter(conf.AllowedContentTypes),
+		Limits: conf.Limits,
 	}
 
 	r.Path("/mappings").
