@@ -77,7 +77,7 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 	if err != nil {
 		return nil, WrapInInternalError(err)
 	}
-	var mapContents []ParcelContent
+	mapContents := []ParcelContent{}
 	for k := range consolidateParcelsIds(parcels, estates) {
 		content, err := ms.GetParcelInformation(k)
 		if err != nil {

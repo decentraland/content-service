@@ -34,3 +34,7 @@ allowedContentTypes:    # Set ALLOWED_TYPES (a comma separated string whit all t
   - 'model.*'
   - 'application/xml'
   - 'text.*'
+
+limits:
+  parcelContentLimit: 15000000 # Bytes/Parcel. Set LIMIT_PARCEL_CONTENT env variable to overwrite this value
+  maxSceneElements: 1000000 # Set LIMIT_SCENE_ELEMENTS env variable to overwrite this value

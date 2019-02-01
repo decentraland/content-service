@@ -18,8 +18,23 @@ redis:
 decentralandApi:
   landUrl: 'https://api.decentraland.org/v1/'
 
-logLevel: 'ERROR'
+logLevel: 'INFO'
 
 metrics:
   appName:  ''
   key:      ''
+  analyticsKey: ''
+
+allowedContentTypes:
+  - 'application/json'
+  - 'image.*'
+  - 'application/javascript'
+  - 'application/octet-stream'
+  - 'audio.*'
+  - 'model.*'
+  - 'application/xml'
+  - 'text.*'
+
+limits:
+  parcelContentLimit: 15000000
+  maxSceneElements: 1000000

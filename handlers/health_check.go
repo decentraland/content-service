@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
-	"path"
 )
 
 var commitHash = "Not available"
@@ -48,8 +47,7 @@ func (hc *HealthChecker) checkDecentralandConnection() (bool, string) {
 func (hc *HealthChecker) checkStorage() (bool, string) {
 	// The file won't exist, but the error should reflect that
 	// Any other error means there is something wrong with the storage
-	rndId := uuid.New().String()
-	err := hc.Storage.DownloadFile(rndId, path.Join("/tmp", rndId))
+	_, err := hc.Storage.FileSize(uuid.New().String())
 	if err != nil {
 		switch e := err.(type) {
 		case storage.NotFoundError:

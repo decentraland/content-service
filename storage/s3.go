@@ -101,6 +101,23 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 	return nil
 }
 
+func (sto *S3) FileSize(cid string) (int64, error) {
+	s := session.Must(session.NewSession())
+	client := s3.New(s)
+
+	hi := &s3.HeadObjectInput{
+		Bucket: sto.Bucket,
+		Key:    aws.String(cid),
+	}
+
+	res, err := client.HeadObject(hi)
+	if err != nil {
+		return 0, handleS3Error(err, cid)
+	}
+
+	return *res.ContentLength, nil
+}
+
 func handleS3Error(err error, cid string) error {
 	switch e := err.(type) {
 	case awserr.RequestFailure:
