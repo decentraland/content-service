@@ -57,8 +57,11 @@ var okUploadContent = &uploadTestConfig{
 
 func TestMain(m *testing.M) {
 	if runIntegrationTests {
+		conf := config.GetConfig("config_test")
+
+		initLogger(conf)
 		// Start server
-		router := InitializeApp(config.GetConfig("config_test"))
+		router := InitializeApp(conf)
 
 		server = httptest.NewServer(router)
 		defer server.Close()

@@ -68,3 +68,16 @@ func (sto *Local) DownloadFile(cid string, fileName string) error {
 	}
 	return out.Close()
 }
+
+func (sto *Local) FileSize(cid string) (int64, error) {
+	path := filepath.Join(sto.Dir, cid)
+	i, err := os.Stat(path)
+
+	if err != nil && os.IsNotExist(err) {
+		return 0, NotFoundError{fmt.Sprintf("Not found: %s", cid)}
+	} else if err != nil {
+		return 0, err
+	}
+
+	return i.Size(), nil
+}

@@ -210,7 +210,7 @@ func TestUploadRequestValidation(t *testing.T) {
 				filter = tc.filter
 			}
 
-			request, err := parseRequest(r, validator, agent, filter)
+			request, err := parseRequest(r, validator, agent, filter, tc.maxFiles)
 			tc.assert(t, request, err)
 		})
 	}
@@ -272,6 +272,7 @@ type requestValidation struct {
 	cid      string
 	sceneCid string
 	metadata *Metadata
+	maxFiles int
 	content  *fileContent
 	filter   *ContentTypeFilter
 	assert   func(t assert.TestingT, uploadRequest *UploadRequest, err error)
@@ -321,7 +322,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
 		},
-		assert: requestAssertion,
+		maxFiles: 1000,
+		assert:   requestAssertion,
 	}, {
 		name: "Invalid Scene - Missing parcels",
 		scene: &scene{
@@ -347,7 +349,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
 		},
-		assert: requestErrorAssertion,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
 	}, {
 		name:     "Missing Scene.json file",
 		cid:      validRootCid,
@@ -361,7 +364,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
 		},
-		assert: requestErrorAssertion,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
 	}, {
 		name: "Invalid Metadata - Missing Signaturet",
 		scene: &scene{
@@ -389,7 +393,8 @@ var requestValidationTestCases = []requestValidation{
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
 		},
-		assert: requestErrorAssertion,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
 	}, {
 		name: "Missing Metadata",
 		scene: &scene{
@@ -407,6 +412,37 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
+		maxFiles: 1000,
+		assert:   requestErrorAssertion,
+	}, {
+		name: "Max files number exceeded",
+		scene: &scene{
+			Display: display{
+				Title: "suspicious_liskov",
+			},
+			Owner: validTestPubKey,
+			Scene: sceneData{
+				Parcels: []string{"54,-136"},
+				Base:    "54,-136",
+			},
+			Communications: commsConfig{
+				Type:       "webrtc",
+				Signalling: "https://rendezvous.decentraland.org",
+			},
+			Main: "scene.js",
+		},
+		metadata: &Metadata{
+			Value:        validRootCid,
+			Signature:    validSignature,
+			Validity:     "2018-12-12T14:49:14.074000000Z",
+			ValidityType: 0,
+			Sequence:     2,
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
+		},
+		maxFiles: 0,
 		cid:      validRootCid,
 		sceneCid: sceneJsonCID,
 		assert:   requestErrorAssertion,
@@ -429,6 +465,7 @@ var requestValidationTestCases = []requestValidation{
 		},
 		cid:      validRootCid,
 		sceneCid: sceneJsonCID,
+		maxFiles: 1000,
 		metadata: &Metadata{
 			Value:        validRootCid,
 			Signature:    validSignature,
@@ -476,7 +513,8 @@ func TestMultipartNaming(t *testing.T) {
 
 	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"})}
+	limits := config.Limits{ParcelContentLimit: 150000, MaxSceneElements: 1000}
+	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
 
@@ -588,7 +626,7 @@ type filterCase struct {
 }
 
 func TestContentTypeFilter_FilterType(t *testing.T) {
-	for _, tc := range fiterTestCases {
+	for _, tc := range filterTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := NewContentTypeFilter(tc.filters)
 			assert.Equal(t, tc.expectedResult, f.IsAllowed(tc.contentType))
@@ -596,7 +634,7 @@ func TestContentTypeFilter_FilterType(t *testing.T) {
 	}
 }
 
-var fiterTestCases = []filterCase{
+var filterTestCases = []filterCase{
 	{
 		name:           "IsAllowed Matching Content-type",
 		filters:        []string{"application/octet-stream", "application/zip"},
