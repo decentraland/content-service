@@ -58,15 +58,15 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	log.Debug("Processing Upload request")
 	logUploadRequest(r)
 
-	if err := us.validateRequestSize(r); err != nil {
-		return err
-	}
-
 	if err := validateSignature(us.Auth, r.Metadata); err != nil {
 		return err
 	}
 
 	if err := validateKeyAccess(us.Auth, r.Metadata.PubKey, r.Scene.Scene.Parcels); err != nil {
+		return err
+	}
+
+	if err := us.validateRequestSize(r); err != nil {
 		return err
 	}
 
@@ -365,7 +365,7 @@ func handleStorageError(err error) error {
 }
 
 // Groups all the files in the list by file CID
-// The map will cointain an entry for each CID, and the associated value would be a list of all the paths
+// The map will contain an entry for each CID, and the associated value would be a list of all the paths
 func groupFilePathsByCid(files *[]FileMetadata) map[string][]string {
 	filesPaths := make(map[string][]string)
 	for _, fileMeta := range *files {
