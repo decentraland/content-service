@@ -263,7 +263,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 			}
 			defer file.Close()
 
-			_, err = us.Storage.SaveFile(fileCID, file)
+			_, err = us.Storage.SaveFile(fileCID, file, fileHeader.Header.Get("Content-Type"))
 			if err != nil {
 				log.Errorf("Failed to store file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
 				return WrapInInternalError(err)

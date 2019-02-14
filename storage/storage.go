@@ -11,7 +11,7 @@ import (
 
 type Storage interface {
 	GetFile(cid string) string
-	SaveFile(filename string, fileDesc io.Reader) (string, error)
+	SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error)
 	DownloadFile(cid string, fileName string) error
 	FileSize(cid string) (int64, error)
 }

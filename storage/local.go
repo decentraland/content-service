@@ -25,7 +25,7 @@ func (sto *Local) GetFile(cid string) string {
 	return sto.Dir + cid
 }
 
-func (sto *Local) SaveFile(filename string, fileDesc io.Reader) (string, error) {
+func (sto *Local) SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error) {
 	path := filepath.Join(sto.Dir, filename)
 	dst, err := os.Create(path)
 	if err != nil {
