@@ -71,14 +71,14 @@ func (mr *MockStorageMockRecorder) GetFile(arg0 interface{}) *gomock.Call {
 }
 
 // SaveFile mocks base method
-func (m *MockStorage) SaveFile(arg0 string, arg1 io.Reader) (string, error) {
-	ret := m.ctrl.Call(m, "SaveFile", arg0, arg1)
+func (m *MockStorage) SaveFile(arg0 string, arg1 io.Reader, arg2 string) (string, error) {
+	ret := m.ctrl.Call(m, "SaveFile", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SaveFile indicates an expected call of SaveFile
-func (mr *MockStorageMockRecorder) SaveFile(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFile", reflect.TypeOf((*MockStorage)(nil).SaveFile), arg0, arg1)
+func (mr *MockStorageMockRecorder) SaveFile(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveFile", reflect.TypeOf((*MockStorage)(nil).SaveFile), arg0, arg1, arg2)
 }
