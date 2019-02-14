@@ -96,7 +96,7 @@ func main() {
 			}
 			defer resp.Body.Close()
 
-			_, err = sto.SaveFile(element.Cid, resp.Body)
+			_, err = sto.SaveFile(element.Cid, resp.Body, resp.Header.Get("Content-Type"))
 			if err != nil {
 				log.Fatal(err)
 			}
