@@ -43,7 +43,7 @@ func (sto *S3) GetFile(cid string) string {
 	return url
 }
 
-func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
+func (sto *S3) SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error) {
 	t := time.Now()
 	log.Debugf("Uploading file[%s] to S3", filename)
 	sess := session.Must(session.NewSession())
@@ -51,10 +51,11 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader) (string, error) {
 	uploader := s3manager.NewUploader(sess)
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: sto.Bucket,
-		Key:    aws.String(filename),
-		ACL:    sto.ACL,
-		Body:   fileDesc,
+		Bucket:      sto.Bucket,
+		Key:         aws.String(filename),
+		ACL:         sto.ACL,
+		Body:        fileDesc,
+		ContentType: aws.String(contentType),
 	})
 	sto.Agent.RecordStorageTime(time.Since(t))
 	if err != nil {
