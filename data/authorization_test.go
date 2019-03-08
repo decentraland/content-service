@@ -14,7 +14,7 @@ import (
 type userCanModifyParcelsTestData struct {
 	inputKey     string
 	inputParcel  string
-	parcel       *data.Parcel
+	accessData   *data.AccessData
 	testCaseName string
 	estate       *data.Estate
 	evalResult   evalBooleanResult
@@ -50,7 +50,7 @@ func TestUserCanModifyParcels(t *testing.T) {
 	for _, tc := range userCanModifyTable {
 		t.Run(tc.testCaseName, func(t *testing.T) {
 			mockDcl := mocks.NewMockDecentraland(mockController)
-			mockDcl.EXPECT().GetParcel(tc.parcel.X, tc.parcel.Y).Return(tc.parcel, nil).AnyTimes()
+			mockDcl.EXPECT().GetParcel(tc.accessData.X, tc.accessData.Y).Return(tc.accessData, nil).AnyTimes()
 			if tc.estate != nil {
 				i, _ := strconv.Atoi(tc.estate.ID)
 				mockDcl.EXPECT().GetEstate(i).Return(tc.estate, nil).AnyTimes()
@@ -79,31 +79,31 @@ var userCanModifyTable = []userCanModifyParcelsTestData{
 		testCaseName: "Parcel with a valid owner",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0xa08a656ac52c0b32902a76e122d2973b022caa0e", "", ""},
+		accessData:   &data.AccessData{"1,2", "0xa08a656ac52c0b32902a76e122d2973b022caa0e", true, false, false, false},
 		evalResult:   expectTrue,
 	}, {
 		testCaseName: "Owner does not match the given key",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
+		accessData:   &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
 		evalResult:   expectFalse,
 	}, {
 		testCaseName: "Owner does not match the given key, but it has Update operator privileges",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "0xa08a656ac52c0b32902a76e122d2973b022caa0e", ""},
+		accessData:   &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "0xa08a656ac52c0b32902a76e122d2973b022caa0e", ""},
 		evalResult:   expectTrue,
 	}, {
 		testCaseName: "Input parcels are invalid",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "not an integer,also not an integer",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
+		accessData:   &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
 		evalResult:   expectError,
 	}, {
 		testCaseName: "The user is estate Owner",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
+		accessData:   &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
 		evalResult:   expectTrue,
 		estate: &data.Estate{ID: "1", Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", UpdateOperator: "", Data: struct {
 			Parcels []*data.Parcel `json:"parcels"`
@@ -112,7 +112,7 @@ var userCanModifyTable = []userCanModifyParcelsTestData{
 		testCaseName: "The user is not the Owner nor the estate Owner nor Update Operator",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
+		accessData:   &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
 		evalResult:   expectFalse,
 		estate: &data.Estate{ID: "1", Owner: "0x0000000000000000000000000000000000000000", UpdateOperator: "", Data: struct {
 			Parcels []*data.Parcel `json:"parcels"`
@@ -121,7 +121,7 @@ var userCanModifyTable = []userCanModifyParcelsTestData{
 		testCaseName: "User is Estate Update operator",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
+		accessData:   &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
 		evalResult:   expectTrue,
 		estate: &data.Estate{ID: "1", Owner: "0x0000000000000000000000000000000000000000", UpdateOperator: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", Data: struct {
 			Parcels []*data.Parcel `json:"parcels"`

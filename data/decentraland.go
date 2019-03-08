@@ -85,7 +85,7 @@ func NewDclClient(apiUrl string, agent *metrics.Agent) *DclClient {
 	return &DclClient{apiUrl, agent}
 }
 
-// Retrieves a parcel information from Decentraland
+// Retrieves a accessData information from Decentraland
 func (dcl DclClient) GetParcel(x, y int) (*Parcel, error) {
 	var jsonResponse parcelResponse
 	err := dcl.doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d", x, y), &jsonResponse)
@@ -122,7 +122,7 @@ func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error) {
 	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
 }
 
-// Retrieves the access data of a address over a given parcel
+// Retrieves the access data of a address over a given accessData
 func (dcl DclClient) GetParcelAccessData(address string, x int64, y int64) (*AccessData, error) {
 	var response accessResponse
 	err := dcl.doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d/%s/authorizations", x, y, address), &response)
