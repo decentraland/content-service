@@ -26,18 +26,32 @@ func NewAuthorizationService(client Decentraland) *AuthorizationService {
 
 func (service AuthorizationService) UserCanModifyParcels(pubkey string, parcelsList []string) (bool, error) {
 	log.Debugf("Checking Address[%s] permissions", pubkey)
-	parcels, err := getParcels(parcelsList, service.dclClient)
-	if err != nil {
-		return false, err
-	}
+	for _, parcelStr := range parcelsList {
+		coordinates := strings.Split(parcelStr, ",")
 
-	for _, parcel := range parcels {
-		match, err := canModify(pubkey, parcel, service.dclClient)
-		if err != nil || !match {
+		x, err := strconv.ParseInt(coordinates[0], 10, 64)
+		if err != nil {
+			log.Debugf("Invalid Coordinate: %s", coordinates[0])
 			return false, err
 		}
-	}
+		y, err := strconv.ParseInt(coordinates[1], 10, 64)
+		if err != nil {
+			log.Debugf("Invalid Coordinate: %s", coordinates[1])
+			return false, err
+		}
 
+		log.Debugf("Verifying Address [%s] permissions over Parcel[%d,%d]", pubkey, x, y)
+		access, err := service.dclClient.GetParcelAccessData(pubkey, x, y)
+		if err != nil {
+			return false, err
+		}
+
+		if !access.CheckAccess() {
+			log.Debugf("Address [%s] does not have permissions over Parcel[%d,%d]", pubkey, x, y)
+			return false, nil
+		}
+
+	}
 	return true, nil
 }
 
@@ -76,66 +90,4 @@ func (service AuthorizationService) IsSignatureValid(msg, hexSignature, hexAddre
 	}
 
 	return verified && bytes.Equal(sigAddress.Bytes(), ownerAddress)
-}
-
-func getParcels(parcelsList []string, dcl Decentraland) ([]*Parcel, error) {
-	var parcels []*Parcel
-
-	for _, parcelStr := range parcelsList {
-		coordinates := strings.Split(parcelStr, ",")
-
-		x, err := strconv.ParseInt(coordinates[0], 10, 64)
-		if err != nil {
-			log.Debugf("Invalid Coordinate: %s", coordinates[0])
-			return nil, err
-		}
-		y, err := strconv.ParseInt(coordinates[1], 10, 64)
-		if err != nil {
-			log.Debugf("Invalid Coordinate: %s", coordinates[1])
-			return nil, err
-		}
-
-		land, err := dcl.GetParcel(int(x), int(y))
-		if err != nil {
-			log.Errorf("Unable to retrieve parcel from DCL: %d,%d", x, y)
-			return parcels, err
-		}
-
-		parcels = append(parcels, land)
-	}
-
-	return parcels, nil
-}
-
-func canModify(pubkey string, parcel *Parcel, dcl Decentraland) (bool, error) {
-	var check = strings.ToLower(pubkey)
-
-	log.Debugf("Verifying Address [%s] permissions over Parcel[%d,%d]", pubkey, parcel.X, parcel.Y)
-
-	if check == parcel.Owner {
-		return true, nil
-	} else if check == parcel.UpdateOperator {
-		return true, nil
-	} else if parcel.EstateID != "" {
-		estateID, err := strconv.Atoi(parcel.EstateID)
-		if err != nil {
-			log.Errorf("Invalid estate id: %s", parcel.EstateID)
-			return false, err
-		}
-
-		estate, err := dcl.GetEstate(estateID)
-		if err != nil {
-			log.Errorf("Unable to retrieve parcel from DCL: %d", estateID)
-			return false, err
-		}
-
-		if check == estate.Owner {
-			return true, nil
-		} else if check == estate.UpdateOperator {
-			return true, nil
-		}
-	}
-
-	log.Debugf("Address [%s] not allowed to modify Parcel[%d,%d]", pubkey, parcel.X, parcel.Y)
-	return false, nil
 }
