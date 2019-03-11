@@ -203,11 +203,17 @@ type segmentClientImpl struct {
 }
 
 func (sa *segmentClientImpl) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string) {
+
+	filesData := []contentOcurrence{}
+	for hash, paths := range files {
+		filesData = append(filesData, contentOcurrence{Hash: hash, Files: paths})
+	}
+
 	err := sa.client.Enqueue(analytics.Track{
 		UserId: uploader,
 		Event:  "Content Upload",
 		Properties: analytics.NewProperties().
-			Set("files", files).
+			Set("files", filesData).
 			Set("parcels", parcels).
 			Set("cid", uploadId),
 	})
@@ -271,4 +277,9 @@ func buildSegmentAgent(writeKey string) (segmentClient, error) {
 
 func toMillis(d time.Duration) float64 {
 	return float64(d.Nanoseconds() / int64(time.Millisecond))
+}
+
+type contentOcurrence struct {
+	Hash  string   `json:"cid"`
+	Files []string `json:"paths"`
 }
