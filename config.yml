@@ -11,7 +11,7 @@ storage:
   localPath: 'tmp/' # Set LOCAL_STORAGE_PATH env variable to overwrite this value
 
 redis:
-  address:  'content_service_redis:6379' # Set REDIS_ADDRESS env variable to overwrite this value
+  address:  'localhost:6379' # Set REDIS_ADDRESS env variable to overwrite this value
   password: ''                           # Set REDIS_PASSWORD env variable to overwrite this value
   DB:       0                            # Set REDIS_DB env variable to overwrite this value
 
@@ -20,6 +20,7 @@ decentralandApi:
 
 logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
 
+# This is for New Relic
 metrics:
   appName:  '' # Set METRICS_APP env variable to overwrite this value
   appKey:      '' # Set METRICS_KEY env variable to overwrite this value
