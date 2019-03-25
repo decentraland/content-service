@@ -28,15 +28,19 @@ func (service AuthorizationService) UserCanModifyParcels(pubkey string, parcelsL
 	log.Debugf("Checking Address[%s] permissions", pubkey)
 	for _, parcelStr := range parcelsList {
 		coordinates := strings.Split(parcelStr, ",")
+		if len(coordinates) != 2 {
+			log.Errorf("Invalid Coordinate: %s", parcelStr)
+			return false, fmt.Errorf("invalid Coordinate: %s", parcelStr)
+		}
 
 		x, err := strconv.ParseInt(coordinates[0], 10, 64)
 		if err != nil {
-			log.Debugf("Invalid Coordinate: %s", coordinates[0])
+			log.WithError(err).Errorf("Invalid Coordinate: %s", coordinates[0])
 			return false, err
 		}
 		y, err := strconv.ParseInt(coordinates[1], 10, 64)
 		if err != nil {
-			log.Debugf("Invalid Coordinate: %s", coordinates[1])
+			log.WithError(err).Errorf("Invalid Coordinate: %s", coordinates[1])
 			return false, err
 		}
 
@@ -46,7 +50,7 @@ func (service AuthorizationService) UserCanModifyParcels(pubkey string, parcelsL
 			return false, err
 		}
 
-		if !access.CheckAccess() {
+		if !access.HasAccess() {
 			log.Debugf("Address [%s] does not have permissions over Parcel[%d,%d]", pubkey, x, y)
 			return false, nil
 		}

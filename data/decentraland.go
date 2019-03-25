@@ -37,7 +37,7 @@ type AccessData struct {
 	IsUpdateOperator bool
 }
 
-func (ad *AccessData) CheckAccess() bool {
+func (ad *AccessData) HasAccess() bool {
 	return ad.IsApprovedForAll || ad.IsOperator || ad.IsOwner || ad.IsUpdateOperator
 }
 
