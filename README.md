@@ -4,7 +4,7 @@ Our vision of a decentralized platform can't rely on a single centralized server
 
 The content hosted in each server includes all the files that make up Decentraland scenes, including .ts scripts, 3D models, texture images, audio files and videos. Currently, each server stores the entirety of the data of all of Genesis city. In future releases of the content service, you'll be able to host a server that only holds the data for specific parcels, to ensure that your scene is always available without depending on any third party.
 
-Each file stored in the content server is cryptographically signed by the parcel owner's public key, and the contents of the file are processed to generate a unique hash code, using the same algorithm that IPFS uses to generate its CIDs. 
+Each file stored in the content server is cryptographically signed by the parcel owner's key, and the contents of the file are processed to generate a unique hash code, using the same algorithm that IPFS uses to generate its CIDs. 
 
 The content server has endpoints that you can send requests to, to fetch data and to validate the authenticity of the signatures on each file.
 
