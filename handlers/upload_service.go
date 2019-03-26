@@ -101,7 +101,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
 func validateSignature(a data.Authorization, m Metadata) error {
 	log.Debugf("Validating signature: %s", m.Signature)
-	if !a.IsSignatureValid(m.RootCid, m.Signature, m.PubKey) {
+	if !a.IsSignatureValid(fmt.Sprintf("%s.%d", m.RootCid, m.Timestamp), m.Signature, m.PubKey) {
 		log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
 		return NewBadRequestError("Signature is invalid")
 	}

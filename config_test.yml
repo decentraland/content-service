@@ -40,3 +40,5 @@ limits:
   maxSceneElements: 1000000
 
 workdir: '/tmp'
+
+uploadRequestTTL: 600

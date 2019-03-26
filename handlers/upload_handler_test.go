@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 const validRootCid = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
@@ -209,8 +210,8 @@ func TestUploadRequestValidation(t *testing.T) {
 			} else {
 				filter = tc.filter
 			}
-
-			request, err := parseRequest(r, validator, agent, filter, tc.maxFiles)
+			ctx := &UploadCtx{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{MaxSceneElements: tc.maxFiles}, TimeToLive: tc.ttl}
+			request, err := ctx.parseRequest(r)
 			tc.assert(t, request, err)
 		})
 	}
@@ -275,6 +276,7 @@ type requestValidation struct {
 	maxFiles int
 	content  *fileContent
 	filter   *ContentTypeFilter
+	ttl      int64
 	assert   func(t assert.TestingT, uploadRequest *UploadRequest, err error)
 }
 
@@ -321,10 +323,13 @@ var requestValidationTestCases = []requestValidation{
 			Sequence:     2,
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix(),
 		},
 		maxFiles: 1000,
+		ttl:      600,
 		assert:   requestAssertion,
-	}, {
+	},
+	{
 		name: "Invalid Scene - Missing parcels",
 		scene: &scene{
 			Display: display{
@@ -348,8 +353,10 @@ var requestValidationTestCases = []requestValidation{
 			Sequence:     2,
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix(),
 		},
 		maxFiles: 1000,
+		ttl:      600,
 		assert:   requestErrorAssertion,
 	}, {
 		name:     "Missing Scene.json file",
@@ -363,8 +370,10 @@ var requestValidationTestCases = []requestValidation{
 			Sequence:     2,
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix(),
 		},
 		maxFiles: 1000,
+		ttl:      600,
 		assert:   requestErrorAssertion,
 	}, {
 		name: "Invalid Metadata - Missing Signaturet",
@@ -392,8 +401,10 @@ var requestValidationTestCases = []requestValidation{
 			Sequence:     2,
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix(),
 		},
 		maxFiles: 1000,
+		ttl:      600,
 		assert:   requestErrorAssertion,
 	}, {
 		name: "Missing Metadata",
@@ -415,6 +426,7 @@ var requestValidationTestCases = []requestValidation{
 		cid:      validRootCid,
 		sceneCid: sceneJsonCID,
 		maxFiles: 1000,
+		ttl:      600,
 		assert:   requestErrorAssertion,
 	}, {
 		name: "Max files number exceeded",
@@ -441,10 +453,12 @@ var requestValidationTestCases = []requestValidation{
 			Sequence:     2,
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix(),
 		},
 		maxFiles: 0,
 		cid:      validRootCid,
 		sceneCid: sceneJsonCID,
+		ttl:      600,
 		assert:   requestErrorAssertion,
 	}, {
 		name: "Filter Content Type",
@@ -474,6 +488,7 @@ var requestValidationTestCases = []requestValidation{
 			Sequence:     2,
 			PubKey:       validTestPubKey,
 			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix(),
 		},
 		content: &fileContent{
 			fm: &FileMetadata{
@@ -483,7 +498,41 @@ var requestValidationTestCases = []requestValidation{
 			content: uuid.New().String(),
 		},
 		filter: NewContentTypeFilter([]string{"application/javascript", "application/json"}),
+		ttl:    600,
 		assert: requestErrorAssertion,
+	},
+	{
+		name: "Expired Request",
+		scene: &scene{
+			Display: display{
+				Title: "suspicious_liskov",
+			},
+			Owner: validTestPubKey,
+			Scene: sceneData{
+				Parcels: []string{"54,-136"},
+				Base:    "54,-136",
+			},
+			Communications: commsConfig{
+				Type:       "webrtc",
+				Signalling: "https://rendezvous.decentraland.org",
+			},
+			Main: "scene.js",
+		},
+		cid:      validRootCid,
+		sceneCid: sceneJsonCID,
+		metadata: &Metadata{
+			Value:        validRootCid,
+			Signature:    validSignature,
+			Validity:     "2018-12-12T14:49:14.074000000Z",
+			ValidityType: 0,
+			Sequence:     2,
+			PubKey:       validTestPubKey,
+			RootCid:      validRootCid,
+			Timestamp:    time.Now().Unix() - 10000,
+		},
+		maxFiles: 1000,
+		ttl:      1,
+		assert:   requestErrorAssertion,
 	},
 }
 
@@ -509,12 +558,13 @@ func TestMultipartNaming(t *testing.T) {
 		Sequence:     2,
 		PubKey:       validTestPubKey,
 		RootCid:      validRootCid,
+		Timestamp:    time.Now().Unix(),
 	}
 
 	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
 	limits := config.Limits{ParcelContentLimit: 150000, MaxSceneElements: 1000}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits}
+	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits, TimeToLive: 600}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
 
