@@ -14,7 +14,7 @@ echo "[gofmt] Format OK"
 
 # Running go vet (https://golang.org/cmd/vet/) to the modified files 
 echo "[go vet] Running go vet..."
-go tool vet $modifiedFiles
+go vet $modifiedFiles
 foundErrors=$?
 if  [ "$foundErrors" -eq 1 ]; then
 	echo "[Rejected] Check the errors above"

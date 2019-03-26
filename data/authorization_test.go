@@ -8,15 +8,15 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"strconv"
+	"strings"
 	"testing"
 )
 
 type userCanModifyParcelsTestData struct {
 	inputKey     string
 	inputParcel  string
-	parcel       *data.Parcel
+	accessData   *data.AccessData
 	testCaseName string
-	estate       *data.Estate
 	evalResult   evalBooleanResult
 }
 
@@ -40,7 +40,7 @@ func expectFalse(err error, value bool, t *testing.T) {
 	assert.False(t, value)
 }
 
-func expectError(err error, value bool, t *testing.T) {
+func expectError(err error, _ bool, t *testing.T) {
 	assert.NotNil(t, err)
 }
 
@@ -50,10 +50,11 @@ func TestUserCanModifyParcels(t *testing.T) {
 	for _, tc := range userCanModifyTable {
 		t.Run(tc.testCaseName, func(t *testing.T) {
 			mockDcl := mocks.NewMockDecentraland(mockController)
-			mockDcl.EXPECT().GetParcel(tc.parcel.X, tc.parcel.Y).Return(tc.parcel, nil).AnyTimes()
-			if tc.estate != nil {
-				i, _ := strconv.Atoi(tc.estate.ID)
-				mockDcl.EXPECT().GetEstate(i).Return(tc.estate, nil).AnyTimes()
+			if tc.accessData != nil {
+				coords := strings.Split(tc.accessData.Id, ",")
+				x, _ := strconv.Atoi(coords[0])
+				y, _ := strconv.Atoi(coords[1])
+				mockDcl.EXPECT().GetParcelAccessData(tc.inputKey, int64(x), int64(y)).Return(tc.accessData, nil).AnyTimes()
 			}
 			service := data.NewAuthorizationService(mockDcl)
 			canModify, err := service.UserCanModifyParcels(tc.inputKey, []string{tc.inputParcel})
@@ -76,56 +77,45 @@ func TestIsSignatureValid(t *testing.T) {
 // UserCanModify Test cases to evaluate
 var userCanModifyTable = []userCanModifyParcelsTestData{
 	{
-		testCaseName: "Parcel with a valid owner",
+		testCaseName: "Address Approved",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0xa08a656ac52c0b32902a76e122d2973b022caa0e", "", ""},
+		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsApprovedForAll: true, IsOwner: false, IsOperator: false, IsUpdateOperator: false},
 		evalResult:   expectTrue,
-	}, {
-		testCaseName: "Owner does not match the given key",
+	},
+	{
+		testCaseName: "Address is owner",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
+		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsApprovedForAll: false, IsOwner: true, IsOperator: false, IsUpdateOperator: false},
+		evalResult:   expectTrue,
+	},
+	{
+		testCaseName: "Address is operator",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsApprovedForAll: false, IsOwner: false, IsOperator: true, IsUpdateOperator: false},
+		evalResult:   expectTrue,
+	},
+	{
+		testCaseName: "Address is update operator",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsApprovedForAll: false, IsOwner: false, IsOperator: false, IsUpdateOperator: true},
+		evalResult:   expectTrue,
+	},
+	{
+		testCaseName: "Address has no authorization",
+		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
+		inputParcel:  "1,2",
+		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsApprovedForAll: false, IsOwner: false, IsOperator: false, IsUpdateOperator: false},
 		evalResult:   expectFalse,
-	}, {
-		testCaseName: "Owner does not match the given key, but it has Update operator privileges",
-		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "0xa08a656ac52c0b32902a76e122d2973b022caa0e", ""},
-		evalResult:   expectTrue,
-	}, {
+	},
+	{
 		testCaseName: "Input parcels are invalid",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "not an integer,also not an integer",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", ""},
 		evalResult:   expectError,
-	}, {
-		testCaseName: "The user is estate Owner",
-		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
-		evalResult:   expectTrue,
-		estate: &data.Estate{ID: "1", Owner: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", UpdateOperator: "", Data: struct {
-			Parcels []*data.Parcel `json:"parcels"`
-		}{Parcels: []*data.Parcel{}}},
-	}, {
-		testCaseName: "The user is not the Owner nor the estate Owner nor Update Operator",
-		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
-		evalResult:   expectFalse,
-		estate: &data.Estate{ID: "1", Owner: "0x0000000000000000000000000000000000000000", UpdateOperator: "", Data: struct {
-			Parcels []*data.Parcel `json:"parcels"`
-		}{Parcels: []*data.Parcel{}}},
-	}, {
-		testCaseName: "User is Estate Update operator",
-		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
-		inputParcel:  "1,2",
-		parcel:       &data.Parcel{"id", 1, 2, "0x0000000000000000000000000000000000000000", "", "1"},
-		evalResult:   expectTrue,
-		estate: &data.Estate{ID: "1", Owner: "0x0000000000000000000000000000000000000000", UpdateOperator: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", Data: struct {
-			Parcels []*data.Parcel `json:"parcels"`
-		}{Parcels: []*data.Parcel{}}},
 	},
 }
 

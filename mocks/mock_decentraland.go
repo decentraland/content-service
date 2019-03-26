@@ -72,3 +72,16 @@ func (m *MockDecentraland) GetParcel(arg0, arg1 int) (*data.Parcel, error) {
 func (mr *MockDecentralandMockRecorder) GetParcel(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParcel", reflect.TypeOf((*MockDecentraland)(nil).GetParcel), arg0, arg1)
 }
+
+// GetParcelAccessData mocks base method
+func (m *MockDecentraland) GetParcelAccessData(arg0 string, arg1, arg2 int64) (*data.AccessData, error) {
+	ret := m.ctrl.Call(m, "GetParcelAccessData", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*data.AccessData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetParcelAccessData indicates an expected call of GetParcelAccessData
+func (mr *MockDecentralandMockRecorder) GetParcelAccessData(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParcelAccessData", reflect.TypeOf((*MockDecentraland)(nil).GetParcelAccessData), arg0, arg1, arg2)
+}
