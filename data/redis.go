@@ -53,7 +53,7 @@ func (r Redis) GetParcelMetadata(parcelID string) (map[string]interface{}, error
 
 	metadata := make(map[string]interface{})
 	for key, value := range parcelMeta {
-		if key == "validityType" || key == "sequence" {
+		if key == "validityType" || key == "sequence" || key == "timestamp" {
 			intValue, err := strconv.Atoi(value)
 			if err != nil {
 				return nil, err
