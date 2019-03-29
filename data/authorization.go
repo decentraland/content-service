@@ -26,6 +26,9 @@ func NewAuthorizationService(client Decentraland) *AuthorizationService {
 
 func (service AuthorizationService) UserCanModifyParcels(pubkey string, parcelsList []string) (bool, error) {
 	log.Debugf("Checking Address[%s] permissions", pubkey)
+	if len(parcelsList) == 0 {
+		return false, fmt.Errorf("There must be at least one parcel")
+	}
 	for _, parcelStr := range parcelsList {
 		coordinates := strings.Split(parcelStr, ",")
 		if len(coordinates) != 2 {
