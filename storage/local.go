@@ -31,6 +31,7 @@ func (sto *Local) SaveFile(filename string, fileDesc io.Reader, contentType stri
 	if err != nil {
 		return "", err
 	}
+	defer dst.Close()
 
 	_, err = io.Copy(dst, fileDesc)
 	if err != nil {
