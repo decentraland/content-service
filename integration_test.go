@@ -339,11 +339,10 @@ func execRequest(r *http.Request, t *testing.T) *http.Response {
 }
 
 func getPrivateKey() (*ecdsa.PrivateKey, string) {
-	// address: 0x4Fd8387d2baEe1fbFF37c24D90C2389Ece28362A
-	privateKey := ""
+	privateKey := os.Getenv("TEST_PRIVATEKEY")
 	pkbytes, _ := hexutil.Decode(privateKey)
 	key, _ := crypto.ToECDSA(pkbytes)
-	return key, "0x4Fd8387d2baEe1fbFF37c24D90C2389Ece28362A"
+	return key, os.Getenv("TEST_ADDRESS")
 }
 
 func signRootCid(cid string, timestamp int64, key *ecdsa.PrivateKey) []byte {
