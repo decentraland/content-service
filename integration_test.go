@@ -2,9 +2,14 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/decentraland/content-service/test/utils"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
@@ -19,6 +24,7 @@ import (
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type uploadTestConfig struct {
@@ -28,6 +34,7 @@ type uploadTestConfig struct {
 	manifest       string
 	contentFilter  func(file string) bool
 	expectedStatus int
+	extraContent   func() *utils.FileMetadata
 }
 
 type validateCoordConfig struct {
@@ -53,6 +60,7 @@ var okUploadContent = &uploadTestConfig{
 	contentFilter: func(file string) bool {
 		return file[len(file)-1:] == "/"
 	},
+	extraContent: nil,
 }
 
 func TestMain(m *testing.M) {
@@ -306,20 +314,6 @@ func TestPartialUpload(t *testing.T) {
 	}
 }
 
-func getRootCID(metadataFile string) string {
-	var meta handlers.Metadata
-	m, err := os.Open(metadataFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer m.Close()
-	err = json.NewDecoder(m).Decode(&meta)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return meta.Value
-}
-
 func (conf *uploadTestConfig) readManifest() (*[]handlers.FileMetadata, error) {
 	var manifest []handlers.FileMetadata
 	c, err := os.Open(conf.manifest)
@@ -344,30 +338,59 @@ func execRequest(r *http.Request, t *testing.T) *http.Response {
 	return response
 }
 
+func getPrivateKey() (*ecdsa.PrivateKey, string) {
+	privateKey := os.Getenv("TEST_PRIVATEKEY")
+	pkbytes, _ := hexutil.Decode(privateKey)
+	key, _ := crypto.ToECDSA(pkbytes)
+	return key, os.Getenv("TEST_ADDRESS")
+}
+
+func signRootCid(cid string, timestamp int64, key *ecdsa.PrivateKey) []byte {
+	msg := cid + "." + fmt.Sprintf("%d", timestamp)
+	msg = fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msg), msg)
+	hash := crypto.Keccak256Hash([]byte(msg))
+	sig, _ := crypto.Sign(hash.Bytes(), key)
+	return sig
+}
+
 func buildUploadRequest(config *uploadTestConfig, t *testing.T) *http.Request {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	err := loadUploadContent(config, writer)
+	ipfsNode, _ := utils.InitIpfsNode()
+	filesCids, _ := utils.ToFileData(config.contentDir, ipfsNode)
+	key, address := getPrivateKey()
+
+	if config.extraContent != nil {
+		filesCids = append(filesCids, config.extraContent())
+	}
+
+	contentjson, _ := json.Marshal(filesCids)
+
+	err := loadUploadContent(config, writer, filesCids)
 	if err != nil {
 		t.Fatal()
 	}
 
-	metadataFile := config.metadataPath
-	var metadataBytes []byte
-	metadataBytes, err = ioutil.ReadFile(metadataFile)
-	if err != nil {
-		t.Fatal()
-	}
-	var contentsBytes []byte
-	contentsBytes, err = ioutil.ReadFile(config.manifest)
-	if err != nil {
-		t.Fatal()
+	now := time.Now().Unix()
+	rootCID, _ := utils.CalculateRootCid(config.contentDir, ipfsNode)
+
+	sig := signRootCid(rootCID, now, key)
+
+	metadata := &handlers.Metadata{
+		PubKey:       address,
+		Value:        rootCID,
+		RootCid:      rootCID,
+		Signature:    hexutil.Encode(sig),
+		Timestamp:    now,
+		Validity:     "2018-12-12T14:49:14.074000000Z",
+		ValidityType: 0,
+		Sequence:     2,
 	}
 
-	_ = writer.WriteField("metadata", string(metadataBytes))
-	rootCID := getRootCID(metadataFile)
-	_ = writer.WriteField(rootCID, string(contentsBytes))
+	mbytes, _ := json.Marshal(metadata)
+	_ = writer.WriteField("metadata", string(mbytes))
+	_ = writer.WriteField(metadata.RootCid, string(contentjson))
 
 	err = writer.Close()
 	if err != nil {
@@ -382,7 +405,7 @@ func buildUploadRequest(config *uploadTestConfig, t *testing.T) *http.Request {
 	return req
 }
 
-func loadUploadContent(c *uploadTestConfig, w *multipart.Writer) error {
+func loadUploadContent(c *uploadTestConfig, w *multipart.Writer, cids []*utils.FileMetadata) error {
 
 	manifest, err := c.readManifest()
 	if err != nil {
@@ -394,7 +417,14 @@ func loadUploadContent(c *uploadTestConfig, w *multipart.Writer) error {
 			continue
 		}
 
-		part, err := w.CreateFormFile(content.Cid, content.Name)
+		cid := content.Cid
+		for _, meta := range cids {
+			if meta.Name[1:len(meta.Name)] == content.Name {
+				cid = meta.Cid
+				break
+			}
+		}
+		part, err := w.CreateFormFile(cid, content.Name)
 		if err != nil {
 			return err
 		}
@@ -484,5 +514,8 @@ var redeployTC = []uploadTestConfig{
 			return file[len(file)-1:] == "/" || file == "the-non-existing-asset.json"
 		},
 		expectedStatus: http.StatusBadRequest,
+		extraContent: func() *utils.FileMetadata {
+			return &utils.FileMetadata{Cid: "clearlynotcid", Name: "the-non-existing-asset.json"}
+		},
 	},
 }

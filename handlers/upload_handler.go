@@ -22,6 +22,7 @@ type UploadCtx struct {
 	Agent           *metrics.Agent
 	Filter          *ContentTypeFilter
 	Limits          config.Limits
+	TimeToLive      int64
 }
 
 type FileMetadata struct {
@@ -37,6 +38,7 @@ type Metadata struct {
 	Sequence     int    `json:"sequence" structs:"sequence" validate:"gte=0"`
 	PubKey       string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
 	RootCid      string `json:"root_cid" structs:"root_cid" validate:"required"`
+	Timestamp    int64  `json:"timestamp" structs:"timestamp" validate:"gte=0"`
 }
 
 type scene struct {
@@ -90,7 +92,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 	log.Debug("About to parse Upload request...")
 	tParse := time.Now()
-	uploadRequest, err := parseRequest(r, c.StructValidator, c.Agent, c.Filter, c.Limits.MaxSceneElements)
+	uploadRequest, err := c.parseRequest(r)
 	c.Agent.RecordUploadRequestParseTime(time.Since(tParse))
 	log.Debug("Upload request parsed")
 
@@ -111,33 +113,38 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 
 // Extracts all the information from the http request
 // If any part is missing or is invalid it will retrieve an error
-func parseRequest(r *http.Request, v validation.Validator, agent *metrics.Agent, filter *ContentTypeFilter, filesPerScene int) (*UploadRequest, error) {
+func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
 		log.Errorf("Invalid UploadContent request: %s", err.Error())
 		return nil, NewInternalError(err.Error())
 	}
 
-	metadata, err := getMetadata(r, v)
+	metadata, err := getMetadata(r, c.StructValidator)
 	if err != nil {
 		return nil, err
 	}
 
-	manifestContent, err := getManifestContent(r, v, metadata.RootCid)
+	if hasRequestExpired(&metadata, c.TimeToLive) {
+		return nil, NewBadRequestError("Expired request")
+	}
+
+	manifestContent, err := getManifestContent(r, c.StructValidator, metadata.RootCid)
 	if err != nil {
 		return nil, err
 	}
 
 	manifestSize := len(*manifestContent)
-	agent.RecordManifestSize(len(*manifestContent))
+	c.Agent.RecordManifestSize(len(*manifestContent))
+	filesPerScene := c.Limits.MaxSceneElements
 	if manifestSize > filesPerScene {
 		log.Errorf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
 		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
 	}
 
 	uploadedFiles := r.MultipartForm.File
-	agent.RecordUploadRequestFiles(len(uploadedFiles))
-	if err := validateContentTypes(uploadedFiles, filter); err != nil {
+	c.Agent.RecordUploadRequestFiles(len(uploadedFiles))
+	if err := validateContentTypes(uploadedFiles, c.Filter); err != nil {
 		return nil, err
 	}
 
@@ -148,13 +155,13 @@ func parseRequest(r *http.Request, v validation.Validator, agent *metrics.Agent,
 		return nil, NewBadRequestError("Request contains too many files")
 	}
 
-	scene, err := getScene(uploadedFiles, v)
+	scene, err := getScene(uploadedFiles, c.StructValidator)
 	if err != nil {
 		return nil, err
 	}
 
 	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene}
-	err = v.ValidateStruct(request)
+	err = c.StructValidator.ValidateStruct(request)
 	if err != nil {
 		log.Debugf("Invalid UploadRequest: %s", err.Error())
 		return nil, WrapInBadRequestError(err)
@@ -270,4 +277,10 @@ func sendRequestData(a *metrics.Agent, r *http.Request) {
 	} else {
 		a.RecordUploadReqSize(val)
 	}
+}
+
+func hasRequestExpired(m *Metadata, ttl int64) bool {
+	epochNow := time.Now().Unix()
+
+	return epochNow-m.Timestamp > ttl
 }

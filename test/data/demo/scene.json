@@ -9,9 +9,9 @@
   },
   "scene": {
     "parcels": [
-      "54,-136"
+      "65,-135"
     ],
-    "base": "54,-136"
+    "base": "65,-135"
   },
   "communications": {
     "type": "webrtc",

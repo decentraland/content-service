@@ -16,7 +16,7 @@ redis:
   DB:       0
 
 decentralandApi:
-  landUrl: 'https://api.decentraland.org/v1/'
+  landUrl: 'https://api.decentraland.zone/v1/'
 
 logLevel: 'INFO'
 
@@ -40,3 +40,5 @@ limits:
   maxSceneElements: 1000000
 
 workdir: '/tmp'
+
+uploadRequestTTL: 600
