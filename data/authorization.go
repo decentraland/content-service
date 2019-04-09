@@ -26,6 +26,9 @@ func NewAuthorizationService(client Decentraland) *AuthorizationService {
 
 func (service AuthorizationService) UserCanModifyParcels(pubkey string, parcelsList []string) (bool, error) {
 	log.Debugf("Checking Address[%s] permissions", pubkey)
+	if len(parcelsList) == 0 {
+		return false, fmt.Errorf("There must be at least one parcel")
+	}
 	for _, parcelStr := range parcelsList {
 		coordinates := strings.Split(parcelStr, ",")
 		if len(coordinates) != 2 {
@@ -83,8 +86,6 @@ func (service AuthorizationService) IsSignatureValid(msg, hexSignature, hexAddre
 		return false
 	}
 
-	verified := crypto.VerifySignature(publicKeyBytes, msgHash.Bytes(), sigBytes[:64])
-
 	publicKey, _ := crypto.UnmarshalPubkey(publicKeyBytes)
 	sigAddress := crypto.PubkeyToAddress(*publicKey)
 	ownerAddress, err := hexutil.Decode(hexAddress)
@@ -93,5 +94,5 @@ func (service AuthorizationService) IsSignatureValid(msg, hexSignature, hexAddre
 		return false
 	}
 
-	return verified && bytes.Equal(sigAddress.Bytes(), ownerAddress)
+	return bytes.Equal(sigAddress.Bytes(), ownerAddress)
 }

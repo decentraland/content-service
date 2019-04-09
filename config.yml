@@ -40,3 +40,5 @@ limits:
   maxSceneElements: 1000000 # Set LIMIT_SCENE_ELEMENTS env variable to overwrite this value
 
 workdir: '/tmp' # Set WORK_DIR env variable to overwrite this value
+
+uploadRequestTTL: 600 # Set UPLOAD_TTL env variable to overwrite this value

@@ -19,6 +19,7 @@ type Configuration struct {
 	AllowedContentTypes []string
 	Limits              Limits
 	Workdir             string
+	UploadRequestTTL    int64
 }
 
 type DecentralandApi struct {
@@ -120,6 +121,8 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("limits.maxSceneElements", "LIMIT_SCENE_ELEMENTS")
 
 	v.BindEnv("workdir", "WORK_DIR")
+
+	v.BindEnv("uploadRequestTTL", "UPLOAD_TTL")
 
 	//Allowed content types
 	contentEnv := os.Getenv("ALLOWED_TYPES")
