@@ -15,7 +15,8 @@ import (
 
 func GetRouter(client data.RedisClient, storage storage.Storage, node *core.IpfsNode, agent *metrics.Agent, conf *config.Configuration) *mux.Router {
 	r := mux.NewRouter()
-	setupApiInitialVersion(r, client, storage, node, agent, conf)
+	api := r.PathPrefix("/api").Subrouter()
+	setupApiInitialVersion(api.PathPrefix("/v1").Subrouter(), client, storage, node, agent, conf)
 	return r
 }
 
