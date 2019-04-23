@@ -86,7 +86,7 @@ func TestContentsHandlerS3Redirect(t *testing.T) {
 	const CID = "123456789"
 
 	client := getNoRedirectClient()
-	response, err := client.Get(server.URL + "/contents/" + CID)
+	response, err := client.Get(server.URL + "/api/v1/contents/" + CID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestInvalidCoordinates(t *testing.T) {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")
 	}
 	x1, y1, x2, y2 := 45, 45, 44, 46
-	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
+	query := fmt.Sprintf("/api/v1/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 
 	client := getNoRedirectClient()
 	response, err := client.Get(server.URL + query)
@@ -148,7 +148,7 @@ func TestCoordinatesNotCached(t *testing.T) {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")
 	}
 	x1, y1, x2, y2 := 120, 120, 120, 120
-	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
+	query := fmt.Sprintf("/api/v1/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
 
 	client := getNoRedirectClient()
 	response, err := client.Get(server.URL + query)
@@ -197,7 +197,7 @@ func TestGetContent(t *testing.T) {
 	client := server.Client()
 
 	const testFileCID = "QmbdQuGbRFZdeqmK3PJyLV3m4p2KDELKRS4GfaXyehz672"
-	resp, err := client.Get(fmt.Sprintf("%s/contents/%s", server.URL, testFileCID))
+	resp, err := client.Get(fmt.Sprintf("%s/api/v1/contents/%s", server.URL, testFileCID))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +229,7 @@ func TestValidateContent(t *testing.T) {
 
 	for _, tc := range validateTc {
 		t.Run(tc.name, func(t *testing.T) {
-			query := fmt.Sprintf("/validate?x=%s&y=%s", tc.x, tc.y)
+			query := fmt.Sprintf("/api/v1/validate?x=%s&y=%s", tc.x, tc.y)
 			client := getNoRedirectClient()
 			resp, err := client.Get(server.URL + query)
 			if err != nil {
@@ -269,7 +269,7 @@ func TestContentStatus(t *testing.T) {
 
 	body := fmt.Sprintf("{\"content\": [%s]}", strings.Join(list, ","))
 
-	req, err := http.NewRequest("POST", server.URL+"/content/status", strings.NewReader(body))
+	req, err := http.NewRequest("POST", server.URL+"/api/v1/content/status", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
@@ -397,7 +397,7 @@ func buildUploadRequest(config *uploadTestConfig, t *testing.T) *http.Request {
 		t.Fatal()
 	}
 
-	req, err := http.NewRequest("POST", server.URL+"/mappings", body)
+	req, err := http.NewRequest("POST", server.URL+"/api/v1/mappings", body)
 	if err != nil {
 		t.Fatal()
 	}
