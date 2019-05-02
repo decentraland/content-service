@@ -29,16 +29,18 @@ type accessResponse struct {
 }
 
 type AccessData struct {
-	Id               string
-	Address          string
-	IsApprovedForAll bool
-	IsOwner          bool
-	IsOperator       bool
-	IsUpdateOperator bool
+	Id                 string
+	Address            string
+	IsApprovedForAll   bool
+	IsUpdateManager    bool
+	IsOwner            bool
+	IsOperator         bool
+	IsUpdateOperato    bool
+	IsUpdateAuthorized bool
 }
 
 func (ad *AccessData) HasAccess() bool {
-	return ad.IsApprovedForAll || ad.IsOperator || ad.IsOwner || ad.IsUpdateOperator
+	return ad.IsUpdateAuthorized
 }
 
 type MapResponse struct {
