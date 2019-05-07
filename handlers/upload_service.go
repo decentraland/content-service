@@ -276,18 +276,20 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 			log.Debugf("Failed to upload file[%s], CID[%s]: %s", fileHeader.Filename, fileCID, err.Error())
 			return err
 		}
+	}
 
-		for _, path := range paths[fileCID] {
-			err = us.RedisClient.StoreContent(cid, path, fileCID)
-			if err != nil {
+	// Update the content of the parcel with all the files contained in the new scene
+	for fileCID, filePaths := range paths {
+		for _, p := range filePaths {
+			if err := us.RedisClient.StoreContent(cid, p, fileCID); err != nil {
 				return WrapInInternalError(err)
 			}
 		}
-
-		if err = us.RedisClient.AddCID(fileCID); err != nil {
+		if err := us.RedisClient.AddCID(fileCID); err != nil {
 			return WrapInInternalError(err)
 		}
 	}
+
 	log.Infof("[Process New Files] New content for RootCID[%s] done", cid)
 	return nil
 }
