@@ -71,15 +71,36 @@ func NewMappingsService(client data.RedisClient, dcl data.Decentraland) *Mapping
 	return &MappingsServiceImpl{client, dcl}
 }
 
-func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
-	log.Debugf("Retrieving map information within coordinates (%d,%d) and (%d,%d)", x1, y1, x2, y2)
-	parcels, estates, err := ms.Dcl.GetMap(x1, y1, x2, y2)
-	if err != nil {
-		return nil, WrapInInternalError(err)
+func rectToParcels(x1, y1, x2, y2 int) (ret []string) {
+
+	minmax := func (x, y int) (int, int) {
+		if x < y {
+			return x, y
+		}
+		return y, x
 	}
+	x1, x2 = minmax(x1, x2)
+	y1, y2 = minmax(y1, y2)
+
+	size := (x2 - x1 + 1) * (y2 - y1 + 1)
+	ret = make([]string, 0, size)
+	for x := x1; x < x2 + 1; x++ {
+		for y := y1; y < y2 + 1; y++ {
+			ret = append(ret, fmt.Sprintf("%d,%d", x, y))
+		}
+	}
+	return ret
+}
+
+func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
+
+	log.Debugf("Retrieving map information within coordinates (%d,%d) and (%d,%d)", x1, y1, x2, y2)
+	parcels := rectToParcels(x1, y1, x2, y2)
+
 	mapContents := []ParcelContent{}
-	for k := range consolidateParcelsIds(parcels, estates) {
-		content, err := ms.GetParcelInformation(k)
+	for _, pid := range parcels {
+		log.Debugf("Should lookup info for parcel %s", pid)
+		content, err := ms.GetParcelInformation(pid)
 		if err != nil {
 			return nil, WrapInInternalError(err)
 		}
@@ -111,30 +132,4 @@ func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (*ParcelCon
 		return nil, err
 	}
 	return &ParcelContent{ParcelID: parcelId, Contents: elements, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
-}
-
-func consolidateParcelsIds(parcels []*data.Parcel, estates []*data.Estate) map[string]struct{} {
-	parcelsId := make(map[string]struct{})
-
-	appendParcels(parcelsId, &parcels, func(p *data.Parcel) string {
-		return p.ID
-	})
-
-	onlyCoords := func(p *data.Parcel) string {
-		return fmt.Sprintf("%d,%d", p.X, p.Y)
-	}
-
-	for _, estate := range estates {
-		appendParcels(parcelsId, &estate.Data.Parcels, onlyCoords)
-	}
-	return parcelsId
-}
-
-func appendParcels(result map[string]struct{}, parcels *[]*data.Parcel, idExtractor func(p *data.Parcel) string) {
-	for _, p := range *parcels {
-		id := idExtractor(p)
-		if _, ok := result[id]; !ok {
-			result[id] = struct{}{}
-		}
-	}
 }
