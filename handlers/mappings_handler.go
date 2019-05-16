@@ -99,7 +99,6 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 
 	mapContents := []ParcelContent{}
 	for _, pid := range parcels {
-		log.Debugf("Should lookup info for parcel %s", pid)
 		content, err := ms.GetParcelInformation(pid)
 		if err != nil {
 			return nil, WrapInInternalError(err)
