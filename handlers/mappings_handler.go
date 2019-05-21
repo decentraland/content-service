@@ -16,6 +16,11 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
+type Scenes struct {
+	ParcelID string `json:"parcel_id"`
+	RootCID string `json:"root_cid"`
+}
+
 type ContentElement struct {
 	File string `json:"file"`
 	Cid  string `json:"hash"`
@@ -43,6 +48,28 @@ func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
 	return NewOkJsonResponse(mapContents), nil
 }
 
+func GetScenes(ctx interface{}, r *http.Request) (Response, error) {
+	ms, ok := ctx.(MappingsService)
+	if !ok {
+		log.Fatal("Invalid Handler configuration")
+		return nil, NewInternalError("Invalid Configuration")
+	}
+
+	params, err := mapValuesToInt(mux.Vars(r))
+	if err != nil {
+		return nil, err
+	}
+
+	mapContents, err := ms.GetScenes(params["x1"], params["y1"], params["x2"], params["y2"])
+	if err != nil {
+		return nil, err
+	}
+	if mapContents == nil {
+		return NewOkEmptyResponse(), nil
+	}
+	return NewOkJsonResponse(mapContents), nil
+}
+
 func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 	var err error
 	mapInt := make(map[string]int)
@@ -59,6 +86,7 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 
 type MappingsService interface {
 	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
+	GetScenes(x1, y1, x2, y2 int) ([]Scenes, error)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
 }
 
@@ -71,7 +99,7 @@ func NewMappingsService(client data.RedisClient, dcl data.Decentraland) *Mapping
 	return &MappingsServiceImpl{client, dcl}
 }
 
-func rectToParcels(x1, y1, x2, y2 int) (ret []string) {
+func rectToParcels(x1, y1, x2, y2 int) []string {
 
 	minmax := func (x, y int) (int, int) {
 		if x < y {
@@ -83,7 +111,7 @@ func rectToParcels(x1, y1, x2, y2 int) (ret []string) {
 	y1, y2 = minmax(y1, y2)
 
 	size := (x2 - x1 + 1) * (y2 - y1 + 1)
-	ret = make([]string, 0, size)
+	ret := make([]string, 0, size)
 	for x := x1; x < x2 + 1; x++ {
 		for y := y1; y < y2 + 1; y++ {
 			ret = append(ret, fmt.Sprintf("%d,%d", x, y))
@@ -108,6 +136,33 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 		}
 	}
 	return mapContents, nil
+}
+
+func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]Scenes, error ) {
+	log.Debugf("Retrieving map information within points (%d, %d, %d, %d)", x1, x2, y1, y2)
+
+	pids := rectToParcels(x1, y1, x2, y2)
+	cids := make(map[string]bool, len(pids))
+	for _, pid := range pids {
+		cid, err := ms.RedisClient.GetParcelInfo(pid)
+		if err != nil {
+			return nil, err //TODO handle??
+		}
+		cids[cid] = true
+	}
+
+	parcelMap := make([]Scenes, 0, len(pids))
+	for cid, _ := range cids {
+		parcels, err := ms.RedisClient.GetSceneParcels(cid)
+		if err != nil {
+			return nil, err //TODO handle??
+		}
+		for _, p := range parcels {
+			parcelMap = append(parcelMap, Scenes{ParcelID: p, RootCID:cid})
+		}
+	}
+
+	return parcelMap, nil
 }
 
 /**

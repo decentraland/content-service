@@ -313,6 +313,11 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 			return WrapInInternalError(err)
 		}
 	}
+	err := us.RedisClient.SetSceneParcels(rootCID, parcels)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

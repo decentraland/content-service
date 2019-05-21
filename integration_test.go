@@ -175,6 +175,46 @@ func TestCoordinatesNotCached(t *testing.T) {
 	}
 }
 
+func TestScenes(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
+
+	response := execRequest(buildUploadRequest(okUploadContent, t), t)
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("Upload unsuccessful. Got response code: %d", response.StatusCode)
+	}
+
+	x1, y1, x2, y2 := 65, -135, 65, -135
+	query := fmt.Sprintf("/scenes?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
+
+	client := getNoRedirectClient()
+	response, err := client.Get(server.URL + query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
+	}
+
+	if contentType := response.Header.Get("Content-Type"); contentType != "application/json" {
+		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bodyString := string(body)
+	if bodyString != "[]" {
+		t.Errorf("Mappings handler should return empty JSON List when coordinates not in cache.\nRecieved:\n%s", bodyString)
+	}
+}
+
 func TestUploadHandler(t *testing.T) {
 	if !runIntegrationTests {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")
