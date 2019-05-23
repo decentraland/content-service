@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/decentraland/content-service/data"
+	. "github.com/decentraland/content-service/utils"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -99,31 +99,10 @@ func NewMappingsService(client data.RedisClient, dcl data.Decentraland) *Mapping
 	return &MappingsServiceImpl{client, dcl}
 }
 
-func rectToParcels(x1, y1, x2, y2 int) []string {
-
-	minmax := func (x, y int) (int, int) {
-		if x < y {
-			return x, y
-		}
-		return y, x
-	}
-	x1, x2 = minmax(x1, x2)
-	y1, y2 = minmax(y1, y2)
-
-	size := (x2 - x1 + 1) * (y2 - y1 + 1)
-	ret := make([]string, 0, size)
-	for x := x1; x < x2 + 1; x++ {
-		for y := y1; y < y2 + 1; y++ {
-			ret = append(ret, fmt.Sprintf("%d,%d", x, y))
-		}
-	}
-	return ret
-}
-
 func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
 
 	log.Debugf("Retrieving map information within coordinates (%d,%d) and (%d,%d)", x1, y1, x2, y2)
-	parcels := rectToParcels(x1, y1, x2, y2)
+	parcels := RectToParcels(x1, y1, x2, y2)
 
 	mapContents := []ParcelContent{}
 	for _, pid := range parcels {
@@ -141,7 +120,7 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]Scenes, error ) {
 	log.Debugf("Retrieving map information within points (%d, %d, %d, %d)", x1, x2, y1, y2)
 
-	pids := rectToParcels(x1, y1, x2, y2)
+	pids := RectToParcels(x1, y1, x2, y2)
 	cids := make(map[string]bool, len(pids))
 	for _, pid := range pids {
 		cid, err := ms.RedisClient.GetParcelInfo(pid)

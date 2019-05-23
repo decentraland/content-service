@@ -63,6 +63,16 @@ var okUploadContent = &uploadTestConfig{
 	extraContent: nil,
 }
 
+var scenesUploadContent = &uploadTestConfig{
+	manifest:     "test/data2/contents.json",
+	contentDir:   "test/data2/upload",
+	metadataPath: "test/data2/metadata.json",
+	contentFilter: func(file string) bool {
+		return file[len(file)-1:] == "/"
+	},
+	extraContent: nil,
+}
+
 func TestMain(m *testing.M) {
 	if runIntegrationTests {
 		conf := config.GetConfig("config_test")
@@ -210,8 +220,8 @@ func TestScenes(t *testing.T) {
 		t.Fatal(err)
 	}
 	bodyString := string(body)
-	if bodyString != "[]" {
-		t.Errorf("Mappings handler should return empty JSON List when coordinates not in cache.\nRecieved:\n%s", bodyString)
+	if len(bodyString) <= 2 {
+		t.Errorf("Scenes should be a non empty response.")
 	}
 }
 
@@ -226,6 +236,21 @@ func TestUploadHandler(t *testing.T) {
 		t.Fatalf("Upload unsuccessful. Got response code: %d", response.StatusCode)
 	}
 }
+
+func TestUploadHandler2(t *testing.T) {
+	if !runIntegrationTests {
+		t.Skip("Skipping integration test. To run it set RUN_IT=true")
+	}
+	response := execRequest(buildUploadRequest(scenesUploadContent, t), t)
+	defer response.Body.Close()
+
+	resp, _ := ioutil.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("Upload unsuccessful. Got response code: %d", response.StatusCode)
+		t.Fatalf("Need to use this acr %T", resp)
+	}
+}
+
 
 func TestGetContent(t *testing.T) {
 	if !runIntegrationTests {
