@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/go-redis/redis"
 	"github.com/decentraland/content-service/data"
 	. "github.com/decentraland/content-service/utils"
 	"github.com/gorilla/mux"
@@ -120,20 +121,24 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]Scenes, error ) {
 	log.Debugf("Retrieving map information within points (%d, %d, %d, %d)", x1, x2, y1, y2)
 
+	// we will need to move this down later
+	parcelMap := make([]Scenes, 0, 1)
+
 	pids := RectToParcels(x1, y1, x2, y2)
 	cids := make(map[string]bool, len(pids))
 	for _, pid := range pids {
 		cid, err := ms.RedisClient.GetParcelInfo(pid)
-		if err != nil {
+		if err != nil && err != redis.Nil {
 			return nil, err //TODO handle??
 		}
+		parcelMap = append(parcelMap, Scenes{ParcelID:pid, RootCID: cid}) //TODO: this will cause the parcel to be repeted, but it'll work for testing
 		cids[cid] = true
 	}
 
-	parcelMap := make([]Scenes, 0, len(pids))
+
 	for cid, _ := range cids {
 		parcels, err := ms.RedisClient.GetSceneParcels(cid)
-		if err != nil {
+		if err != nil && err != redis.Nil {
 			return nil, err //TODO handle??
 		}
 		for _, p := range parcels {
