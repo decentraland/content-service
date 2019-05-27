@@ -64,9 +64,19 @@ var okUploadContent = &uploadTestConfig{
 }
 
 var scenesUploadContent = &uploadTestConfig{
-	manifest:     "test/data2/contents.json",
-	contentDir:   "test/data2/upload",
-	metadataPath: "test/data2/metadata.json",
+	manifest:     "test/data3/contents.json",
+	contentDir:   "test/data3/upload",
+	metadataPath: "test/data3/metadata.json",
+	contentFilter: func(file string) bool {
+		return file[len(file)-1:] == "/"
+	},
+	extraContent: nil,
+}
+
+var scenesUploadContent2 = &uploadTestConfig{
+	manifest:     "test/data4/contents.json",
+	contentDir:   "test/data4/upload",
+	metadataPath: "test/data4/metadata.json",
 	contentFilter: func(file string) bool {
 		return file[len(file)-1:] == "/"
 	},
@@ -190,15 +200,15 @@ func TestScenes(t *testing.T) {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")
 	}
 
-	response := execRequest(buildUploadRequest(okUploadContent, t), t)
+	response := execRequest(buildUploadRequest(scenesUploadContent, t), t)
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("Upload unsuccessful. Got response code: %d", response.StatusCode)
 	}
 
-	x1, y1, x2, y2 := 65, -135, 65, -135
-	query := fmt.Sprintf("/scenes?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
+	x1, y1, x2, y2 := 143, -93, 143, -93
+	query := fmt.Sprintf("/scenes?x1=%d&y1=%d&x2=%d&y2=%d", x1, y1, x2, y2)
 
 	client := getNoRedirectClient()
 	response, err := client.Get(server.URL + query)
@@ -219,10 +229,75 @@ func TestScenes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bodyString := string(body)
-	if len(bodyString) <= 2 {
-		t.Errorf("Scenes should be a non empty response.")
+
+	var cids []map[string]string
+	ok := json.Unmarshal(body, &cids)
+	if ok != nil {
+		t.Errorf("Wrong json")
 	}
+
+	oldCid := ""
+	for _, p := range cids {
+		if p["143,-93"] != "" {
+			oldCid = p["143,-93"]
+			break
+		}
+	}
+	if oldCid == "" {
+		t.Errorf("Parcel not found")
+	}
+
+	response = execRequest(buildUploadRequest(scenesUploadContent2, t), t)
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("Upload unsuccessful. Got response code: %d", response.StatusCode)
+	}
+
+	x1, y1, x2, y2 = 143, -93, 144, -93
+	query = fmt.Sprintf("/scenes?x1=%d&y1=%d&x2=%d&y2=%d", x1, y1, x2, y2)
+
+	response, err = client.Get(server.URL + query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
+	}
+
+	if contentType := response.Header.Get("Content-Type"); contentType != "application/json" {
+		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
+	}
+
+	body, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok = json.Unmarshal([]byte(body), &cids)
+	if ok != nil {
+		t.Errorf("Wrong json")
+	}
+
+	parcelA := ""
+	parcelB := ""
+	for _, p := range cids {
+		if p["143,-93"] != "" {
+			parcelA = p["143,-93"]
+		}
+		if p["144,-93"] !=  "" {
+			parcelB = p["144,-93"]
+		}
+	}
+	if parcelA != oldCid {
+		t.Errorf("Cid got updated")
+	}
+	if parcelB == oldCid {
+		t.Errorf("Cid didn't get updated")
+	}
+
 }
 
 func TestUploadHandler(t *testing.T) {
@@ -241,7 +316,7 @@ func TestUploadHandler2(t *testing.T) {
 	if !runIntegrationTests {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")
 	}
-	response := execRequest(buildUploadRequest(scenesUploadContent, t), t)
+	response := execRequest(buildUploadRequest(scenesUploadContent2, t), t)
 	defer response.Body.Close()
 
 	resp, _ := ioutil.ReadAll(response.Body)
