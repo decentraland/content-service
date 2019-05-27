@@ -17,11 +17,6 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
-type Scenes struct {
-	ParcelID string `json:"parcel_id"`
-	RootCID string `json:"root_cid"`
-}
-
 type ContentElement struct {
 	File string `json:"file"`
 	Cid  string `json:"hash"`
@@ -87,7 +82,7 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 
 type MappingsService interface {
 	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
-	GetScenes(x1, y1, x2, y2 int) ([]Scenes, error)
+	GetScenes(x1, y1, x2, y2 int) ([]map[string]string, error)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
 }
 
@@ -118,20 +113,23 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 	return mapContents, nil
 }
 
-func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]Scenes, error ) {
+func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]map[string]string, error ) {
 	log.Debugf("Retrieving map information within points (%d, %d, %d, %d)", x1, x2, y1, y2)
 
 	// we will need to move this down later
-	parcelMap := make([]Scenes, 0, 1)
+	parcelMap := make(map[string]string, 0)
 
 	pids := RectToParcels(x1, y1, x2, y2)
 	cids := make(map[string]bool, len(pids))
 	for _, pid := range pids {
 		cid, err := ms.RedisClient.GetParcelInfo(pid)
-		if err != nil && err != redis.Nil {
+		if err == redis.Nil {
+			continue
+		}
+		if err != nil {
 			return nil, err //TODO handle??
 		}
-		parcelMap = append(parcelMap, Scenes{ParcelID:pid, RootCID: cid}) //TODO: this will cause the parcel to be repeted, but it'll work for testing
+		parcelMap[pid] = cid //TODO: This is for compatibility with old queries, should be removed _eventually_
 		cids[cid] = true
 	}
 
@@ -142,11 +140,18 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]Scenes, error ) 
 			return nil, err //TODO handle??
 		}
 		for _, p := range parcels {
-			parcelMap = append(parcelMap, Scenes{ParcelID: p, RootCID:cid})
+			parcelMap[p] = cid
 		}
 	}
 
-	return parcelMap, nil
+	// Ugly and inefficient, but client requires an array. This can be improved once we remove the TODO above and we are sure that elements are not repeated
+	ret := make([]map[string]string, 0, len(parcelMap))
+	for k, v := range parcelMap {
+		m := make(map[string]string, 1)
+		m[k] = v
+		ret = append(ret, m)
+	}
+	return ret, nil
 }
 
 /**
