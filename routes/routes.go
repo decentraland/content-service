@@ -26,20 +26,22 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
 		Handler(
 			&handlers.ResponseHandler{
-				Ctx:   handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent)),
+				Ctx:   handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent), storage),
 				H:     handlers.GetMappings,
 				Agent: agent,
 				Id:    "GetMappings"})
 
 	r.Path("/scenes").
 		Methods("GET").
-		Queries("nw", "{x1:-?[0-9]+},{y1:-?[0-9]+}", "se", "{x2:-?[0-9]+},{y2:-?[0-9]+}").
+		Queries("x1", "{x1:-?[0-9]+}","y1", "{y1:-?[0-9]+}","x2", "{x2:-?[0-9]+}","y2", "{y2:-?[0-9]+}").
 		Handler(
 			&handlers.ResponseHandler{
-				Ctx:   handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent)),
+				Ctx:   handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent), storage),
 				H:     handlers.GetScenes,
 				Agent: agent,
 				Id:    "GetScenes"})
+
+
 
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),

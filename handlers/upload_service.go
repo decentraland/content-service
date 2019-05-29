@@ -312,6 +312,11 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 			log.Errorf("Unable to store parcel[%s] Information: %s ", parcel, err.Error())
 			return WrapInInternalError(err)
 		}
+		err = us.RedisClient.SetProcessedParcel(parcel)
+		if err != nil {
+			log.Errorf("Unable to store parcel[%s] Information: %s ", parcel, err.Error())
+			return WrapInInternalError(err)
+		}
 	}
 	err := us.RedisClient.SetSceneParcels(rootCID, parcels)
 	if err != nil {

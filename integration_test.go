@@ -596,8 +596,8 @@ func getNoRedirectClient() *http.Client {
 var validateTc = []validateCoordConfig{
 	{
 		name:           "Valid parcel",
-		x:              "54",
-		y:              "-136",
+		x:              "65",
+		y:              "-135",
 		expectedStatus: http.StatusOK,
 	},
 	{

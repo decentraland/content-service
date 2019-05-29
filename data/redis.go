@@ -23,6 +23,8 @@ type RedisClient interface {
 	//SetParcelInfo(parcelID, sceneCID string) error
 	SetSceneParcels(cid string, pid []string) error
 	GetSceneParcels(cid string) ([]string, error)
+	ProcessedParcel(pid string) (bool, error)
+	SetProcessedParcel(pid string) error
 }
 
 type Redis struct {
@@ -33,7 +35,7 @@ type Redis struct {
 const uploadedElementsKey = "uploaded-content"
 const metadataKeyPrefix = "metadata_"
 const contentKeyPrefix = "content_"
-const sceneList = "scene-list:"
+const proccessedSet = "processedSet"
 
 func NewRedisClient(address string, password string, db int, agent *metrics.Agent) (*Redis, error) {
 	client := redis.NewClient(&redis.Options{
@@ -147,6 +149,22 @@ func (r Redis) GetParcelInfo(pid string) (string, error) {
 		return "", err
 	}
 	return cid, nil
+}
+
+func (r Redis) ProcessedParcel(pid string) (bool, error) {
+	member, err := r.Client.SIsMember(proccessedSet, pid).Result()
+	if err != nil && err != redis.Nil {
+		return false, err
+	}
+	if err == redis.Nil {
+		return false, nil
+	}
+	return member, nil
+}
+
+func (r Redis) SetProcessedParcel(pid string) error {
+	_, err := r.Client.SAdd(proccessedSet, pid).Result()
+	return err
 }
 
 //
