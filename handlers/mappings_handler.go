@@ -177,14 +177,20 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 		return false, fmt.Errorf("can't find scene info in scene.json for parcel %s", pid)
 	}
 
-	parcels, ok := sceneValue["parcels"].([]string)
+	parcels, ok := sceneValue["parcels"].([]interface{})
 	if !ok {
 		return false, fmt.Errorf("can't parse parcels in scene.json for parcel %s", pid)
 	}
 
 	allValid := true
+	pids := make([]string, 0, len(parcels))
 	for _, p := range parcels {
-		parcelCid, err := ms.RedisClient.GetParcelInfo(p)
+		pid, ok := p.(string)
+		if !ok {
+			continue
+		}
+		pids = append(pids, pid)
+		parcelCid, err := ms.RedisClient.GetParcelInfo(pid)
 		if err != nil && err != redis.Nil {
 			return false, err
 		}
@@ -199,11 +205,12 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 		return false, nil
 	}
 
-	err = ms.RedisClient.SetSceneParcels(info.RootCID, parcels)
+	err = ms.RedisClient.SetSceneParcels(info.RootCID, pids)
 	if err != nil {
 		return false, err
 	}
-	for _, p := range parcels {
+	
+	for _, p := range pids {
 		_ = ms.RedisClient.SetProcessedParcel(p)
 
 	}
