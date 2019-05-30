@@ -2,12 +2,13 @@ package metrics
 
 import (
 	"fmt"
-	"github.com/decentraland/content-service/config"
-	"github.com/newrelic/go-agent"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/segmentio/analytics-go.v3"
 	"net/http"
 	"time"
+
+	"github.com/decentraland/content-service/config"
+	newrelic "github.com/newrelic/go-agent"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/segmentio/analytics-go.v3"
 )
 
 type newrelicAgent interface {
@@ -32,7 +33,7 @@ type newrelicAgent interface {
 }
 
 type segmentClient interface {
-	RecordUpload(uploadId string, uploader string, developerID, string, parcels []string, files map[string][]string)
+	RecordUpload(uploadId string, uploader string, developerID string, parcels []string, files map[string][]string)
 }
 
 type Agent struct {
@@ -227,7 +228,7 @@ type segmentDummy struct {
 	client analytics.Client
 }
 
-func (sa *segmentDummy) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string) {
+func (sa *segmentDummy) RecordUpload(uploadId string, uploader string, developerID string, parcels []string, files map[string][]string) {
 }
 
 func Make(metrics config.Metrics) (*Agent, error) {
