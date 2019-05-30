@@ -287,7 +287,7 @@ func TestScenes(t *testing.T) {
 		if p["143,-93"] != "" {
 			parcelA = p["143,-93"]
 		}
-		if p["144,-93"] !=  "" {
+		if p["144,-93"] != "" {
 			parcelB = p["144,-93"]
 		}
 	}
@@ -358,7 +358,6 @@ func TestUploadHandler2(t *testing.T) {
 		t.Fatalf("Need to use this acr %T", resp)
 	}
 }
-
 
 func TestGetContent(t *testing.T) {
 	if !runIntegrationTests {

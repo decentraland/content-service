@@ -165,7 +165,7 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	var sceneMap map[string]interface{}
 	bytes, err := ioutil.ReadAll(sceneJson.Body)
 	if err != nil {
-		return false, fmt.Errorf("Can't read scene.json content for parcel", pid)
+		return false, fmt.Errorf("Can't read scene.json content for parcel %s", pid)
 	}
 	err = json.Unmarshal(bytes, &sceneMap)
 	if err != nil {
