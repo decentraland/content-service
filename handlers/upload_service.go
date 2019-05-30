@@ -4,11 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/decentraland/content-service/data"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/fatih/structs"
-	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
-	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,6 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/metrics"
+	"github.com/fatih/structs"
+	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
+	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 
 	"github.com/decentraland/content-service/storage"
 	"github.com/ipsn/go-ipfs/core"
@@ -93,7 +94,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return WrapInInternalError(err)
 	}
 
-	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Scene.Scene.Parcels, pathsByCid)
+	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Metadata.UserID, r.Scene.Scene.Parcels, pathsByCid)
 
 	return nil
 }
@@ -419,6 +420,7 @@ func logUploadRequest(r *UploadRequest) {
 		"requestFiles": strings.Join(rd, ", "),
 		"manifest":     strings.Join(md, ", "),
 		"key":          r.Metadata.PubKey,
+		"developer":    r.Metadata.UserID,
 		"signature":    r.Metadata.Signature,
 	}).Info("Incoming upload request")
 }

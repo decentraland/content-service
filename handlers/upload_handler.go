@@ -3,10 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/validation"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +10,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/validation"
 )
 
 type UploadCtx struct {
@@ -31,7 +33,7 @@ type FileMetadata struct {
 }
 
 type Metadata struct {
-	Value        string `json:"value" structs:"value " validate:"required"`
+	Value        string `json:"value" structs:"value" validate:"required"`
 	Signature    string `json:"signature" structs:"signature" validate:"required,prefix=0x"`
 	Validity     string `json:"validity" structs:"validity" validate:"required"`
 	ValidityType int    `json:"validityType" structs:"validityType" validate:"gte=0"`
@@ -39,6 +41,7 @@ type Metadata struct {
 	PubKey       string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
 	RootCid      string `json:"root_cid" structs:"root_cid" validate:"required"`
 	Timestamp    int64  `json:"timestamp" structs:"timestamp" validate:"gte=0"`
+	UserID       string `json:"userId" structs:"userId" validate:"gte=0"`
 }
 
 type scene struct {
