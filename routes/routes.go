@@ -59,7 +59,13 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 
 	r.Path("/contents/{cid}").
 		Methods("GET").
-		Handler(&handlers.Handler{Ctx: handlers.GetContentCtx{Storage: storage}, H: handlers.GetContent, Agent: agent, Id: "GetContent"})
+		Handler(&handlers.Handler{Ctx: handlers.GetContentCtx{Storage: storage, Redis: client, }, H: handlers.GetContent, Agent: agent, Id: "GetContent"})
+
+
+	r.Path("/parcel_info").
+		Methods("GET").
+		Queries("cids", "{cids}").
+		Handler(&handlers.ResponseHandler{Ctx: handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent), storage), H: handlers.GetInfo, Agent: agent, Id: "GetInfo"})
 
 	r.Path("/validate").
 		Methods("GET").

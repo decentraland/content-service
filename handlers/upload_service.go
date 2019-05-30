@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/fatih/structs"
@@ -306,6 +307,16 @@ func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error
 }
 
 func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []string) error {
+
+	oldCids := make([]string, 0, len(parcels))
+	for _, p := range parcels {
+		cid, err := us.RedisClient.GetParcelInfo(p)
+		if err != nil && err != redis.Nil {
+			return err
+		}
+		oldCids = append(oldCids, cid)
+	}
+
 	for _, parcel := range parcels {
 		err := us.RedisClient.SetKey(parcel, rootCID)
 		if err != nil {
@@ -318,6 +329,11 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 			return WrapInInternalError(err)
 		}
 	}
+
+	for _, cid := range oldCids {
+		_ = us.RedisClient.ClearScene(cid) //on error, continue, better than throwing, maybe??
+	}
+
 	err := us.RedisClient.SetSceneParcels(rootCID, parcels)
 	if err != nil {
 		return err

@@ -20,7 +20,7 @@ type RedisClient interface {
 	IsContentMember(value string) (bool, error)
 
 	GetParcelInfo(pid string) (string, error)
-	//SetParcelInfo(parcelID, sceneCID string) error
+	ClearScene(cid string) error
 	SetSceneParcels(cid string, pid []string) error
 	GetSceneParcels(cid string) ([]string, error)
 	ProcessedParcel(pid string) (bool, error)
@@ -182,6 +182,10 @@ func (r Redis) SetProcessedParcel(pid string) error {
 // for now we are going to keep that map and check the validity of the cid when requesting /scenes, thing that will be
 // updatable once removed the /mappings endpoint
 func (r Redis) SetSceneParcels(scene string, parcels []string) error {
+	if len(parcels) == 0 {
+		return fmt.Errorf("Trying to push empty parcels list for scene %s", scene)
+	}
+
 	cids := make(map[string]bool, len(parcels))
 	for _, p := range parcels {
 		cid, err := r.GetParcelInfo(p)
@@ -213,6 +217,10 @@ func (r Redis) SetSceneParcels(scene string, parcels []string) error {
 	return err
 }
 
+func (r Redis) ClearScene(cid string) error {
+	_, err := r.Client.Del(cid).Result()
+	return err
+}
 func (r Redis) GetSceneParcels(cid string) ([]string, error) {
 	scenes, err := r.Client.LRange(cid, 0, -1).Result()
 	if err != nil {

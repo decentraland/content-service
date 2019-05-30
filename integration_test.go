@@ -231,8 +231,8 @@ func TestScenes(t *testing.T) {
 	}
 
 	var cids []map[string]string
-	ok := json.Unmarshal(body, &cids)
-	if ok != nil {
+	err = json.Unmarshal(body, &cids)
+	if err != nil {
 		t.Errorf("Wrong json")
 	}
 
@@ -276,8 +276,8 @@ func TestScenes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ok = json.Unmarshal([]byte(body), &cids)
-	if ok != nil {
+	err = json.Unmarshal([]byte(body), &cids)
+	if err != nil {
 		t.Errorf("Wrong json")
 	}
 
@@ -298,6 +298,39 @@ func TestScenes(t *testing.T) {
 		t.Errorf("Cid didn't get updated")
 	}
 
+	///////////////////////////////////////////////////////////////////////////////
+
+	query = fmt.Sprintf("/parcel_info?cids=%s,%s", parcelB, parcelA)
+
+	response, err = client.Get(server.URL + query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err = ioutil.ReadAll(response.Body)
+
+	var content []interface{}
+	err = json.Unmarshal(body, &content)
+	if err != nil {
+		t.Errorf("Can't parse parcel_info response")
+	}
+	if len(content) != 1 {
+		t.Errorf("Found more answers than expected")
+	}
+
+	iMetadata := content[0]
+	metadata, ok := iMetadata.(map[string]interface{})
+	if !ok {
+		t.Errorf("Wrong metadata type?")
+	}
+	if metadata[parcelA] != nil {
+		t.Errorf("Shouldn't find metadata for parcel %s", parcelA)
+	}
+	if metadata[parcelB] == nil {
+		t.Errorf("Should find metadata for parcel %s", parcelB)
+	}
+
+	log.Println(metadata)
 }
 
 func TestUploadHandler(t *testing.T) {

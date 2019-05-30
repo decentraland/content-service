@@ -90,6 +90,7 @@ type MappingsService interface {
 	GetScenes(x1, y1, x2, y2 int) ([]map[string]string, error)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
 	IsValidParcel(pid string) (bool, error)
+	GetInfo(cid []string) ([]map[string]map[string]interface{}, error)
 }
 
 type MappingsServiceImpl struct {
@@ -198,8 +199,13 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 		return false, nil
 	}
 
+	err = ms.RedisClient.SetSceneParcels(info.RootCID, parcels)
+	if err != nil {
+		return false, err
+	}
 	for _, p := range parcels {
 		_ = ms.RedisClient.SetProcessedParcel(p)
+
 	}
 
 	return true, nil
@@ -292,4 +298,54 @@ func (ms *MappingsServiceImpl) GetSceneInformation(cid string) (*ParcelContent, 
 
 	info, err := ms.GetParcelInformation(parcels[0])
 	return info, err
+}
+
+func (s *MappingsServiceImpl) GetInfo(cids []string) ([]map[string]map[string]interface{}, error) {
+	parcels := make(map[string]string, len(cids))
+	for _, cid := range cids {
+		ps, err := s.RedisClient.GetSceneParcels(cid)
+		if err != nil {
+			return nil, err
+		}
+		if len(ps) == 0 {
+			continue
+			// TODO: is it better to throw error or skip it? let's skip it now, but discuss it
+			//return nil, fmt.Errorf("Can't find content for cid %s", cid)
+		}
+		parcels[cid] = ps[0]
+	}
+
+	ret := make([]map[string]map[string]interface{}, 0, len(cids))
+	for k, v := range parcels {
+		metadata, err := s.RedisClient.GetParcelMetadata(v)
+		if err != nil {
+			return nil, err
+		}
+		ret =  append(ret, map[string]map[string]interface{} {
+			k: metadata,
+		})
+	}
+
+	log.Println(ret)
+	return ret, nil
+}
+
+
+func GetInfo(ctx interface{}, r *http.Request) (Response, error) {
+	ms, ok := ctx.(MappingsService)
+	if !ok {
+		log.Fatal("Invalid Handler configuration")
+		return nil, NewInternalError("Invalid Configuration")
+	}
+
+	params := mux.Vars(r)
+
+	cidsParam := params["cids"]
+	cids := strings.Split(cidsParam, ",")
+
+	ret, err := ms.GetInfo(cids)
+	if err != nil {
+		return nil, err
+	}
+	return NewOkJsonResponse(ret), nil
 }
