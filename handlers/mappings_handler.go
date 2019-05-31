@@ -90,7 +90,7 @@ type MappingsService interface {
 	GetScenes(x1, y1, x2, y2 int) ([]map[string]string, error)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
 	IsValidParcel(pid string) (bool, error)
-	GetInfo(cid []string) ([]map[string]map[string]interface{}, error)
+	GetInfo(cid []string) ([]map[string]*ParcelContent, error)
 }
 
 type MappingsServiceImpl struct {
@@ -307,7 +307,7 @@ func (ms *MappingsServiceImpl) GetSceneInformation(cid string) (*ParcelContent, 
 	return info, err
 }
 
-func (s *MappingsServiceImpl) GetInfo(cids []string) ([]map[string]map[string]interface{}, error) {
+func (s *MappingsServiceImpl) GetInfo(cids []string) ([]map[string]*ParcelContent, error) {
 	parcels := make(map[string]string, len(cids))
 	for _, cid := range cids {
 		ps, err := s.RedisClient.GetSceneParcels(cid)
@@ -322,14 +322,14 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]map[string]map[string]in
 		parcels[cid] = ps[0]
 	}
 
-	ret := make([]map[string]map[string]interface{}, 0, len(cids))
+	ret := make([]map[string]*ParcelContent, 0, len(cids))
 	for k, v := range parcels {
-		metadata, err := s.RedisClient.GetParcelMetadata(v)
+		content, err := s.GetParcelInformation(v)
 		if err != nil {
 			return nil, err
 		}
-		ret =  append(ret, map[string]map[string]interface{} {
-			k: metadata,
+		ret =  append(ret, map[string]*ParcelContent {
+			k: content,
 		})
 	}
 
