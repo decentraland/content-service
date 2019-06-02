@@ -5,17 +5,23 @@
 
 # API Documentation
 
-The content is mapped by scenes and looked up by parcels. And a parcel may or may not point to a scene.
+Content is mapped by scenes and looked up by parcels. Each parcel may or may not point to a scene.
 
-When looking up for content, the client is expected to search for all scenes in a region of parcels. Next step is to validate that all parcels of a scene still belong to the scene. And finally retrieve the content by CID. Basically the flow should go `GET /mappings` -> `GET /validate` -> `GET /contents/{cid}`
+When a player uses the client to navigate Decentraland, the client is expected to engage with this API to look up the content on all scenes that are in a region of parcels. 
 
-For uploading content, all the scene must be posted into `/mappings` after calculating its CID and signing it.
+The next step is for the client to engage with this API to validate that all parcels of a scene still belong to the scene. And the final step, is for the client to retrieve the content by CID. 
 
-It is important noticing that if a parcel that belongs to a scene gets updated, then the other parcels of the old scene that do not belong to the new one will get out of date. The client is currently responsible for dealing with this issue.
+Basically, the flow should go like this:
+
+`GET /mappings` -> `GET /validate` -> `GET /contents/{cid}`
+
+For uploading content, all the scene must be posted in `/mappings`, after calculating its CID and signing it with the public key of the scene owner or update operator.
+
+It's important to notice that if a parcel that used to belong to a multi-parcel scene is gets updated, but not the other parcels in that old scene, then those other parcels will remain outdated. The client is currently responsible for dealing with this issue.
 
 ### POST /mappings
 
-Updates the scene of a set of parcels. Requires calculating the ipfs cid
+Updates the content for a scene that belongs to a set of parcels. Requires calculating the IPFS CID
 
 Recieves a request with a `Content-Type:multipart/form-data` query parameter, and with the following parts:
 
