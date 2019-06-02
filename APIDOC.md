@@ -19,6 +19,10 @@ For uploading content, all the scene must be posted in `/mappings`, after calcul
 
 It's important to notice that if a parcel that used to belong to a multi-parcel scene is gets updated, but not the other parcels in that old scene, then those other parcels will remain outdated. The client is currently responsible for dealing with this issue.
 
+## Endpoints
+
+The following endpoints are exposed by the content service. You can find these enpoints both in your own instances of the service and in our instances, deployed at `content.server.org`, and `content.server.today`.
+
 ### POST /mappings
 
 Updates the content for a scene that belongs to a set of parcels. Requires calculating the IPFS CID
@@ -93,6 +97,8 @@ It returns a JSON as follows:
   "root_cid": <root CID>
 }
 ```
+
+You can use this request's response to validate that the contents of the scene haven't been changed since the parcel owner or update operator signed it. You can also verify that the root CID corresponds to the contents of the folder by downloading each of the files (using the `/contents` endpoint) and generating a new CID for them that matches the root CID.
 
 ### GET /contents/{CID}
 
