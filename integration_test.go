@@ -72,12 +72,14 @@ type ParcelContent struct {
 
 type SceneContent struct {
 	SceneCID string `json:"scene_cid"`
+	RootCID string `json:"root_cid"`
 	Content *ParcelContent `json:"content"`
 }
 
 type Scene struct {
 	ParcelId string `json:"parcel_id"`
 	SceneCID string `json:"scene_cid"`
+	RootCID string `json:"root_cid"`
 }
 
 type ContentElement struct {
@@ -307,10 +309,10 @@ func TestScenes(t *testing.T) {
 	parcelB := ""
 	for _, p := range cids {
 		if p.ParcelId == "143,-93" {
-			parcelA = p.SceneCID
+			parcelA = p.RootCID
 		}
 		if p.ParcelId == "144,-93" {
-			parcelB = p.SceneCID
+			parcelB = p.RootCID
 		}
 	}
 	if parcelA != oldCid {
@@ -344,7 +346,7 @@ func TestScenes(t *testing.T) {
 		t.Errorf("Too many info in parcel_info query")
 	}
 
-	if content[0].SceneCID != parcelB {
+	if content[0].RootCID != parcelB {
 		t.Errorf("Should find metadata for scene %s", parcelB)
 	}
 

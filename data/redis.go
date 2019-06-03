@@ -25,6 +25,10 @@ type RedisClient interface {
 	GetSceneParcels(cid string) ([]string, error)
 	ProcessedParcel(pid string) (bool, error)
 	SetProcessedParcel(pid string) error
+
+	SaveRootCidSceneCid(rootCID, sceneCID string) error
+	GetSceneCid(rootCID string) (string, error)
+	GetRootCid(sceneCID string) (string, error)
 }
 
 type Redis struct {
@@ -36,6 +40,7 @@ const uploadedElementsKey = "uploaded-content"
 const metadataKeyPrefix = "metadata_"
 const contentKeyPrefix = "content_"
 const proccessedSet = "processedSet"
+const rootScenePrefix = "root-scene:"
 
 func NewRedisClient(address string, password string, db int, agent *metrics.Agent) (*Redis, error) {
 	client := redis.NewClient(&redis.Options{
@@ -227,4 +232,28 @@ func (r Redis) GetSceneParcels(cid string) ([]string, error) {
 		return nil, err
 	}
 	return scenes, nil
+}
+
+func (r Redis) SaveRootCidSceneCid(rootCID, sceneCID string) error {
+	_, err := r.Client.Set(rootScenePrefix + rootCID, sceneCID, 0).Result()
+	if err != nil {
+		return err
+	}
+	_, err = r.Client.Set(rootScenePrefix + sceneCID, rootCID, 0).Result()
+	return err
+}
+func (r Redis) GetSceneCid(rootCID string) (string, error) {
+	ret, err := r.Client.Get(rootScenePrefix + rootCID).Result()
+	if err != nil {
+		return "", err
+	}
+	return ret, nil
+}
+
+func (r Redis) GetRootCid(sceneCID string) (string, error) {
+	ret, err := r.Client.Get(rootScenePrefix + sceneCID).Result()
+	if err != nil {
+		return "", err
+	}
+	return ret, nil
 }

@@ -23,18 +23,25 @@ type ParcelContent struct {
 }
 
 type SceneContent struct {
+	RootCID string `json:"root_cid"`
 	SceneCID string `json:"scene_cid"`
 	Content *ParcelContent `json:"content"`
 }
 
 type Scene struct {
 	ParcelId string `json:"parcel_id"`
+	RootCID string `json:"root_cid"`
 	SceneCID string `json:"scene_cid"`
 }
 
 type ContentElement struct {
 	File string `json:"file"`
 	Cid  string `json:"hash"`
+}
+
+type StringPair struct {
+	A string
+	B string
 }
 
 func GetMappings(ctx interface{}, r *http.Request) (Response, error) {
@@ -274,9 +281,11 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 	// Ugly and inefficient, but client requires an array. This can be improved once we remove the TODO above and we are sure that elements are not repeated
 	ret := make([]*Scene, 0, len(parcelMap))
 	for k, v := range parcelMap {
+		sceneCID, _ := ms.RedisClient.GetSceneCid(v)
 		ret = append(ret, &Scene{
 			ParcelId: k,
-			SceneCID: v,
+			RootCID: v,
+			SceneCID: sceneCID,
 		})
 	}
 	return ret, nil
@@ -306,7 +315,7 @@ func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (*ParcelCon
 }
 
 func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
-	parcels := make(map[string]string, len(cids))
+	parcels := make(map[string]*StringPair, len(cids))
 	for _, cid := range cids {
 		ps, err := s.RedisClient.GetSceneParcels(cid)
 		if err != nil {
@@ -317,17 +326,19 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
 			// TODO: is it better to throw error or skip it? let's skip it now, but discuss it
 			//return nil, fmt.Errorf("Can't find content for cid %s", cid)
 		}
-		parcels[cid] = ps[0]
+		sceneCID, _ := s.RedisClient.GetSceneCid(cid)
+		parcels[cid] = &StringPair{A:ps[0], B:sceneCID}
 	}
 
 	ret := make([]*SceneContent, 0, len(cids))
 	for k, v := range parcels {
-		content, err := s.GetParcelInformation(v)
+		content, err := s.GetParcelInformation(v.A)
 		if err != nil {
 			return nil, err
 		}
 		ret =  append(ret, &SceneContent{
-			SceneCID:k,
+			RootCID:k,
+			SceneCID: v.B,
 			Content: content,
 		})
 	}

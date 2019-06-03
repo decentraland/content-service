@@ -94,6 +94,17 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return WrapInInternalError(err)
 	}
 
+	sceneCID := ""
+	for _, f := range *r.Manifest {
+		if strings.Contains(f.Name, "scene.json") {
+			sceneCID = f.Cid
+			break
+		}
+	}
+	if err := us.RedisClient.SaveRootCidSceneCid(r.Metadata.RootCid, sceneCID); err != nil {
+		return WrapInInternalError(err) //TODO: we can't recover error from here
+	}
+
 	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Scene.Scene.Parcels, pathsByCid)
 
 	return nil
