@@ -63,6 +63,28 @@ var okUploadContent = &uploadTestConfig{
 	extraContent: nil,
 }
 
+type ParcelContent struct {
+	ParcelID  string            `json:"parcel_id"`
+	Contents  []*ContentElement `json:"contents"`
+	RootCID   string            `json:"root_cid"`
+	Publisher string            `json:"publisher"`
+}
+
+type SceneContent struct {
+	SceneCID string `json:"scene_cid"`
+	Content *ParcelContent `json:"content"`
+}
+
+type Scene struct {
+	ParcelId string `json:"parcel_id"`
+	SceneCID string `json:"scene_cid"`
+}
+
+type ContentElement struct {
+	File string `json:"file"`
+	Cid  string `json:"hash"`
+}
+
 var scenesUploadContent = &uploadTestConfig{
 	manifest:     "test/data3/contents.json",
 	contentDir:   "test/data3/upload",
@@ -230,7 +252,7 @@ func TestScenes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var cids []map[string]string
+	var cids []*Scene
 	err = json.Unmarshal(body, &cids)
 	if err != nil {
 		t.Errorf("Wrong json")
@@ -238,8 +260,8 @@ func TestScenes(t *testing.T) {
 
 	oldCid := ""
 	for _, p := range cids {
-		if p["parcel_id"] != "143,-93" {
-			oldCid = p["scene_cid"]
+		if p.ParcelId != "143,-93" {
+			oldCid = p.SceneCID
 			break
 		}
 	}
@@ -284,11 +306,11 @@ func TestScenes(t *testing.T) {
 	parcelA := ""
 	parcelB := ""
 	for _, p := range cids {
-		if p["parcel_id"] == "143,-93" {
-			parcelA = p["scene_cid"]
+		if p.ParcelId == "143,-93" {
+			parcelA = p.SceneCID
 		}
-		if p["parcel_id"] == "144,-93" {
-			parcelB = p["scene_cid"]
+		if p.ParcelId == "144,-93" {
+			parcelB = p.SceneCID
 		}
 	}
 	if parcelA != oldCid {
@@ -309,7 +331,7 @@ func TestScenes(t *testing.T) {
 	defer response.Body.Close()
 	body, err = ioutil.ReadAll(response.Body)
 
-	var content []interface{}
+	var content []*SceneContent
 	err = json.Unmarshal(body, &content)
 	if err != nil {
 		t.Errorf("Can't parse parcel_info response")
@@ -318,19 +340,15 @@ func TestScenes(t *testing.T) {
 		t.Errorf("Found more answers than expected")
 	}
 
-	iMetadata := content[0]
-	metadata, ok := iMetadata.(map[string]interface{})
-	if !ok {
-		t.Errorf("Wrong metadata type?")
-	}
-	if metadata[parcelA] != nil {
-		t.Errorf("Shouldn't find metadata for parcel %s", parcelA)
-	}
-	if metadata[parcelB] == nil {
-		t.Errorf("Should find metadata for parcel %s", parcelB)
+	if len(content) > 1 {
+		t.Errorf("Too many info in parcel_info query")
 	}
 
-	log.Println(metadata)
+	if content[0].SceneCID != parcelB {
+		t.Errorf("Should find metadata for scene %s", parcelB)
+	}
+
+	log.Println(content)
 }
 
 func TestUploadHandler(t *testing.T) {

@@ -22,6 +22,16 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
+type SceneContent struct {
+	SceneCID string `json:"scene_cid"`
+	Content *ParcelContent `json:"content"`
+}
+
+type Scene struct {
+	ParcelId string `json:"parcel_id"`
+	SceneCID string `json:"scene_cid"`
+}
+
 type ContentElement struct {
 	File string `json:"file"`
 	Cid  string `json:"hash"`
@@ -87,10 +97,10 @@ func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
 
 type MappingsService interface {
 	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
-	GetScenes(x1, y1, x2, y2 int) ([]map[string]string, error)
+	GetScenes(x1, y1, x2, y2 int) ([]*Scene, error)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
 	IsValidParcel(pid string) (bool, error)
-	GetInfo(cid []string) ([]map[string]*ParcelContent, error)
+	GetInfo(cid []string) ([]*SceneContent, error)
 }
 
 type MappingsServiceImpl struct {
@@ -218,7 +228,8 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	return true, nil
 }
 
-func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]map[string]string, error ) {
+
+func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) {
 	log.Debugf("Retrieving map information within points (%d, %d, %d, %d)", x1, x2, y1, y2)
 
 	// we will need to move this down later
@@ -261,12 +272,12 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]map[string]strin
 	}
 
 	// Ugly and inefficient, but client requires an array. This can be improved once we remove the TODO above and we are sure that elements are not repeated
-	ret := make([]map[string]string, 0, len(parcelMap))
+	ret := make([]*Scene, 0, len(parcelMap))
 	for k, v := range parcelMap {
-		m := make(map[string]string, 1)
-		m["parcel_id"] = k
-		m["scene_cid"] = v
-		ret = append(ret, m)
+		ret = append(ret, &Scene{
+			ParcelId: k,
+			SceneCID: v,
+		})
 	}
 	return ret, nil
 }
@@ -294,21 +305,7 @@ func (ms *MappingsServiceImpl) GetParcelInformation(parcelId string) (*ParcelCon
 	return &ParcelContent{ParcelID: parcelId, Contents: elements, RootCID: metadata["root_cid"].(string), Publisher: metadata["pubkey"].(string)}, nil
 }
 
-func (ms *MappingsServiceImpl) GetSceneInformation(cid string) (*ParcelContent, error) {
-	parcels, err := ms.RedisClient.GetSceneParcels(cid)
-	if err != nil && err != redis.Nil {
-		return nil, err
-	}
-
-	if len(parcels) == 0 {
-		//get parcels somehow
-	}
-
-	info, err := ms.GetParcelInformation(parcels[0])
-	return info, err
-}
-
-func (s *MappingsServiceImpl) GetInfo(cids []string) ([]map[string]*ParcelContent, error) {
+func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
 	parcels := make(map[string]string, len(cids))
 	for _, cid := range cids {
 		ps, err := s.RedisClient.GetSceneParcels(cid)
@@ -323,14 +320,15 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]map[string]*ParcelConten
 		parcels[cid] = ps[0]
 	}
 
-	ret := make([]map[string]*ParcelContent, 0, len(cids))
+	ret := make([]*SceneContent, 0, len(cids))
 	for k, v := range parcels {
 		content, err := s.GetParcelInformation(v)
 		if err != nil {
 			return nil, err
 		}
-		ret =  append(ret, map[string]*ParcelContent {
-			k: content,
+		ret =  append(ret, &SceneContent{
+			SceneCID:k,
+			Content: content,
 		})
 	}
 
