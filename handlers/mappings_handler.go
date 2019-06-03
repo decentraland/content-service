@@ -264,7 +264,8 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]map[string]strin
 	ret := make([]map[string]string, 0, len(parcelMap))
 	for k, v := range parcelMap {
 		m := make(map[string]string, 1)
-		m[k] = v
+		m["parcel_id"] = k
+		m["scene_cid"] = v
 		ret = append(ret, m)
 	}
 	return ret, nil

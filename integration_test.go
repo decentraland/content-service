@@ -238,8 +238,8 @@ func TestScenes(t *testing.T) {
 
 	oldCid := ""
 	for _, p := range cids {
-		if p["143,-93"] != "" {
-			oldCid = p["143,-93"]
+		if p["parcel_id"] != "143,-93" {
+			oldCid = p["scene_cid"]
 			break
 		}
 	}
@@ -284,11 +284,11 @@ func TestScenes(t *testing.T) {
 	parcelA := ""
 	parcelB := ""
 	for _, p := range cids {
-		if p["143,-93"] != "" {
-			parcelA = p["143,-93"]
+		if p["parcel_id"] == "143,-93" {
+			parcelA = p["scene_cid"]
 		}
-		if p["144,-93"] != "" {
-			parcelB = p["144,-93"]
+		if p["parcel_id"] == "144,-93" {
+			parcelB = p["scene_cid"]
 		}
 	}
 	if parcelA != oldCid {
