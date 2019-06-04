@@ -14,7 +14,6 @@ import (
 
 type GetContentCtx struct {
 	Storage storage.Storage
-	Redis data.RedisClient
 }
 
 

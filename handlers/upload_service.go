@@ -346,11 +346,8 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 	}
 
 	err := us.RedisClient.SetSceneParcels(rootCID, parcels)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	
+	return err
 }
 
 func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {

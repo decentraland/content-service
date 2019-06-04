@@ -19,15 +19,26 @@ type RedisClient interface {
 	AddCID(cid string) error
 	IsContentMember(value string) (bool, error)
 
+	// Retrieves the root cid of the given parcel
 	GetParcelInfo(pid string) (string, error)
-	ClearScene(cid string) error
-	SetSceneParcels(cid string, pid []string) error
-	GetSceneParcels(cid string) ([]string, error)
-	ProcessedParcel(pid string) (bool, error)
-	SetProcessedParcel(pid string) error
 
+	// Deletes the mapping root cid -> [parcels]
+	ClearScene(cid string) error
+	// Updates the mapping root cid -> [parcels]
+	SetSceneParcels(cid string, pid []string) error
+	// Gets the mapping root cid -> [parcels]
+	GetSceneParcels(cid string) ([]string, error)
+
+	// Flags parcels as processed, this is used for flagging when the root cid -> parcels maps has been created
+	SetProcessedParcel(pid string) error
+	// Retrieves whether a parcels has been processed
+	ProcessedParcel(pid string) (bool, error)
+
+	// Saves the map root cid <--> scene cid
 	SaveRootCidSceneCid(rootCID, sceneCID string) error
+	// Retrieves the scene cid given the root cid of a scene
 	GetSceneCid(rootCID string) (string, error)
+	// Retrieves the root cid given the scene cid of a scene
 	GetRootCid(sceneCID string) (string, error)
 }
 
@@ -172,12 +183,6 @@ func (r Redis) SetProcessedParcel(pid string) error {
 	return err
 }
 
-//
-//func (r Redis) SetParcelInfo(parcel, scene string) error {
-//	return fmt.Errorf("")
-//}
-
-
 // This function maps scene cid to list of parcels
 // "Qvcslk2duadjao0rsdfaZaAAA"... -> ["35,-145", "-22,14"]
 // Every every parcel or pair of coordinates must be unique for between all scenes, so we need to check
@@ -191,6 +196,8 @@ func (r Redis) SetSceneParcels(scene string, parcels []string) error {
 		return fmt.Errorf("Trying to push empty parcels list for scene %s", scene)
 	}
 
+	// We first iterate over all parcels deleting the mappings root cid -> [parcels] for all
+	// the scenes of the parcels of the parameter
 	cids := make(map[string]bool, len(parcels))
 	for _, p := range parcels {
 		cid, err := r.GetParcelInfo(p)
@@ -203,22 +210,11 @@ func (r Redis) SetSceneParcels(scene string, parcels []string) error {
 	for cid, _ := range cids {
 		_, err := r.Client.Del(cid).Result()
 		if err != nil {
-			logrus.Fatalf("Redis error when cleaning old scenes, this may corrupt the database")
-			return err
+			return fmt.Errorf("redis error when cleaning old scenes: %s", err)
 		}
 	}
 
-	len, err := r.Client.LLen(scene).Result()
-
-	if len > 0 {
-		return fmt.Errorf("Scene already exists")
-	}
-
-	if err != nil {
-		return err
-	}
-
-	_, err = r.Client.LPush(scene, parcels).Result()
+	_, err := r.Client.LPush(scene, parcels).Result()
 	return err
 }
 
@@ -226,6 +222,7 @@ func (r Redis) ClearScene(cid string) error {
 	_, err := r.Client.Del(cid).Result()
 	return err
 }
+
 func (r Redis) GetSceneParcels(cid string) ([]string, error) {
 	scenes, err := r.Client.LRange(cid, 0, -1).Result()
 	if err != nil {

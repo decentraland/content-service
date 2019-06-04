@@ -123,8 +123,11 @@ func NewMappingsService(client data.RedisClient, dcl data.Decentraland, storage 
 func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error) {
 
 	log.Debugf("Retrieving map information within coordinates (%d,%d) and (%d,%d)", x1, y1, x2, y2)
-	parcels := RectToParcels(x1, y1, x2, y2)
+	parcels := RectToParcels(x1, y1, x2, y2, 200)
 
+	if parcels == nil {
+		return nil, fmt.Errorf("Too many parcels requested")
+	}
 	mapContents := []ParcelContent{}
 	for _, pid := range parcels {
 		content, err := ms.GetParcelInformation(pid)
@@ -155,10 +158,13 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	if (err != nil && err != redis.Nil) {
 		return false, err
 	}
-	if info == nil || info.Contents == nil {
+	if info == nil || err == redis.Nil { // Should never happen if called correctly
+		return false, nil
+	}
+	if info.Contents == nil {
 		return false, fmt.Errorf("Can't find content on parcel info %s", pid)
 	}
-	log.Info(info)
+
 	scene := ""
 	for _, ce := range info.Contents {
 		if strings.Contains(ce.File, "scene.json") {
@@ -166,6 +172,7 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 			break
 		}
 	}
+
 	if scene == "" {
 		return false, fmt.Errorf("Can't find scene.json on parcel info %s", pid)
 	}
@@ -173,7 +180,6 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 		return false, fmt.Errorf("No storage found on mapping service")
 	}
 	sceneUrl := ms.Storage.GetFile(scene)
-
 	sceneJson, err := http.Get(sceneUrl)
 	if err != nil {
 		return false, err
@@ -226,7 +232,7 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
+
 	for _, p := range pids {
 		_ = ms.RedisClient.SetProcessedParcel(p)
 
@@ -242,28 +248,36 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 	// we will need to move this down later
 	parcelMap := make(map[string]string, 0)
 
-	pids := RectToParcels(x1, y1, x2, y2)
+	pids := RectToParcels(x1, y1, x2, y2, 200)
+	if pids != nil {
+		return nil, fmt.Errorf("Too many parcels requested")
+	}
 	cids := make(map[string]bool, len(pids))
+
 	for _, pid := range pids {
 		cid, err := ms.RedisClient.GetParcelInfo(pid)
 		if err == redis.Nil {
-			// TODO: Get parcel info v2
-			// TODO: Get scene.json if needed
 			continue
 		}
 		if err != nil {
-			return nil, err //TODO handle??
+			return nil, err
 		}
 
 		validParcel, err := ms.IsValidParcel(pid)
 		if err != nil {
-			continue //TODO handle??
+			log.Info("error when checking validity of parcel %s", pid)
+			// skip on error
 		}
 		if !validParcel {
 			continue
 		}
 
 		parcelMap[pid] = cid //TODO: This is for compatibility with old queries, should be removed _eventually_
+							 //TODO: It used to be possible that the mapping cid -> [parcels] was not completed
+							 //TODO: but we want to return the mappings anyway. This changed but still needs
+							 //TODO: to be tested in production before actually removing this simple lines
+							 //TODO: The consequence here is that the /scene call may return invalid scenes
+							 //TODO: as it used to be
 		cids[cid] = true
 	}
 
@@ -271,7 +285,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 	for cid, _ := range cids {
 		parcels, err := ms.RedisClient.GetSceneParcels(cid)
 		if err != nil && err != redis.Nil {
-			return nil, err //TODO handle??
+			return nil, fmt.Errorf("can't read parcels for a scene because: %s", err)
 		}
 		for _, p := range parcels {
 			parcelMap[p] = cid
@@ -318,24 +332,45 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
 	parcels := make(map[string]*StringPair, len(cids))
 	for _, cid := range cids {
 		ps, err := s.RedisClient.GetSceneParcels(cid)
-		if err != nil {
+		if err != nil && err != redis.Nil {
 			return nil, err
 		}
-		if len(ps) == 0 {
-			continue
-			// TODO: is it better to throw error or skip it? let's skip it now, but discuss it
-			//return nil, fmt.Errorf("Can't find content for cid %s", cid)
+		sceneCID := ""
+		rootCID := ""
+		if ps == nil || len(ps) == 0 {
+			// Maybe the parameter is not the root cid, but the scene cid, which we will be eventually support better
+			rootCID, err = s.RedisClient.GetRootCid(cid)
+			if err != nil && err != redis.Nil {
+				log.Errorf("error when getting rootcid for hash %s with error %s", cid, err)
+				continue
+			}
+			ps, err = s.RedisClient.GetSceneParcels(rootCID)
+			if err != nil && err != redis.Nil {
+				log.Errorf("error when reading parcels for cid %s with error %s", rootCID, err)
+				continue
+			}
+			if ps == nil || len(ps) == 0 {
+				continue
+			}
+			sceneCID = cid
 		}
-		sceneCID, _ := s.RedisClient.GetSceneCid(cid)
-		parcels[cid] = &StringPair{A:ps[0], B:sceneCID}
+
+		if sceneCID == "" {
+			sceneCID, _ = s.RedisClient.GetSceneCid(cid)
+			rootCID = cid
+		}
+
+		parcels[rootCID] = &StringPair{A:ps[0], B:sceneCID}
 	}
 
 	ret := make([]*SceneContent, 0, len(cids))
 	for k, v := range parcels {
 		content, err := s.GetParcelInformation(v.A)
 		if err != nil {
-			return nil, err
+			log.Errorf("error getting information for parcel %s with error %s", v.A, err)
+			continue
 		}
+
 		ret =  append(ret, &SceneContent{
 			RootCID:k,
 			SceneCID: v.B,
@@ -343,7 +378,6 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
 		})
 	}
 
-	log.Println(ret)
 	return ret, nil
 }
 

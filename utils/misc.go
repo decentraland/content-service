@@ -2,7 +2,7 @@ package utils
 
 import "fmt"
 
-func RectToParcels(x1, y1, x2, y2 int) []string {
+func RectToParcels(x1, y1, x2, y2, max int) []string {
 
 	minmax := func (x, y int) (int, int) {
 		if x < y {
@@ -14,6 +14,10 @@ func RectToParcels(x1, y1, x2, y2 int) []string {
 	y1, y2 = minmax(y1, y2)
 
 	size := (x2 - x1 + 1) * (y2 - y1 + 1)
+	if size > max {
+		return nil
+	}
+
 	ret := make([]string, 0, size)
 	for x := x1; x < x2 + 1; x++ {
 		for y := y1; y < y2 + 1; y++ {
