@@ -249,7 +249,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 	parcelMap := make(map[string]string, 0)
 
 	pids := RectToParcels(x1, y1, x2, y2, 200)
-	if pids != nil {
+	if pids == nil {
 		return nil, fmt.Errorf("Too many parcels requested")
 	}
 	cids := make(map[string]bool, len(pids))

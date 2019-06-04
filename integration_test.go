@@ -263,7 +263,7 @@ func TestScenes(t *testing.T) {
 	oldCid := ""
 	for _, p := range cids {
 		if p.ParcelId != "143,-93" {
-			oldCid = p.SceneCID
+			oldCid = p.RootCID
 			break
 		}
 	}
@@ -349,8 +349,6 @@ func TestScenes(t *testing.T) {
 	if content[0].RootCID != parcelB {
 		t.Errorf("Should find metadata for scene %s", parcelB)
 	}
-
-	log.Println(content)
 }
 
 func TestUploadHandler(t *testing.T) {
