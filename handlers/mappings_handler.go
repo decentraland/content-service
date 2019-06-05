@@ -154,12 +154,13 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	// Here we will find scene.json of a parcel given its position and check if all the parcels that figure in the
 	// scene.json still points to that scene. A parcel is valid only if that happens (or if it points ot a newer scene,
 	// which should've been checked already)
+	log.Info("[DB-MIGRATION] Starting migration for parcel %s", pid)
 	info, err := ms.GetParcelInformation(pid)
 	if (err != nil && err != redis.Nil) {
 		return false, err
 	}
-	if info == nil || err == redis.Nil { // Should never happen if called correctly
-		return false, nil
+	if info == nil || err == redis.Nil {
+		return false, fmt.Errorf("Found db inconsistency when validating parcel %s", pid)
 	}
 	if info.Contents == nil {
 		return false, fmt.Errorf("Can't find content on parcel info %s", pid)
@@ -176,10 +177,9 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	if scene == "" {
 		return false, fmt.Errorf("Can't find scene.json on parcel info %s", pid)
 	}
-	if ms.Storage == nil {
-		return false, fmt.Errorf("No storage found on mapping service")
-	}
+
 	sceneUrl := ms.Storage.GetFile(scene)
+	log.Trace("[DB-MIGRATION] Getting scene.json from %s", sceneUrl)
 	sceneJson, err := http.Get(sceneUrl)
 	if err != nil {
 		return false, err
@@ -223,8 +223,12 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 		}
 	}
 
+	log.Trace("[DB-MIGRATION] Got and parsed scene json. Validating scenes now")
 	if !allValid {
-		_ = ms.RedisClient.SetProcessedParcel(pid)
+		err := ms.RedisClient.SetProcessedParcel(pid)
+		if err != nil {
+			log.Errorf("[DB-MIGRATION] Error when flagging parcel %s after migration parcel, error: ", pid, err)
+		}
 		return false, nil
 	}
 
@@ -234,7 +238,10 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 	}
 
 	for _, p := range pids {
-		_ = ms.RedisClient.SetProcessedParcel(p)
+		err := ms.RedisClient.SetProcessedParcel(p)
+		if err != nil {
+			log.Errorf("[DB-MIGRATION] Error when flagging parcel %s after migration parcel, error: ", p, err)
+		}
 
 	}
 
@@ -250,7 +257,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 
 	pids := RectToParcels(x1, y1, x2, y2, 200)
 	if pids == nil {
-		return nil, fmt.Errorf("Too many parcels requested")
+		return nil, fmt.Errorf("too many parcels requested")
 	}
 	cids := make(map[string]bool, len(pids))
 
@@ -265,7 +272,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 
 		validParcel, err := ms.IsValidParcel(pid)
 		if err != nil {
-			log.Info("error when checking validity of parcel %s", pid)
+			log.Errorf("error when checking validity of parcel %s", pid)
 			// skip on error
 		}
 		if !validParcel {
