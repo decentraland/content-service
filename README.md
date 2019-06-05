@@ -63,7 +63,7 @@ $ ./content-service
 
 ## API Documentation
 
-// TODO: link
+[Documentation](https://github.com/decentraland/content-service/blob/master/docs/APIDOC.go)
 
 ## Replication
 
