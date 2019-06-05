@@ -321,7 +321,7 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 
 	oldCids := make([]string, 0, len(parcels))
 	for _, p := range parcels {
-		cid, err := us.RedisClient.GetParcelInfo(p)
+		cid, err := us.RedisClient.GetParcelCID(p)
 		if err != nil && err != redis.Nil {
 			return err
 		}

@@ -20,7 +20,7 @@ type RedisClient interface {
 	IsContentMember(value string) (bool, error)
 
 	// Retrieves the root cid of the given parcel
-	GetParcelInfo(pid string) (string, error)
+	GetParcelCID(pid string) (string, error)
 
 	// Deletes the mapping root cid -> [parcels]
 	ClearScene(cid string) error
@@ -158,7 +158,7 @@ func (r Redis) getParcelInformationFromCollection(parcelID string, keyPrefix str
 	return parcelContent, nil
 }
 
-func (r Redis) GetParcelInfo(pid string) (string, error) {
+func (r Redis) GetParcelCID(pid string) (string, error) {
 	cid, err := r.Client.Get(pid).Result()
 	if err != nil {
 		logrus.Errorf("Redis error: %s", err.Error())
@@ -200,7 +200,7 @@ func (r Redis) SetSceneParcels(scene string, parcels []string) error {
 	// the scenes of the parcels of the parameter
 	cids := make(map[string]bool, len(parcels))
 	for _, p := range parcels {
-		cid, err := r.GetParcelInfo(p)
+		cid, err := r.GetParcelCID(p)
 		if err != nil {
 			return err
 		}

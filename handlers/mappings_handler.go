@@ -213,7 +213,7 @@ func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
 			continue
 		}
 		pids = append(pids, pid)
-		parcelCid, err := ms.RedisClient.GetParcelInfo(pid)
+		parcelCid, err := ms.RedisClient.GetParcelCID(pid)
 		if err != nil && err != redis.Nil {
 			return false, err
 		}
@@ -255,7 +255,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 	cids := make(map[string]bool, len(pids))
 
 	for _, pid := range pids {
-		cid, err := ms.RedisClient.GetParcelInfo(pid)
+		cid, err := ms.RedisClient.GetParcelCID(pid)
 		if err == redis.Nil {
 			continue
 		}
