@@ -15,7 +15,6 @@ type RedisClient interface {
 	GetParcelContent(parcelID string) (map[string]string, error)
 	StoreContent(key string, field string, value string) error
 	StoreMetadata(key string, fields map[string]interface{}) error
-	SetKey(key string, value interface{}) error
 	AddCID(cid string) error
 	IsContentMember(value string) (bool, error)
 
@@ -117,7 +116,7 @@ func (r Redis) StoreMetadata(key string, fields map[string]interface{}) error {
 	return res.Err()
 }
 
-func (r Redis) SetKey(key string, value interface{}) error {
+func (r Redis) setKey(key string, value interface{}) error {
 	return r.Client.Set(key, value, 0).Err()
 }
 
@@ -215,6 +214,13 @@ func (r Redis) SetSceneParcels(scene string, parcels []string) error {
 	}
 
 	_, err := r.Client.LPush(scene, parcels).Result()
+	for _, pid := range parcels {
+		err := r.setKey(pid, scene)
+		if err != nil {
+			return fmt.Errorf("redis error when updating scene %s", err)
+		}
+	}
+
 	return err
 }
 
