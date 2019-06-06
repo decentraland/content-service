@@ -159,7 +159,7 @@ func (r Redis) getParcelInformationFromCollection(parcelID string, keyPrefix str
 
 func (r Redis) GetParcelCID(pid string) (string, error) {
 	cid, err := r.Client.Get(pid).Result()
-	if err != nil {
+	if err != nil && err != redis.Nil {
 		logrus.Errorf("Redis error: %s", err.Error())
 		return "", err
 	}

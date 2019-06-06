@@ -263,7 +263,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 
 	for _, pid := range pids {
 		cid, err := ms.RedisClient.GetParcelCID(pid)
-		if err == redis.Nil {
+		if cid == "" {
 			continue
 		}
 		if err != nil {
