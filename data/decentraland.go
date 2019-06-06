@@ -13,16 +13,6 @@ import (
 	"time"
 )
 
-type parcelResponse struct {
-	Ok   bool    `json:"ok"`
-	Data *Parcel `json:"data"`
-}
-
-type estateResponse struct {
-	Ok   bool    `json:"ok"`
-	Data *Estate `json:"data"`
-}
-
 type accessResponse struct {
 	Ok   bool        `json:"ok"`
 	Data *AccessData `json:"data"`
@@ -72,9 +62,6 @@ type Estate struct {
 }
 
 type Decentraland interface {
-	GetParcel(x, y int) (*Parcel, error)
-	GetEstate(id int) (*Estate, error)
-	GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error)
 	GetParcelAccessData(address string, x int64, y int64) (*AccessData, error)
 }
 
@@ -85,43 +72,6 @@ type DclClient struct {
 
 func NewDclClient(apiUrl string, agent *metrics.Agent) *DclClient {
 	return &DclClient{apiUrl, agent}
-}
-
-// Retrieves a accessData information from Decentraland
-func (dcl DclClient) GetParcel(x, y int) (*Parcel, error) {
-	var jsonResponse parcelResponse
-	err := dcl.doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d", x, y), &jsonResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonResponse.Data, nil
-}
-
-//Retrieves the Estate by its Id
-func (dcl DclClient) GetEstate(id int) (*Estate, error) {
-	var jsonResponse estateResponse
-	err := dcl.doGet(buildUrl(dcl.ApiUrl, "estates/%d", id), &jsonResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, parcel := range jsonResponse.Data.Data.Parcels {
-		parcel.ID = fmt.Sprintf("%d,%d", parcel.X, parcel.Y)
-	}
-
-	return jsonResponse.Data, nil
-}
-
-// Retrieves all parcels information in the given quadrant
-func (dcl DclClient) GetMap(x1, y1, x2, y2 int) ([]*Parcel, []*Estate, error) {
-	var jsonResponse MapResponse
-	err := dcl.doGet(buildUrl(dcl.ApiUrl, "map?nw=%d,%d&se=%d,%d", x1, y1, x2, y2), &jsonResponse)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return jsonResponse.Data.Assets.Parcels, jsonResponse.Data.Assets.Estates, nil
 }
 
 // Retrieves the access data of a address over a given accessData

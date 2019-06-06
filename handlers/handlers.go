@@ -90,8 +90,8 @@ func NewOkJsonResponse(content interface{}) *JsonResponse {
 	return &JsonResponse{StatusCode: http.StatusOK, Content: content, Headers: nil}
 }
 
-func NewOkEmptyResponse() *JsonResponse {
-	return &JsonResponse{StatusCode: http.StatusOK, Content: map[string]string{}, Headers: nil}
+func NewOkEmptyResponse() Response {
+	return &JsonResponse{StatusCode: http.StatusOK, Content: nil, Headers: nil}
 }
 
 func NewBadRequestError(msg string) error {
@@ -156,11 +156,14 @@ func unexpectedError(w http.ResponseWriter, err error) {
 }
 
 func (r *JsonResponse) WriteResponse(w http.ResponseWriter) error {
-	contentsJSON, err := json.Marshal(r.Content)
-	if err != nil {
-		return WrapInInternalError(err)
+	var err error
+	contentsJSON := []byte{}
+	if r.Content != nil {
+		contentsJSON, err = json.Marshal(r.Content)
+		if err != nil {
+			return WrapInInternalError(err)
+		}
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	if r.Headers != nil {
 		for k, v := range r.Headers {
@@ -168,7 +171,10 @@ func (r *JsonResponse) WriteResponse(w http.ResponseWriter) error {
 		}
 	}
 	w.WriteHeader(r.StatusCode)
-	_, err = w.Write(contentsJSON)
+	err = nil
+	if len(contentsJSON) > 0 {
+		_, err = w.Write(contentsJSON)
+	}
 	if err != nil {
 		return WrapInInternalError(err)
 	}
