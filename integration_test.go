@@ -315,15 +315,14 @@ func TestScenes(t *testing.T) {
 			parcelB = p.RootCID
 		}
 	}
-	if parcelA != oldCid {
-		t.Errorf("Cid got updated")
+	if parcelA != "" {
+		t.Errorf("Parcel A must be invalid now")
 	}
 	if parcelB == oldCid {
 		t.Errorf("Cid didn't get updated")
 	}
 
 	///////////////////////////////////////////////////////////////////////////////
-
 	query = fmt.Sprintf("/parcel_info?cids=%s,%s", parcelB, parcelA)
 
 	response, err = client.Get(server.URL + query)
