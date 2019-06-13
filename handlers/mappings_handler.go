@@ -77,14 +77,14 @@ func GetScenes(ctx interface{}, r *http.Request) (Response, error) {
 		return nil, err
 	}
 
-	mapContents, err := ms.GetScenes(params["x1"], params["y1"], params["x2"], params["y2"])
+	scenesCIDs, err := ms.GetScenes(params["x1"], params["y1"], params["x2"], params["y2"])
 	if err != nil {
 		return nil, err
 	}
-	if mapContents == nil {
+	if scenesCIDs == nil {
 		return NewOkEmptyResponse(), nil
 	}
-	return NewOkJsonResponse(mapContents), nil
+	return NewOkJsonMappedResponse(scenesCIDs), nil
 }
 
 func mapValuesToInt(mapStr map[string]string) (map[string]int, error) {
@@ -286,5 +286,5 @@ func GetInfo(ctx interface{}, r *http.Request) (Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewOkJsonResponse(ret), nil
+	return NewOkJsonMappedResponse(ret), nil
 }

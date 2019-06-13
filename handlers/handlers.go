@@ -90,6 +90,11 @@ func NewOkJsonResponse(content interface{}) *JsonResponse {
 	return &JsonResponse{StatusCode: http.StatusOK, Content: content, Headers: nil}
 }
 
+// NewOkJsonMappedResponse adds a `{"data": <...> }` to wrap the content so it gets easier to parse with unity and extend later
+func NewOkJsonMappedResponse(content interface{}) *JsonResponse {
+	return &JsonResponse{StatusCode: http.StatusOK, Content: map[string]interface{}{"data": content}, Headers: nil}
+}
+
 func NewOkEmptyResponse() Response {
 	return &JsonResponse{StatusCode: http.StatusOK, Content: nil, Headers: nil}
 }

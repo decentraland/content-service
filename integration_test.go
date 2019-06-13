@@ -70,10 +70,18 @@ type ParcelContent struct {
 	Publisher string            `json:"publisher"`
 }
 
+type MappedSceneContent struct {
+	Data []*SceneContent `json:"data"`
+}
+
 type SceneContent struct {
 	SceneCID string `json:"scene_cid"`
 	RootCID string `json:"root_cid"`
 	Content *ParcelContent `json:"content"`
+}
+
+type MappedScenes struct {
+	Data []*Scene `json:"data"`
 }
 
 type Scene struct {
@@ -254,14 +262,14 @@ func TestScenes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var cids []*Scene
+	var cids MappedScenes
 	err = json.Unmarshal(body, &cids)
 	if err != nil {
 		t.Errorf("Wrong json")
 	}
 
 	oldCid := ""
-	for _, p := range cids {
+	for _, p := range cids.Data {
 		if p.ParcelId != "143,-93" {
 			oldCid = p.RootCID
 			break
@@ -307,7 +315,7 @@ func TestScenes(t *testing.T) {
 
 	parcelA := ""
 	parcelB := ""
-	for _, p := range cids {
+	for _, p := range cids.Data {
 		if p.ParcelId == "143,-93" {
 			parcelA = p.RootCID
 		}
@@ -332,20 +340,16 @@ func TestScenes(t *testing.T) {
 	defer response.Body.Close()
 	body, err = ioutil.ReadAll(response.Body)
 
-	var content []*SceneContent
+	var content MappedSceneContent
 	err = json.Unmarshal(body, &content)
 	if err != nil {
 		t.Errorf("Can't parse parcel_info response")
 	}
-	if len(content) != 1 {
+	if len(content.Data) != 1 {
 		t.Errorf("Found more answers than expected")
 	}
 
-	if len(content) > 1 {
-		t.Errorf("Too many info in parcel_info query")
-	}
-
-	if content[0].RootCID != parcelB {
+	if content.Data[0].RootCID != parcelB {
 		t.Errorf("Should find metadata for scene %s", parcelB)
 	}
 }
