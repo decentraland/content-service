@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/decentraland/content-service/storage"
-	"github.com/go-redis/redis"
-	"github.com/decentraland/content-service/data"
-	. "github.com/decentraland/content-service/utils"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/storage"
+	. "github.com/decentraland/content-service/utils"
+	"github.com/go-redis/redis"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 type ParcelContent struct {
@@ -21,14 +22,14 @@ type ParcelContent struct {
 }
 
 type SceneContent struct {
-	RootCID string `json:"root_cid"`
-	SceneCID string `json:"scene_cid"`
-	Content *ParcelContent `json:"content"`
+	RootCID  string         `json:"root_cid"`
+	SceneCID string         `json:"scene_cid"`
+	Content  *ParcelContent `json:"content"`
 }
 
 type Scene struct {
 	ParcelId string `json:"parcel_id"`
-	RootCID string `json:"root_cid"`
+	RootCID  string `json:"root_cid"`
 	SceneCID string `json:"scene_cid"`
 }
 
@@ -104,14 +105,13 @@ type MappingsService interface {
 	GetMappings(x1, y1, x2, y2 int) ([]ParcelContent, error)
 	GetScenes(x1, y1, x2, y2 int) ([]*Scene, error)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
-	IsValidParcel(pid string) (bool, error)
 	GetInfo(cid []string) ([]*SceneContent, error)
 }
 
 type MappingsServiceImpl struct {
 	RedisClient data.RedisClient
 	Dcl         data.Decentraland
-	Storage 	storage.Storage
+	Storage     storage.Storage
 }
 
 func NewMappingsService(client data.RedisClient, dcl data.Decentraland, storage storage.Storage) *MappingsServiceImpl {
@@ -139,19 +139,7 @@ func (ms *MappingsServiceImpl) GetMappings(x1, y1, x2, y2 int) ([]ParcelContent,
 	return mapContents, nil
 }
 
-func (ms *MappingsServiceImpl) IsValidParcel(pid string) (bool, error) {
-	val, err := ms.RedisClient.ProcessedParcel(pid)
-	if err != nil {
-		return false, err
-	}
-	if val {
-		return true, nil
-	}
-	return false, nil
-}
-
-
-func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) {
+func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error) {
 	log.Debugf("Retrieving map information within points (%d, %d, %d, %d)", x1, x2, y1, y2)
 
 	pids := RectToParcels(x1, y1, x2, y2, 200)
@@ -169,7 +157,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 			return nil, err
 		}
 
-		validParcel, err := ms.IsValidParcel(pid)
+		validParcel, err := ms.RedisClient.ProcessedParcel(pid)
 		if err != nil {
 			log.Errorf("error when checking validity of parcel %s", pid)
 			// skip on error
@@ -181,11 +169,9 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 		cids[cid] = true
 	}
 
-
 	ret := make([]*Scene, 0, len(cids))
 	for cid, _ := range cids {
 		parcels, err := ms.RedisClient.GetSceneParcels(cid)
-
 
 		if err != nil && err != redis.Nil {
 			return nil, fmt.Errorf("can't read parcels for a scene because: %s", err)
@@ -199,7 +185,7 @@ func (ms *MappingsServiceImpl) GetScenes(x1, y1, x2, y2 int) ([]*Scene, error ) 
 		for _, p := range parcels {
 			ret = append(ret, &Scene{
 				SceneCID: sceneCID,
-				RootCID: cid,
+				RootCID:  cid,
 				ParcelId: p,
 			})
 		}
@@ -263,7 +249,7 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
 			rootCID = cid
 		}
 
-		parcels[rootCID] = &StringPair{A:ps[0], B:sceneCID}
+		parcels[rootCID] = &StringPair{A: ps[0], B: sceneCID}
 	}
 
 	ret := make([]*SceneContent, 0, len(cids))
@@ -274,16 +260,15 @@ func (s *MappingsServiceImpl) GetInfo(cids []string) ([]*SceneContent, error) {
 			continue
 		}
 
-		ret =  append(ret, &SceneContent{
-			RootCID:k,
+		ret = append(ret, &SceneContent{
+			RootCID:  k,
 			SceneCID: v.B,
-			Content: content,
+			Content:  content,
 		})
 	}
 
 	return ret, nil
 }
-
 
 func GetInfo(ctx interface{}, r *http.Request) (Response, error) {
 	ms, ok := ctx.(MappingsService)
