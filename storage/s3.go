@@ -3,9 +3,6 @@ package storage
 import (
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/decentraland/content-service/metrics"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,6 +10,10 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/decentraland/content-service/metrics"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -52,7 +53,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader, contentType string)
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:      sto.Bucket,
-		Key:         aws.String(filename),
+		Key:         aws.String("contents/" + filename),
 		ACL:         sto.ACL,
 		Body:        fileDesc,
 		ContentType: aws.String(contentType),
@@ -87,9 +88,10 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 		return fmt.Errorf("failed to create file %q, %v", fp, err)
 	}
 
+	key := "contents/" + cid
 	n, err := downloader.Download(f, &s3.GetObjectInput{
 		Bucket: sto.Bucket,
-		Key:    &cid,
+		Key:    &key,
 	})
 	sto.Agent.RecordRetrieveTime(time.Since(t))
 
@@ -108,7 +110,7 @@ func (sto *S3) FileSize(cid string) (int64, error) {
 
 	hi := &s3.HeadObjectInput{
 		Bucket: sto.Bucket,
-		Key:    aws.String(cid),
+		Key:    aws.String("contents/" + cid),
 	}
 
 	res, err := client.HeadObject(hi)
