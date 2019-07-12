@@ -41,7 +41,7 @@ type Metadata struct {
 	PubKey       string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
 	RootCid      string `json:"root_cid" structs:"root_cid" validate:"required"`
 	Timestamp    int64  `json:"timestamp" structs:"timestamp" validate:"gte=0"`
-	UserID       string `json:"userId" structs:"userId" validate:"gte=0"`
+	UserID       string `json:"userId" structs:"userId"`
 }
 
 type scene struct {
