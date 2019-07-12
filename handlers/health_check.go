@@ -36,7 +36,8 @@ func (hc *HealthChecker) Check() (bool, map[string]string) {
 }
 
 func (hc *HealthChecker) checkDecentralandConnection() (bool, string) {
-	_, err := hc.Dcl.GetParcel(0, 0)
+	//TODO(mmarquez): GetParcelAccessData doesn't sound like a good test endpoint
+	_, err := hc.Dcl.GetParcelAccessData("0123456789012345678901234567890123456789", 0, 0)
 	if err != nil {
 		logrus.Infof("Failed to connect with Decentraland: %s", err.Error())
 		return false, "Failed to connect with Decentraland"

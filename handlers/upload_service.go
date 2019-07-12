@@ -94,6 +94,17 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return WrapInInternalError(err)
 	}
 
+	sceneCID := ""
+	for _, f := range *r.Manifest {
+		if strings.Contains(f.Name, "scene.json") {
+			sceneCID = f.Cid
+			break
+		}
+	}
+	if err := us.RedisClient.SaveRootCidSceneCid(r.Metadata.RootCid, sceneCID); err != nil {
+		return WrapInInternalError(err) //TODO: we can't recover error from here
+	}
+
 	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Metadata.UserID, r.Scene.Scene.Parcels, pathsByCid)
 
 	return nil
@@ -307,14 +318,23 @@ func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error
 }
 
 func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []string) error {
+
+	err := us.RedisClient.SetSceneParcels(rootCID, parcels)
+	if err != nil {
+		log.Errorf("Error when storing parcels for root cid %s", rootCID)
+		return WrapInInternalError(err)
+	}
+
 	for _, parcel := range parcels {
-		err := us.RedisClient.SetKey(parcel, rootCID)
+
+		err = us.RedisClient.SetProcessedParcel(parcel)
 		if err != nil {
 			log.Errorf("Unable to store parcel[%s] Information: %s ", parcel, err.Error())
 			return WrapInInternalError(err)
 		}
 	}
-	return nil
+
+	return err
 }
 
 func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {

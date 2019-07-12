@@ -22,6 +22,7 @@ func GetContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
 		log.Fatal("Invalid Handler configuration")
 		return NewInternalError("Invalid Configuration")
 	}
+
 	params := mux.Vars(r)
 
 	storeValue := c.Storage.GetFile(params["cid"])
