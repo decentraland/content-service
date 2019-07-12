@@ -4,7 +4,7 @@ import "fmt"
 
 func RectToParcels(x1, y1, x2, y2, max int) []string {
 
-	minmax := func (x, y int) (int, int) {
+	minmax := func(x, y int) (int, int) {
 		if x < y {
 			return x, y
 		}
@@ -19,8 +19,8 @@ func RectToParcels(x1, y1, x2, y2, max int) []string {
 	}
 
 	ret := make([]string, 0, size)
-	for x := x1; x < x2 + 1; x++ {
-		for y := y1; y < y2 + 1; y++ {
+	for x := x1; x < x2+1; x++ {
+		for y := y1; y < y2+1; y++ {
 			ret = append(ret, fmt.Sprintf("%d,%d", x, y))
 		}
 	}

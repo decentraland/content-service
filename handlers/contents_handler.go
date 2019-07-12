@@ -16,7 +16,6 @@ type GetContentCtx struct {
 	Storage storage.Storage
 }
 
-
 func GetContent(ctx interface{}, w http.ResponseWriter, r *http.Request) error {
 	c, ok := ctx.(GetContentCtx)
 	if !ok {
