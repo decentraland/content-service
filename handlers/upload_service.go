@@ -28,6 +28,7 @@ type UploadRequest struct {
 	Manifest      *[]FileMetadata                    `validate:"required"`
 	UploadedFiles map[string][]*multipart.FileHeader `validate:"required"`
 	Scene         *scene                             `validate:"required"`
+	Origin        string
 }
 
 type UploadService interface {
@@ -104,7 +105,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 		return WrapInInternalError(err) //TODO: we can't recover error from here
 	}
 
-	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Scene.Scene.Parcels, pathsByCid)
+	us.Agent.RecordUpload(r.Metadata.RootCid, r.Metadata.PubKey, r.Scene.Scene.Parcels, pathsByCid, r.Origin)
 
 	return nil
 }

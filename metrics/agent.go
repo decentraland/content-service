@@ -32,7 +32,7 @@ type newrelicAgent interface {
 }
 
 type segmentClient interface {
-	RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string)
+	RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string, origin string)
 }
 
 type Agent struct {
@@ -202,7 +202,7 @@ type segmentClientImpl struct {
 	client analytics.Client
 }
 
-func (sa *segmentClientImpl) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string) {
+func (sa *segmentClientImpl) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string, origin string) {
 
 	filesData := []contentOcurrence{}
 	for hash, paths := range files {
@@ -215,7 +215,8 @@ func (sa *segmentClientImpl) RecordUpload(uploadId string, uploader string, parc
 		Properties: analytics.NewProperties().
 			Set("files", filesData).
 			Set("parcels", parcels).
-			Set("cid", uploadId),
+			Set("cid", uploadId).
+			Set("origin", origin),
 	})
 	if err != nil {
 		log.Errorf("[SEGMENT] Failed to queue event : %s", err.Error())
@@ -226,7 +227,7 @@ type segmentDummy struct {
 	client analytics.Client
 }
 
-func (sa *segmentDummy) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string) {
+func (sa *segmentDummy) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string, origin string) {
 }
 
 func Make(metrics config.Metrics) (*Agent, error) {

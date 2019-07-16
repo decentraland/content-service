@@ -162,7 +162,7 @@ func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
 	}
 
-	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene}
+	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene, Origin: r.Header.Get("x-upload-origin")}
 	err = c.StructValidator.ValidateStruct(request)
 	if err != nil {
 		log.Debugf("Invalid UploadRequest: %s", err.Error())
