@@ -36,8 +36,8 @@ allowedContentTypes:
   - 'text.*'
 
 limits:
-  parcelContentLimit: 15000000
-  maxSceneElements: 1000000
+  parcelSizeLimit: 15000000
+  parcelAssetsLimit: 1000000
 
 workdir: '/tmp'
 
