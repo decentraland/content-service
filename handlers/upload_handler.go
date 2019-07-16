@@ -126,6 +126,7 @@ func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 	}
 
 	if hasRequestExpired(&metadata, c.TimeToLive) {
+		log.Debug("expired request")
 		return nil, NewBadRequestError("Expired request")
 	}
 
@@ -134,13 +135,9 @@ func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 		return nil, err
 	}
 
+	filesPerScene := c.Limits.ParcelAssetsLimit
 	manifestSize := len(*manifestContent)
 	c.Agent.RecordManifestSize(len(*manifestContent))
-	filesPerScene := c.Limits.MaxSceneElements
-	if manifestSize > filesPerScene {
-		log.Errorf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
-		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
-	}
 
 	uploadedFiles := r.MultipartForm.File
 	c.Agent.RecordUploadRequestFiles(len(uploadedFiles))
@@ -149,7 +146,6 @@ func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 	}
 
 	requestFilesNumber := len(uploadedFiles)
-
 	if requestFilesNumber > manifestSize {
 		log.Debugf("Request contains too many files. Max expected: %d, found: %d", manifestSize, requestFilesNumber)
 		return nil, NewBadRequestError("Request contains too many files")
@@ -158,6 +154,12 @@ func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 	scene, err := getScene(uploadedFiles, c.StructValidator)
 	if err != nil {
 		return nil, err
+	}
+
+	sceneMaxElements := len(scene.Scene.Parcels) * filesPerScene
+	if manifestSize > sceneMaxElements {
+		log.Debugf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
+		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
 	}
 
 	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene}

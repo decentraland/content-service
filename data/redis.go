@@ -238,11 +238,11 @@ func (r Redis) GetSceneParcels(cid string) ([]string, error) {
 }
 
 func (r Redis) SaveRootCidSceneCid(rootCID, sceneCID string) error {
-	_, err := r.Client.Set(rootScenePrefix + rootCID, sceneCID, 0).Result()
+	_, err := r.Client.Set(rootScenePrefix+rootCID, sceneCID, 0).Result()
 	if err != nil {
 		return err
 	}
-	_, err = r.Client.Set(rootScenePrefix + sceneCID, rootCID, 0).Result()
+	_, err = r.Client.Set(rootScenePrefix+sceneCID, rootCID, 0).Result()
 	return err
 }
 func (r Redis) GetSceneCid(rootCID string) (string, error) {

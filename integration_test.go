@@ -75,9 +75,9 @@ type MappedSceneContent struct {
 }
 
 type SceneContent struct {
-	SceneCID string `json:"scene_cid"`
-	RootCID string `json:"root_cid"`
-	Content *ParcelContent `json:"content"`
+	SceneCID string         `json:"scene_cid"`
+	RootCID  string         `json:"root_cid"`
+	Content  *ParcelContent `json:"content"`
 }
 
 type MappedScenes struct {
@@ -87,7 +87,7 @@ type MappedScenes struct {
 type Scene struct {
 	ParcelId string `json:"parcel_id"`
 	SceneCID string `json:"scene_cid"`
-	RootCID string `json:"root_cid"`
+	RootCID  string `json:"root_cid"`
 }
 
 type ContentElement struct {

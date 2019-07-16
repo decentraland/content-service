@@ -33,7 +33,7 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 
 	r.Path("/scenes").
 		Methods("GET").
-		Queries("x1", "{x1:-?[0-9]+}","y1", "{y1:-?[0-9]+}","x2", "{x2:-?[0-9]+}","y2", "{y2:-?[0-9]+}").
+		Queries("x1", "{x1:-?[0-9]+}", "y1", "{y1:-?[0-9]+}", "x2", "{x2:-?[0-9]+}", "y2", "{y2:-?[0-9]+}").
 		Handler(
 			&handlers.ResponseHandler{
 				Ctx:   handlers.NewMappingsService(client, data.NewDclClient(conf.DecentralandApi.LandUrl, agent), storage),
@@ -41,12 +41,10 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 				Agent: agent,
 				Id:    "GetScenes"})
 
-
-
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),
 		Service: handlers.NewUploadService(storage, client, node,
-			data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelContentLimit, conf.Workdir),
+			data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelSizeLimit, conf.Workdir),
 		Agent:      agent,
 		Filter:     handlers.NewContentTypeFilter(conf.AllowedContentTypes),
 		Limits:     conf.Limits,
@@ -59,8 +57,7 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 
 	r.Path("/contents/{cid}").
 		Methods("GET").
-		Handler(&handlers.Handler{Ctx: handlers.GetContentCtx{Storage: storage,  }, H: handlers.GetContent, Agent: agent, Id: "GetContent"})
-
+		Handler(&handlers.Handler{Ctx: handlers.GetContentCtx{Storage: storage}, H: handlers.GetContent, Agent: agent, Id: "GetContent"})
 
 	r.Path("/parcel_info").
 		Methods("GET").

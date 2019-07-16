@@ -39,8 +39,8 @@ type Storage struct {
 }
 
 type Limits struct {
-	ParcelContentLimit int64
-	MaxSceneElements   int
+	ParcelSizeLimit   int64
+	ParcelAssetsLimit int
 }
 
 type StorageType string
@@ -117,8 +117,8 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("metrics.appKey", "METRICS_KEY")
 	v.BindEnv("metrics.analyticsKey", "ANALYTICS_KEY")
 	//Limits
-	v.BindEnv("limits.parcelContentLimit", "LIMIT_PARCEL_CONTENT")
-	v.BindEnv("limits.maxSceneElements", "LIMIT_SCENE_ELEMENTS")
+	v.BindEnv("limits.parcelSizeLimit", "LIMIT_PARCEL_SIZE")
+	v.BindEnv("limits.parcelAssetsLimit", "LIMIT_PARCEL_ASSETS")
 
 	v.BindEnv("workdir", "WORK_DIR")
 

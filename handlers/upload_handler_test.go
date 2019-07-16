@@ -210,7 +210,7 @@ func TestUploadRequestValidation(t *testing.T) {
 			} else {
 				filter = tc.filter
 			}
-			ctx := &UploadCtx{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{MaxSceneElements: tc.maxFiles}, TimeToLive: tc.ttl}
+			ctx := &UploadCtx{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{ParcelAssetsLimit: tc.maxFiles}, TimeToLive: tc.ttl}
 			request, err := ctx.parseRequest(r)
 			tc.assert(t, request, err)
 		})
@@ -428,7 +428,8 @@ var requestValidationTestCases = []requestValidation{
 		maxFiles: 1000,
 		ttl:      600,
 		assert:   requestErrorAssertion,
-	}, {
+	},
+	{
 		name: "Max files number exceeded",
 		scene: &scene{
 			Display: display{
@@ -455,12 +456,20 @@ var requestValidationTestCases = []requestValidation{
 			RootCid:      validRootCid,
 			Timestamp:    time.Now().Unix(),
 		},
-		maxFiles: 0,
+		maxFiles: 1,
 		cid:      validRootCid,
 		sceneCid: sceneJsonCID,
 		ttl:      600,
 		assert:   requestErrorAssertion,
-	}, {
+		content: &fileContent{
+			fm: &FileMetadata{
+				Cid:  uuid.New().String(),
+				Name: "RandomFile",
+			},
+			content: uuid.New().String(),
+		},
+	},
+	{
 		name: "Filter Content Type",
 		scene: &scene{
 			Display: display{
@@ -563,7 +572,7 @@ func TestMultipartNaming(t *testing.T) {
 
 	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
-	limits := config.Limits{ParcelContentLimit: 150000, MaxSceneElements: 1000}
+	limits := config.Limits{ParcelSizeLimit: 150000, ParcelAssetsLimit: 1000}
 	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits, TimeToLive: 600}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
