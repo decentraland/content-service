@@ -45,3 +45,11 @@ type NotFoundError struct {
 func (e NotFoundError) Error() string {
 	return e.Cause
 }
+
+type InternalError struct {
+	Cause string
+}
+
+func (e InternalError) Error() string {
+	return e.Cause
+}

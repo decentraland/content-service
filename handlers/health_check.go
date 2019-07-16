@@ -54,7 +54,7 @@ func (hc *HealthChecker) checkStorage() (bool, string) {
 		case storage.NotFoundError:
 			return true, ""
 		default:
-			logrus.Infof("Error accessing storage: %s", e.Error())
+			logrus.WithError(err).Errorf("error accessing storage: %s", e.Error())
 			return false, "Error accessing storage"
 		}
 	}
@@ -64,7 +64,7 @@ func (hc *HealthChecker) checkStorage() (bool, string) {
 func (hc *HealthChecker) checkRedis() (bool, string) {
 	_, err := hc.Redis.IsContentMember(uuid.New().String())
 	if err != nil {
-		logrus.Infof("Error connecting with DB: %s", err.Error())
+		logrus.WithError(err).Error("error reading redis")
 		return false, "Error connecting with DB"
 	}
 	return true, ""

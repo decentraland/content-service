@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -59,8 +58,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader, contentType string)
 	})
 	sto.Agent.RecordStorageTime(time.Since(t))
 	if err != nil {
-		log.Errorf("Fail to upload file: %s", err.Error())
-		return "", err
+		return "", handleS3Error(err)
 	}
 
 	return result.Location, nil
@@ -84,7 +82,7 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		log.Errorf("Failed to create file %q, %v", fp, err)
-		return fmt.Errorf("failed to create file %q, %v", fp, err)
+		return InternalError{fmt.Sprintf("failed to create file %q, %v", fp, err)}
 	}
 
 	n, err := downloader.Download(f, &s3.GetObjectInput{
@@ -94,7 +92,7 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 	sto.Agent.RecordRetrieveTime(time.Since(t))
 
 	if err != nil {
-		return handleS3Error(err, cid)
+		return handleS3Error(err)
 	}
 	sto.Agent.RecordBytesRetrieved(n)
 	log.Debugf("CID[%s] found. %d bytes downloaded from S3 to %s", cid, n, filePath)
@@ -113,22 +111,21 @@ func (sto *S3) FileSize(cid string) (int64, error) {
 
 	res, err := client.HeadObject(hi)
 	if err != nil {
-		return 0, handleS3Error(err, cid)
+		return 0, handleS3Error(err)
 	}
 
 	return *res.ContentLength, nil
 }
 
-func handleS3Error(err error, cid string) error {
+func handleS3Error(err error) error {
+	log.Error(err.Error())
 	switch e := err.(type) {
 	case awserr.RequestFailure:
 		if e.StatusCode() == http.StatusNotFound {
-			log.Debugf("CID[%s] Not Found in S3", cid)
-			return NotFoundError{fmt.Sprintf("Missing file: %s", cid)}
+			return NotFoundError{"file not found"}
 		}
 		return err
 	default:
-		log.Error(err.Error())
-		return errors.New("An error occurred while accessing content Storage")
+		return InternalError{err.Error()}
 	}
 }

@@ -249,10 +249,10 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string) erro
 	log.Debugf("Validating address: %s", pKey)
 	canModify, err := a.UserCanModifyParcels(pKey, parcels)
 	if err != nil {
-		log.Infof("Error validating PublicKey[%s]", pKey)
+		log.WithError(err).Debugf("Error validating PublicKey[%s]", pKey)
 		return WrapInBadRequestError(err)
 	} else if !canModify {
-		log.Infof("PublicKey[%s] is not allowed to modify parcels", pKey)
+		log.Debugf("PublicKey[%s] is not allowed to modify parcels", pKey)
 		return StatusError{http.StatusUnauthorized, errors.New("address is not authorized to modify given parcels")}
 	}
 	return nil
@@ -308,9 +308,8 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 // Retrieves the specify content by the CID from the storage and saves it into the storePath
 func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error {
 	err := us.Storage.DownloadFile(cid, storePath)
-
 	if err != nil {
-		return handleStorageError(err)
+		return handleStorageError(err, cid)
 	}
 
 	return nil
@@ -374,17 +373,19 @@ func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error
 func (us *UploadServiceImpl) retrieveUploadedFileSize(cid string) (int64, error) {
 	size, err := us.Storage.FileSize(cid)
 	if err != nil {
-		return 0, handleStorageError(err)
+		return 0, handleStorageError(err, cid)
 	}
 	return size, nil
 }
 
-func handleStorageError(err error) error {
+func handleStorageError(err error, cid string) error {
 	switch e := err.(type) {
 	case storage.NotFoundError:
-		return WrapInBadRequestError(e)
+		log.Debugf("file with cid[%s] not found", cid)
+		return NewBadRequestError("bad request")
 	default:
-		return NewInternalError(fmt.Sprintf("Storage Error: %s", err.Error()))
+		log.WithError(err).Errorf("Storage Error: %s", e.Error())
+		return NewInternalError("internal error: try again later")
 	}
 }
 

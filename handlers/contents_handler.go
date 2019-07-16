@@ -88,12 +88,13 @@ func (s *ContentServiceImpl) CheckContentStatus(content []string) (map[string]bo
 	for _, cid := range content {
 		uploaded, err := s.RedisClient.IsContentMember(cid)
 		if err != nil {
-			return nil, WrapInInternalError(err)
+			log.WithError(err).Error("fail to read redis")
+			return nil, NewInternalError("internal error: try again later")
 		}
 
 		if !uploaded {
 			if uploaded, err = s.checkContentInStorage(cid); err != nil {
-				return nil, WrapInInternalError(err)
+				return nil,NewInternalError("internal error: try again later")
 			}
 		}
 		resp[cid] = uploaded
@@ -108,12 +109,12 @@ func (s *ContentServiceImpl) checkContentInStorage(cid string) (bool, error) {
 		case storage.NotFoundError:
 			return false, nil
 		default:
-			log.Infof("Unexpected error: %s", e.Error())
-			return false, errors.New("unexpected error")
+			log.WithError(err).Errorf("error while reading storage: %s", e.Error())
+			return false, err
 		}
 	}
 	if err = s.RedisClient.AddCID(cid); err != nil {
-		log.Infof("Unexpected error: %s", err.Error())
+		log.WithError(err).Error("fail to save into redis")
 		return false, errors.New("unexpected error")
 	}
 	return true, nil
