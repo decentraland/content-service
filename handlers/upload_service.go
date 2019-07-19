@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/utils/rpc"
 	"github.com/ipsn/go-ipfs/core"
 	"github.com/ipsn/go-ipfs/core/coreunix"
 	log "github.com/sirupsen/logrus"
@@ -113,6 +114,22 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
 func validateSignature(a data.Authorization, m Metadata) error {
 	log.Debugf("Validating signature: %s", m.Signature)
+
+	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
+	// We need to validate against a contract address whether this is ok or not?
+	if len(m.Signature) > 66 {
+		signature := m.Signature
+		address := m.PubKey
+		hash := m.Value
+		valid, err := rpc.ValidateDapperSignature(address, hash, signature)
+		if err != nil {
+			return err
+		}
+		if !valid {
+			return fmt.Errorf("Signature fails to verify for %s", address)
+		}
+		return nil
+	}
 	if !a.IsSignatureValid(fmt.Sprintf("%s.%d", m.RootCid, m.Timestamp), m.Signature, m.PubKey) {
 		log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
 		return NewBadRequestError("Signature is invalid")
