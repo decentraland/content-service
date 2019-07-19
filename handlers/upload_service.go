@@ -120,8 +120,8 @@ func validateSignature(a data.Authorization, m Metadata) error {
 	if len(m.Signature) > 66 {
 		signature := m.Signature
 		address := m.PubKey
-		hash := m.Value
-		valid, err := rpc.ValidateDapperSignature(address, hash, signature)
+		msg := fmt.Sprintf("%s.%d", m.Value, m.Timestamp)
+		valid, err := rpc.ValidateDapperSignature(address, msg, signature)
 		if err != nil {
 			return err
 		}
