@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const methodjson = `[{ "type" : "function", "name" : "isValidSignature", "constant" : true, "inputs": [{"name": "hash", "type": "bytes32"}, {"name": "signature", "type": "bytes"}], "outputs": [{"type": "magicValue", "type": "bytes4"}] }]`
+
 func ValidateDapperSignature(address, msg, signature string) (bool, error) {
 
 	client, _ := ethclient.Dial("https://mainnet.infura.io/v3/0720b4fd81a94f9db49ddd00257e1b59")
