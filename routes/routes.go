@@ -6,6 +6,7 @@ import (
 	"github.com/decentraland/content-service/handlers"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/utils/rpc"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
 
@@ -44,7 +45,8 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 	uploadCtx := handlers.UploadCtx{
 		StructValidator: validation.NewValidator(),
 		Service: handlers.NewUploadService(storage, client, node,
-			data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelSizeLimit, conf.Workdir),
+			data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelSizeLimit, conf.Workdir,
+			rpc.NewRPC(conf.Infura.URL)),
 		Agent:      agent,
 		Filter:     handlers.NewContentTypeFilter(conf.AllowedContentTypes),
 		Limits:     conf.Limits,

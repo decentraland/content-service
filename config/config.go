@@ -20,6 +20,7 @@ type Configuration struct {
 	Limits              Limits
 	Workdir             string
 	UploadRequestTTL    int64
+	Infura              Infura
 }
 
 type DecentralandApi struct {
@@ -44,6 +45,10 @@ type Limits struct {
 }
 
 type StorageType string
+
+type Infura struct {
+	URL string
+}
 
 const (
 	REMOTE StorageType = "REMOTE"
