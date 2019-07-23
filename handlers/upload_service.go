@@ -47,7 +47,7 @@ type UploadServiceImpl struct {
 	rpc             *rpc.RPC
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string, rpc *RPC) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string, rpc *rpc.RPC) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:         storage,
 		RedisClient:     client,
@@ -64,7 +64,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	log.Debug("Processing Upload request")
 	logUploadRequest(r)
 
-	if err := validateSignature(us.Auth, r.Metadata); err != nil {
+	if err := us.validateSignature(us.Auth, r.Metadata); err != nil {
 		return err
 	}
 
@@ -114,7 +114,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 }
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
-func validateSignature(a data.Authorization, m Metadata) error {
+func (us *UploadService) validateSignature(a data.Authorization, m Metadata) error {
 	log.Debugf("Validating signature: %s", m.Signature)
 
 	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
@@ -123,7 +123,7 @@ func validateSignature(a data.Authorization, m Metadata) error {
 		signature := m.Signature
 		address := m.PubKey
 		msg := fmt.Sprintf("%s.%d", m.Value, m.Timestamp)
-		valid, err := rpc.ValidateDapperSignature(address, msg, signature)
+		valid, err := us.rpc.ValidateDapperSignature(address, msg, signature)
 		if err != nil {
 			return err
 		}
