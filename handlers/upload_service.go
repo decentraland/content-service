@@ -44,7 +44,7 @@ type UploadServiceImpl struct {
 	Agent           *metrics.Agent
 	ParcelSizeLimit int64
 	Workdir         string
-	rpc             *RPC
+	rpc             *rpc.RPC
 }
 
 func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string, rpc *RPC) *UploadServiceImpl {
