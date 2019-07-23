@@ -114,7 +114,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 }
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
-func (us UploadService) validateSignature(a data.Authorization, m Metadata) error {
+func (us *UploadServiceImpl) validateSignature(a data.Authorization, m Metadata) error {
 	log.Debugf("Validating signature: %s", m.Signature)
 
 	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
