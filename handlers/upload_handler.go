@@ -97,6 +97,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	log.Debug("Upload request parsed")
 
 	if err != nil {
+		log.Errorf("Error parsing upload %s", err)
 		return nil, err
 	}
 
@@ -105,6 +106,7 @@ func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
 	c.Agent.RecordUploadProcessTime(time.Since(tProcess))
 
 	if err != nil {
+		log.Errorf("Error processing upload %s", err)
 		return nil, err
 	}
 

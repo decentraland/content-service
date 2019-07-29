@@ -3,7 +3,6 @@ package rpc
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,6 +21,9 @@ func NewRPC(url string) *RPC {
 	return &RPC{url: url}
 }
 
+// ERC-1654 uses this constant when a signature is valid
+var expected = []byte{0x16, 0x26, 0xba, 0x7e}
+
 func (r *RPC) ValidateDapperSignature(address, value, signature string) (bool, error) {
 
 	client, _ := ethclient.Dial(r.url)
@@ -36,9 +38,9 @@ func (r *RPC) ValidateDapperSignature(address, value, signature string) (bool, e
 
 	packed, err := a.Pack("isValidSignature", hash, common.FromHex(signature))
 	if err != nil {
-		fmt.Println(err)
 		return false, err
 	}
+
 	callMsg := ethereum.CallMsg{
 		To:   &addr,
 		Data: packed,
@@ -51,10 +53,5 @@ func (r *RPC) ValidateDapperSignature(address, value, signature string) (bool, e
 
 	magic := res[0:4]
 
-	cmp := bytes.Compare(magic, common.FromHex("0x1626ba7e"))
-	if cmp == 0 {
-		return true, nil
-	}
-
-	return false, nil
+	return bytes.Compare(magic, expected) == 0, nil
 }

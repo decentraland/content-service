@@ -129,6 +129,8 @@ func readEnvVariables(v *viper.Viper) {
 
 	v.BindEnv("uploadRequestTTL", "UPLOAD_TTL")
 
+	v.BindEnv("infura.url", "INFURA_URL")
+
 	//Allowed content types
 	contentEnv := os.Getenv("ALLOWED_TYPES")
 	if len(contentEnv) > 0 {
