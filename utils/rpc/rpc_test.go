@@ -41,15 +41,12 @@ func TestRPC(t *testing.T) {
 
 	r := NewRPC(server.URL)
 	ret, err := r.ValidateDapperSignature(address, msg, signature)
-	if err != nil {
-		t.Fail()
-	}
-	if !ret {
+	if !ret || err != nil {
 		t.Fail()
 	}
 
 	ret, err = r.ValidateDapperSignature(address, "invalid message", signature)
-	if ret {
+	if ret || err != nil {
 		t.Fail()
 	}
 }
