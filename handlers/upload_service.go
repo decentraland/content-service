@@ -119,7 +119,7 @@ func (us *UploadServiceImpl) validateSignature(a data.Authorization, m Metadata)
 
 	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
 	// We need to validate against a contract address whether this is ok or not?
-	if len(m.Signature) > 66 {
+	if len(m.Signature) > 150 {
 		signature := m.Signature
 		address := m.PubKey
 		msg := fmt.Sprintf("%s.%d", m.Value, m.Timestamp)
