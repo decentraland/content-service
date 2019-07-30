@@ -20,7 +20,7 @@ type Configuration struct {
 	Limits              Limits
 	Workdir             string
 	UploadRequestTTL    int64
-	Infura              Infura
+	RPCConnection       RPCConnection
 }
 
 type DecentralandApi struct {
@@ -46,7 +46,7 @@ type Limits struct {
 
 type StorageType string
 
-type Infura struct {
+type RPCConnection struct {
 	URL string
 }
 
@@ -129,7 +129,7 @@ func readEnvVariables(v *viper.Viper) {
 
 	v.BindEnv("uploadRequestTTL", "UPLOAD_TTL")
 
-	v.BindEnv("infura.url", "INFURA_URL")
+	v.BindEnv("rpcconnection.url", "RPCCONNECTION_URL")
 
 	//Allowed content types
 	contentEnv := os.Getenv("ALLOWED_TYPES")

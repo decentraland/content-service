@@ -46,7 +46,7 @@ func setupApiInitialVersion(r *mux.Router, client data.RedisClient, storage stor
 		StructValidator: validation.NewValidator(),
 		Service: handlers.NewUploadService(storage, client, node,
 			data.NewAuthorizationService(data.NewDclClient(conf.DecentralandApi.LandUrl, agent)), agent, conf.Limits.ParcelSizeLimit, conf.Workdir,
-			rpc.NewRPC(conf.Infura.URL)),
+			rpc.NewRPC(conf.RPCConnection.URL)),
 		Agent:      agent,
 		Filter:     handlers.NewContentTypeFilter(conf.AllowedContentTypes),
 		Limits:     conf.Limits,
