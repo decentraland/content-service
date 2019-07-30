@@ -20,6 +20,9 @@ decentralandApi:
 
 logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
 
+rpcconnection:
+  url: 'https://mainnet.infura.io/v3/0720b4fd81a94f9db49ddd00257e1b59'
+
 # This is for New Relic
 metrics:
   appName:  '' # Set METRICS_APP env variable to overwrite this value

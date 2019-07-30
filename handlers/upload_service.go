@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/utils/rpc"
 	"github.com/ipsn/go-ipfs/core"
 	"github.com/ipsn/go-ipfs/core/coreunix"
 	log "github.com/sirupsen/logrus"
@@ -43,9 +44,10 @@ type UploadServiceImpl struct {
 	Agent           *metrics.Agent
 	ParcelSizeLimit int64
 	Workdir         string
+	rpc             *rpc.RPC
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string, rpc *rpc.RPC) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:         storage,
 		RedisClient:     client,
@@ -54,6 +56,7 @@ func NewUploadService(storage storage.Storage, client data.RedisClient, node *co
 		Agent:           agent,
 		ParcelSizeLimit: parcelSizeLimit,
 		Workdir:         workdir,
+		rpc:             rpc,
 	}
 }
 
@@ -61,7 +64,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	log.Debug("Processing Upload request")
 	logUploadRequest(r)
 
-	if err := validateSignature(us.Auth, r.Metadata); err != nil {
+	if err := us.validateSignature(us.Auth, r.Metadata); err != nil {
 		return err
 	}
 
@@ -111,8 +114,24 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 }
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
-func validateSignature(a data.Authorization, m Metadata) error {
+func (us *UploadServiceImpl) validateSignature(a data.Authorization, m Metadata) error {
 	log.Debugf("Validating signature: %s", m.Signature)
+
+	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
+	// We need to validate against a contract address whether this is ok or not?
+	if len(m.Signature) > 66 {
+		signature := m.Signature
+		address := m.PubKey
+		msg := fmt.Sprintf("%s.%d", m.Value, m.Timestamp)
+		valid, err := us.rpc.ValidateDapperSignature(address, msg, signature)
+		if err != nil {
+			return err
+		}
+		if !valid {
+			return fmt.Errorf("Signature fails to verify for %s", address)
+		}
+		return nil
+	}
 	if !a.IsSignatureValid(fmt.Sprintf("%s.%d", m.RootCid, m.Timestamp), m.Signature, m.PubKey) {
 		log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
 		return NewBadRequestError("Signature is invalid")

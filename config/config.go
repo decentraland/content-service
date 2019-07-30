@@ -20,6 +20,7 @@ type Configuration struct {
 	Limits              Limits
 	Workdir             string
 	UploadRequestTTL    int64
+	RPCConnection       RPCConnection
 }
 
 type DecentralandApi struct {
@@ -44,6 +45,10 @@ type Limits struct {
 }
 
 type StorageType string
+
+type RPCConnection struct {
+	URL string
+}
 
 const (
 	REMOTE StorageType = "REMOTE"
@@ -123,6 +128,8 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("workdir", "WORK_DIR")
 
 	v.BindEnv("uploadRequestTTL", "UPLOAD_TTL")
+
+	v.BindEnv("rpcconnection.url", "RPCCONNECTION_URL")
 
 	//Allowed content types
 	contentEnv := os.Getenv("ALLOWED_TYPES")
