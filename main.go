@@ -29,7 +29,7 @@ func main() {
 
 	//CORS
 	corsObj := gHandlers.AllowedOrigins([]string{"*"})
-	headersObj := gHandlers.AllowedHeaders([]string{"*"})
+	headersObj := gHandlers.AllowedHeaders([]string{"*", "x-upload-origin"})
 
 	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
 	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj, headersObj)(router)))
