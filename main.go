@@ -29,9 +29,10 @@ func main() {
 
 	//CORS
 	corsObj := gHandlers.AllowedOrigins([]string{"*"})
+	headersObj := gHandlers.AllowedHeaders([]string{"*"})
 
 	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
-	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj)(router)))
+	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj, headersObj)(router)))
 }
 
 func InitializeApp(config *config.Configuration) *mux.Router {
