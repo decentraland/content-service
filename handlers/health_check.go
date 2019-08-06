@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"log"
+	"net/http"
+
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/storage"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	"log"
-	"net/http"
 )
 
 var commitHash = "Not available"

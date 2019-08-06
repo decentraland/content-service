@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"errors"
+	"net/http"
+	"os"
+
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
 
 	"github.com/decentraland/content-service/storage"
 	"github.com/gorilla/mux"
@@ -94,7 +95,7 @@ func (s *ContentServiceImpl) CheckContentStatus(content []string) (map[string]bo
 
 		if !uploaded {
 			if uploaded, err = s.checkContentInStorage(cid); err != nil {
-				return nil,NewInternalError("internal error: try again later")
+				return nil, NewInternalError("internal error: try again later")
 			}
 		}
 		resp[cid] = uploaded

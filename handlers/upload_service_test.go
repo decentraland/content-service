@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"testing"
+
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestValidateRequestSize(t *testing.T) {

@@ -25,9 +25,9 @@ rpcconnection:
 
 # This is for New Relic
 metrics:
-  appName:  '' # Set METRICS_APP env variable to overwrite this value
-  appKey:      '' # Set METRICS_KEY env variable to overwrite this value
+  appName:  'content.local' # Set METRICS_APP env variable to overwrite this value
   analyticsKey: '' # Set ANALYTICS_KEY env variable to overwrite this value
+  enabled: false  # Set METRICS_ENABLED env variable to overwrite this value
 
 allowedContentTypes:    # Set ALLOWED_TYPES (a comma separated string whit all the types to filer) env variable to overwrite this value. Example 'application/json, image.*'
   - 'application/json'

@@ -1,8 +1,9 @@
 package storage
 
 import (
-	"github.com/magiconair/properties/assert"
 	"testing"
+
+	"github.com/magiconair/properties/assert"
 )
 
 func TestGetFile(t *testing.T) {

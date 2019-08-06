@@ -2,11 +2,12 @@ package rpc
 
 import (
 	"bytes"
-	"github.com/ethereum/go-ethereum/common"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"io/ioutil"
 )

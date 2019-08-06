@@ -2,12 +2,13 @@ package validation
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/go-playground/locales/en"
-	"github.com/go-playground/universal-translator"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
 	enTranslations "gopkg.in/go-playground/validator.v9/translations/en"
-	"strings"
 )
 
 type Validator interface {

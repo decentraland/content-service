@@ -4,11 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/validation"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,6 +11,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/validation"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 const validRootCid = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"

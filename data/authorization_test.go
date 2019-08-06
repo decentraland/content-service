@@ -1,15 +1,16 @@
 package data_test
 
 import (
+	"strconv"
+	"strings"
+	"testing"
+
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"strconv"
-	"strings"
-	"testing"
 )
 
 type userCanModifyParcelsTestData struct {

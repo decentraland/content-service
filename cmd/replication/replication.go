@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/decentraland/content-service/metrics"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/decentraland/content-service/metrics"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"

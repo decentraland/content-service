@@ -1,9 +1,10 @@
 package config
 
 import (
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
 )
@@ -67,8 +68,8 @@ type Server struct {
 }
 
 type Metrics struct {
+	Enabled      bool
 	AppName      string
-	AppKey       string
 	AnalyticsKey string
 }
 
@@ -119,8 +120,9 @@ func readEnvVariables(v *viper.Viper) {
 	v.BindEnv("logLevel", "LOG_LEVEL")
 	//Metrics
 	v.BindEnv("metrics.appName", "METRICS_APP")
-	v.BindEnv("metrics.appKey", "METRICS_KEY")
 	v.BindEnv("metrics.analyticsKey", "ANALYTICS_KEY")
+	v.BindEnv("metrics.enabled", "METRICS_ENABLED")
+
 	//Limits
 	v.BindEnv("limits.parcelSizeLimit", "LIMIT_PARCEL_SIZE")
 	v.BindEnv("limits.parcelAssetsLimit", "LIMIT_PARCEL_ASSETS")

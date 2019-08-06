@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
+
+	"github.com/decentraland/content-service/metrics"
+	"github.com/sirupsen/logrus"
 )
 
 type accessResponse struct {

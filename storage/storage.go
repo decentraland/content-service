@@ -1,9 +1,10 @@
 package storage
 
 import (
-	"github.com/decentraland/content-service/metrics"
 	"io"
 	"strings"
+
+	"github.com/decentraland/content-service/metrics"
 
 	"github.com/decentraland/content-service/config"
 	log "github.com/sirupsen/logrus"
