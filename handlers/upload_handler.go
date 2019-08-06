@@ -3,10 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/validation"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +10,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/validation"
+	log "github.com/sirupsen/logrus"
 )
 
 type UploadCtx struct {

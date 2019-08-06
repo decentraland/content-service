@@ -24,6 +24,7 @@ metrics:
   appName:  ''
   key:      ''
   analyticsKey: ''
+  enabled: false
 
 allowedContentTypes:
   - 'application/json'

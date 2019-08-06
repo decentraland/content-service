@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"github.com/decentraland/content-service/validation"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/decentraland/content-service/validation"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestContentStatusRequest(t *testing.T) {

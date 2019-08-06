@@ -2,10 +2,11 @@ package data
 
 import (
 	"fmt"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/sirupsen/logrus"
 	"strconv"
 	"time"
+
+	"github.com/decentraland/content-service/metrics"
+	"github.com/sirupsen/logrus"
 
 	"github.com/go-redis/redis"
 )

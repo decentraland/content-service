@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	data "github.com/decentraland/content-service/data"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockDecentraland is a mock of Decentraland interface

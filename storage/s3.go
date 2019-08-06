@@ -2,9 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/decentraland/content-service/metrics"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +9,10 @@ import (
 	"path"
 	"path/filepath"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/decentraland/content-service/metrics"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"

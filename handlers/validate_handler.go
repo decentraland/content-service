@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/decentraland/content-service/data"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 
 	"github.com/gorilla/mux"
 )

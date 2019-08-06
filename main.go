@@ -3,46 +3,53 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/routes"
 	gHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"net/http"
-	"strings"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/storage"
 
 	"github.com/ipsn/go-ipfs/core"
 	log "github.com/sirupsen/logrus"
+
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func main() {
-	configParams := config.GetConfig("config")
+	conf := config.GetConfig("config")
 
-	initLogger(configParams)
+	initLogger(conf)
 
 	log.Info("Starting server")
-
-	router := InitializeApp(configParams)
 
 	//CORS
 	corsObj := gHandlers.AllowedOrigins([]string{"*"})
 	headersObj := gHandlers.AllowedHeaders([]string{"*", "x-upload-origin"})
 
-	serverURL := fmt.Sprintf(":%s", configParams.Server.Port)
-	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj, headersObj)(router)))
+	serverURL := fmt.Sprintf(":%s", conf.Server.Port)
+	handler := InitializeHandler(conf)
+	if conf.Metrics.Enabled {
+		defer tracer.Stop()
+	}
+
+	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj, headersObj)(handler)))
 }
 
-func InitializeApp(config *config.Configuration) *mux.Router {
-	agent, err := metrics.Make(config.Metrics)
+func InitializeHandler(conf *config.Configuration) http.Handler {
+	agent, err := metrics.Make(conf.Metrics)
 	if err != nil {
 		log.Fatal("Error initializing metrics agent")
 	}
 
 	// Initialize Redis client
-	client, err := data.NewRedisClient(config.Redis.Address, config.Redis.Password, config.Redis.DB, agent)
+	client, err := data.NewRedisClient(conf.Redis.Address, conf.Redis.Password, conf.Redis.DB, agent)
 	if err != nil {
 		log.Fatal("Error initializing Redis client")
 	}
@@ -54,11 +61,18 @@ func InitializeApp(config *config.Configuration) *mux.Router {
 		log.Fatal("Error initializing IPFS node")
 	}
 
-	sto := storage.NewStorage(&config.Storage, agent)
+	sto := storage.NewStorage(&conf.Storage, agent)
 
-	router := routes.GetRouter(client, sto, ipfsNode, agent, config)
-
-	return router
+	if conf.Metrics.Enabled {
+		tracer.Start(tracer.WithServiceName("test-go"))
+		tracer := muxtrace.NewRouter(muxtrace.WithServiceName(conf.Metrics.AppName), muxtrace.WithAnalytics(true))
+		routes.AddRoutes(tracer.Router, client, sto, ipfsNode, agent, conf)
+		return tracer
+	} else {
+		router := mux.NewRouter()
+		routes.AddRoutes(router, client, sto, ipfsNode, agent, conf)
+		return router
+	}
 }
 
 func initIpfsNode() (*core.IpfsNode, error) {

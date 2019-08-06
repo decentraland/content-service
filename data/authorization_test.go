@@ -1,15 +1,16 @@
 package data_test
 
 import (
+	"strconv"
+	"strings"
+	"testing"
+
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"strconv"
-	"strings"
-	"testing"
 )
 
 type userCanModifyParcelsTestData struct {
@@ -64,7 +65,7 @@ func TestUserCanModifyParcels(t *testing.T) {
 }
 
 func TestIsSignatureValid(t *testing.T) {
-	a, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
+	a, _ := metrics.Make(config.Metrics{AppName: "", Enabled: false, AnalyticsKey: ""})
 	for _, tc := range isSignatureValidTable {
 		t.Run(tc.testCaseName, func(t *testing.T) {
 			service := data.NewAuthorizationService(data.NewDclClient("", a))

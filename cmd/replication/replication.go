@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/decentraland/content-service/metrics"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/decentraland/content-service/metrics"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -47,7 +48,7 @@ func main() {
 		fmt.Scanln(&y2)
 	}
 
-	agent, _ := metrics.Make(config.Metrics{AnalyticsKey: "", AppKey: "", AppName: ""})
+	agent, _ := metrics.Make(config.Metrics{AnalyticsKey: "", Enabled: false, AppName: ""})
 	sto := storage.NewStorage(&conf.Storage, agent)
 
 	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", conf.Server.URL, x1, y1, x2, y2)

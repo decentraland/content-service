@@ -3,10 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 )
 
 type Error interface {
@@ -57,25 +58,18 @@ type ResponseHandler struct {
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Request received at endpoint: %s", h.Id)
-	tx := h.Agent.EndpointMetrics(h.Id, w, r)
-	defer tx.Close()
 
 	err := h.H(h.Ctx, w, r)
 	if err != nil {
-		tx.ReportError(err)
-		log.Error(err)
 		handleError(w, err)
 	}
 }
 
 func (h ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Request received at endpoint: %s", h.Id)
-	tx := h.Agent.EndpointMetrics(h.Id, w, r)
-	defer tx.Close()
 
 	response, err := h.H(h.Ctx, r)
 	if err != nil {
-		tx.ReportError(err)
 		log.Error(err)
 		handleError(w, err)
 	} else {

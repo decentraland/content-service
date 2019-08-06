@@ -3,12 +3,13 @@ package utils
 import (
 	"bufio"
 	"context"
-	"github.com/ipsn/go-ipfs/core"
-	"github.com/ipsn/go-ipfs/core/coreunix"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/ipsn/go-ipfs/core"
+	"github.com/ipsn/go-ipfs/core/coreunix"
 )
 
 type FileMetadata struct {

@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/decentraland/content-service/test/utils"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/decentraland/content-service/test/utils"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/handlers"
@@ -121,9 +123,7 @@ func TestMain(m *testing.M) {
 
 		initLogger(conf)
 		// Start server
-		router := InitializeApp(conf)
-
-		server = httptest.NewServer(router)
+		server = httptest.NewServer(InitializeHandler(conf))
 		defer server.Close()
 		code := m.Run()
 
