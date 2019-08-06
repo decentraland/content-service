@@ -197,7 +197,7 @@ var sceneValidation = []testDataValidation{
 
 func TestUploadRequestValidation(t *testing.T) {
 	validator := validation.NewValidator()
-	agent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
+	agent, _ := metrics.Make(config.Metrics{AppName: "", Enabled: false, AnalyticsKey: ""})
 
 	for _, tc := range requestValidationTestCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -571,7 +571,7 @@ func TestMultipartNaming(t *testing.T) {
 		Timestamp:    time.Now().Unix(),
 	}
 
-	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
+	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", Enabled: false, AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
 	limits := config.Limits{ParcelSizeLimit: 150000, ParcelAssetsLimit: 1000}
 	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits, TimeToLive: 600}

@@ -24,7 +24,7 @@ metrics:
   appName:  ''
   key:      ''
   analyticsKey: ''
-  enableTrace: false
+  enabled: false
 
 allowedContentTypes:
   - 'application/json'
