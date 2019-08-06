@@ -65,7 +65,7 @@ func TestUserCanModifyParcels(t *testing.T) {
 }
 
 func TestIsSignatureValid(t *testing.T) {
-	a, _ := metrics.Make(config.Metrics{AppName: "", AppKey: "", AnalyticsKey: ""})
+	a, _ := metrics.Make(config.Metrics{AppName: "", Enabled: false, AnalyticsKey: ""})
 	for _, tc := range isSignatureValidTable {
 		t.Run(tc.testCaseName, func(t *testing.T) {
 			service := data.NewAuthorizationService(data.NewDclClient("", a))
