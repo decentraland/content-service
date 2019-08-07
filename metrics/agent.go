@@ -51,67 +51,67 @@ func (c *ddClientImpl) gauge(metric string, value float64) {
 }
 
 func (c *ddClientImpl) RecordBytesStored(fileSize int64) {
-	c.gauge("FileStored[bytes]", float64(fileSize))
+	c.gauge("FileStored.bytes", float64(fileSize))
 }
 
 func (c *ddClientImpl) RecordBytesRetrieved(fileSize int64) {
-	c.gauge("FileRetrieved[bytes]", float64(fileSize))
+	c.gauge("FileRetrieved.bytes", float64(fileSize))
 }
 
 func (c *ddClientImpl) RecordUploadRequestValidationTime(t time.Duration) {
-	c.gauge("UploadValidationTime[msec|call]", toMillis(t))
+	c.gauge("UploadValidationTime.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordRetrieveTime(t time.Duration) {
-	c.gauge("StorageDownloadTime[msec|call]", toMillis(t))
+	c.gauge("StorageDownloadTime.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordStorageTime(t time.Duration) {
-	c.gauge("StorageTime[msec|call]", toMillis(t))
+	c.gauge("StorageTime.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordDCLResponseTime(t time.Duration) {
-	c.gauge("DCLResponseTime[msec|call]", toMillis(t))
+	c.gauge("DCLResponseTime.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordUploadRequestFiles(files int) {
-	c.gauge("UploadRequestFiles[files]", float64(files))
+	c.gauge("UploadedRequestFiles", float64(files))
 }
 
 func (c *ddClientImpl) RecordManifestSize(size int) {
-	c.gauge("Manifest[entries|call]", float64(size))
+	c.gauge("ManifestRequestEntries", float64(size))
 }
 
 func (c *ddClientImpl) RecordUploadProcessTime(t time.Duration) {
-	c.gauge("UploadProcessTime[msec|call]", toMillis(t))
+	c.gauge("UploadProcessTime.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordUploadRequestParseTime(t time.Duration) {
-	c.gauge("UploadParseTime[msec|call]", toMillis(t))
+	c.gauge("UploadParseTime.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordUploadReqSize(size int) {
-	c.gauge("UploadRequestSize[bytes]", float64(size))
+	c.gauge("UploadRequestSize.bytes", float64(size))
 }
 
 func (c *ddClientImpl) RecordIsMemberTime(t time.Duration) {
-	c.gauge("IsMemberDuration[msec|call]", toMillis(t))
+	c.gauge("IsMemberDuration.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordGetParcelMetadata(t time.Duration) {
-	c.gauge("GetParcelMetadata[msec|call]", toMillis(t))
+	c.gauge("GetParcelMetadata.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordGetParcelContent(t time.Duration) {
-	c.gauge("GetParcelContent[msec|call]", toMillis(t))
+	c.gauge("GetParcelContent.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordStoreContent(t time.Duration) {
-	c.gauge("StoreContent[msec|call]", toMillis(t))
+	c.gauge("StoreContent.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordStoreMetadata(t time.Duration) {
-	c.gauge("StoreMetadata[msec|call]", toMillis(t))
+	c.gauge("StoreMetadata.msec.call", toMillis(t))
 }
 
 func (c *ddClientImpl) RecordDCLAPIError(status int) {
