@@ -45,7 +45,7 @@ type ddClientImpl struct {
 }
 
 func (c *ddClientImpl) gauge(metric string, value float64) {
-	if err := c.client.Gauge(fmt.Sprintf("%s.", metric), value, c.tags, 1); err != nil {
+	if err := c.client.Gauge(fmt.Sprintf(".%s", metric), value, c.tags, 1); err != nil {
 		log.Errorf("Metrics agent failed: %s", err.Error())
 	}
 }
