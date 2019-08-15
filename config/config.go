@@ -63,8 +63,8 @@ type RemoteStorage struct {
 }
 
 type Server struct {
-	Port string
-	URL  string
+	Port int
+	Host string
 }
 
 type Metrics struct {
@@ -92,10 +92,6 @@ func GetConfig(name string) *Configuration {
 		log.Fatalf("Unable to decode config file into struct, %s", err)
 	}
 
-	if config.Server.URL[len(config.Server.URL)-1:] != "/" {
-		config.Server.URL = config.Server.URL + "/"
-	}
-
 	return &config
 }
 
@@ -103,7 +99,7 @@ func GetConfig(name string) *Configuration {
 func readEnvVariables(v *viper.Viper) {
 	// Server Configuration
 	v.BindEnv("server.port", "SERVER_PORT")
-	v.BindEnv("server.url", "SERVER_URL")
+	v.BindEnv("server.host", "SERVER_HOST")
 	// Storage Configuration
 	v.BindEnv("storage.storageType", "STORAGE_TYPE")
 	v.BindEnv("storage.remoteConfig.bucket", "AWS_S3_BUCKET")

@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/toorop/gin-logrus"
+	ginlogrus "github.com/toorop/gin-logrus"
+
 	"github.com/decentraland/content-service/test/utils"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
@@ -25,7 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/internal/handlers"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -120,10 +124,12 @@ var scenesUploadContent2 = &uploadTestConfig{
 func TestMain(m *testing.M) {
 	if runIntegrationTests {
 		conf := config.GetConfig("config_test")
-
-		initLogger(conf)
+		l := newLogger()
+		router := gin.New()
+		router.Use(ginlogrus.Logger(l), gin.Recovery())
 		// Start server
-		server = httptest.NewServer(InitializeHandler(conf))
+		InitializeHandler(router, conf, l)
+		server = httptest.NewServer(router)
 		defer server.Close()
 		code := m.Run()
 

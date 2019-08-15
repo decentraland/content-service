@@ -211,7 +211,7 @@ func TestUploadRequestValidation(t *testing.T) {
 			} else {
 				filter = tc.filter
 			}
-			ctx := &UploadCtx{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{ParcelAssetsLimit: tc.maxFiles}, TimeToLive: tc.ttl}
+			ctx := &uploadHandlerImpl{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{ParcelAssetsLimit: tc.maxFiles}, TimeToLive: tc.ttl}
 			request, err := ctx.parseRequest(r)
 			tc.assert(t, request, err)
 		})
@@ -574,7 +574,7 @@ func TestMultipartNaming(t *testing.T) {
 	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", Enabled: false, AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
 	limits := config.Limits{ParcelSizeLimit: 150000, ParcelAssetsLimit: 1000}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits, TimeToLive: 600}
+	uploadCtx := uploadHandlerImpl{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits, TimeToLive: 600}
 
 	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
 

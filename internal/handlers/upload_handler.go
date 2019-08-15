@@ -11,19 +11,39 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
 )
 
-type UploadCtx struct {
+type UploadHandler interface {
+	UploadContent(c *gin.Context)
+}
+
+func NewUploadHandler(v validation.Validator, us UploadService, a *metrics.Agent, f *ContentTypeFilter,
+	limits config.Limits, ttl int64, l *log.Logger) UploadHandler {
+	return &uploadHandlerImpl{
+		StructValidator: v,
+		Service:         us,
+		Agent:           a,
+		Filter:          f,
+		Limits:          limits,
+		TimeToLive:      ttl,
+		Log:             l,
+	}
+}
+
+type uploadHandlerImpl struct {
 	StructValidator validation.Validator
 	Service         UploadService
 	Agent           *metrics.Agent
 	Filter          *ContentTypeFilter
 	Limits          config.Limits
 	TimeToLive      int64
+	Log             *log.Logger
 }
 
 type FileMetadata struct {
@@ -83,57 +103,71 @@ func (f *ContentTypeFilter) IsAllowed(t string) bool {
 	return r.MatchString(t)
 }
 
-func UploadContent(ctx interface{}, r *http.Request) (Response, error) {
-	c, ok := ctx.(UploadCtx)
-	if !ok {
-		log.Fatal("Invalid Handler configuration")
-		return nil, NewInternalError("Invalid Configuration")
-	}
-	sendRequestData(c.Agent, r)
+func (uh *uploadHandlerImpl) UploadContent(c *gin.Context) {
+	sendRequestData(uh.Agent, c.Request, uh.Log)
 
-	log.Debug("About to parse Upload request...")
+	uh.Log.Debug("About to parse Upload request...")
 	tParse := time.Now()
-	uploadRequest, err := c.parseRequest(r)
-	c.Agent.RecordUploadRequestParseTime(time.Since(tParse))
+	uploadRequest, err := uh.parseRequest(c.Request)
+	uh.Agent.RecordUploadRequestParseTime(time.Since(tParse))
 	log.Debug("Upload request parsed")
 
 	if err != nil {
-		log.Errorf("Error parsing upload %s", err)
-		return nil, err
+		uh.Log.WithError(err).Error("Error parsing upload")
+		switch e := err.(type) {
+		case InvalidArgument:
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": e.Error()})
+			return
+		default:
+			_ = c.Error(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal error, try again later"})
+			return
+		}
 	}
 
 	tProcess := time.Now()
-	err = c.Service.ProcessUpload(uploadRequest)
-	c.Agent.RecordUploadProcessTime(time.Since(tProcess))
+	err = uh.Service.ProcessUpload(uploadRequest)
+	uh.Agent.RecordUploadProcessTime(time.Since(tProcess))
 
 	if err != nil {
-		log.Errorf("Error processing upload %s", err)
-		return nil, err
+		uh.Log.WithError(err).Error("Error parsing upload")
+		switch e := err.(type) {
+		case InvalidArgument:
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": e.Error()})
+			return
+		case UnauthorizedError:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": e.Error()})
+			return
+		default:
+			_ = c.Error(err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal error, try again later"})
+			return
+		}
 	}
 
-	return NewOkEmptyResponse(), nil
+	c.Status(http.StatusOK)
 }
 
 // Extracts all the information from the http request
 // If any part is missing or is invalid it will retrieve an error
-func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
+func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error) {
 	err := r.ParseMultipartForm(0)
 	if err != nil {
-		log.Errorf("Invalid UploadContent request: %s", err.Error())
-		return nil, NewInternalError(err.Error())
+		c.Log.WithError(err).Error("Invalid UploadContent request")
+		return nil, UnexpectedError{"error parsing request form", err}
 	}
 
-	metadata, err := getMetadata(r, c.StructValidator)
+	metadata, err := getMetadata(r, c.StructValidator, c.Log)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasRequestExpired(&metadata, c.TimeToLive) {
-		log.Debug("expired request")
-		return nil, NewBadRequestError("Expired request")
+		c.Log.Debug("expired request")
+		return nil, InvalidArgument{Message: "expired request"}
 	}
 
-	manifestContent, err := getManifestContent(r, c.StructValidator, metadata.RootCid)
+	manifestContent, err := getManifestContent(r, c.StructValidator, metadata.RootCid, c.Log)
 	if err != nil {
 		return nil, err
 	}
@@ -150,26 +184,26 @@ func (c *UploadCtx) parseRequest(r *http.Request) (*UploadRequest, error) {
 
 	requestFilesNumber := len(uploadedFiles)
 	if requestFilesNumber > manifestSize {
-		log.Debugf("Request contains too many files. Max expected: %d, found: %d", manifestSize, requestFilesNumber)
-		return nil, NewBadRequestError("Request contains too many files")
+		c.Log.Debugf("Request contains too many files. Max expected: %d, found: %d", manifestSize, requestFilesNumber)
+		return nil, InvalidArgument{Message: "request contains too many files"}
 	}
 
-	scene, err := getScene(uploadedFiles, c.StructValidator)
+	scene, err := getScene(uploadedFiles, c.StructValidator, *c.Log)
 	if err != nil {
 		return nil, err
 	}
 
 	sceneMaxElements := len(scene.Scene.Parcels) * filesPerScene
 	if manifestSize > sceneMaxElements {
-		log.Debugf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
-		return nil, NewBadRequestError(fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize))
+		c.Log.Debugf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
+		return nil, InvalidArgument{Message: fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize)}
 	}
 
 	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene, Origin: r.Header.Get("x-upload-origin")}
 	err = c.StructValidator.ValidateStruct(request)
 	if err != nil {
-		log.Debugf("Invalid UploadRequest: %s", err.Error())
-		return nil, WrapInBadRequestError(err)
+		c.Log.WithError(err).Debug("invalid UploadRequest")
+		return nil, RequiredValueError{Message: err.Error()}
 	}
 	return &request, nil
 }
@@ -179,7 +213,7 @@ func validateContentTypes(files map[string][]*multipart.FileHeader, filter *Cont
 		for _, f := range v {
 			t := f.Header.Get("Content-Type")
 			if !filter.IsAllowed(t) {
-				return NewBadRequestError(fmt.Sprintf("Invalid  Content-type: %s File: %s", t, f.Filename))
+				return InvalidArgument{Message: fmt.Sprintf("Invalid  Content-type: %s File: %s", t, f.Filename)}
 			}
 		}
 	}
@@ -187,72 +221,72 @@ func validateContentTypes(files map[string][]*multipart.FileHeader, filter *Cont
 }
 
 // Extracts the request Metadata
-func getMetadata(r *http.Request, v validation.Validator) (Metadata, error) {
+func getMetadata(r *http.Request, v validation.Validator, log *log.Logger) (Metadata, error) {
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
 		log.Error("Metadata not  found in UploadRequest")
-		return Metadata{}, NewBadRequestError("Missing metadata part in multipart")
+		return Metadata{}, RequiredValueError{"missing metadata part in multipart"}
 	}
-	return parseSceneMetadata(metaMultipart[0], v)
+	return parseSceneMetadata(metaMultipart[0], v, log)
 }
 
 // Parse a Json String into a Metadata
 // Retrieves an error if the Json String is malformed or if a required field is missing
-func parseSceneMetadata(mStr string, v validation.Validator) (Metadata, error) {
+func parseSceneMetadata(mStr string, v validation.Validator, log *log.Logger) (Metadata, error) {
 	var meta Metadata
 	err := json.Unmarshal([]byte(mStr), &meta)
 	if err != nil {
-		log.Debugf("Invalid metadata content: %s", err.Error())
-		return Metadata{}, WrapInBadRequestError(err)
+		log.WithError(err).Debug("invalid metadata content")
+		return Metadata{}, InvalidArgument{"invalid metadata content"}
 	}
 	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
 	err = v.ValidateStruct(meta)
 	if err != nil {
-		log.Debugf("Invalid metadata content: %s", err.Error())
-		return Metadata{}, WrapInBadRequestError(err)
+		log.WithError(err).Debug("invalid metadata content")
+		return Metadata{}, InvalidArgument{"invalid metadata content"}
 	}
 	return meta, nil
 }
 
 // Extract the scene information from the upload request
-func getScene(files map[string][]*multipart.FileHeader, v validation.Validator) (*scene, error) {
+func getScene(files map[string][]*multipart.FileHeader, v validation.Validator, log log.Logger) (*scene, error) {
 	for _, header := range files {
 		if header[0].Filename == "scene.json" {
 			sceneFile, err := header[0].Open()
 			if err != nil {
-				log.Debugf("Invalid scene.json: %s", err.Error())
-				return nil, WrapInBadRequestError(err)
+				log.WithError(err).Debug("Invalid scene.json")
+				return nil, InvalidArgument{"invalid scene.json"}
 			}
-			return parseSceneJsonFile(sceneFile, v)
+			return parseSceneJsonFile(sceneFile, v, log)
 		}
 	}
 	log.Error("Missing scene.json")
-	return nil, NewBadRequestError("Missing scene.json")
+	return nil, RequiredValueError{"missing scene.json"}
 }
 
 // Transform a io.Reader into a scene object
 // Retrieves an error if the scene object is missing a required field is missing
-func parseSceneJsonFile(file io.Reader, v validation.Validator) (*scene, error) {
+func parseSceneJsonFile(file io.Reader, v validation.Validator, log log.Logger) (*scene, error) {
 	var sce scene
 	err := json.NewDecoder(file).Decode(&sce)
 	if err != nil {
-		log.Debugf("Invalid scene.json content: %s", err.Error())
-		return nil, WrapInBadRequestError(err)
+		log.WithError(err).Debug("invalid scene.json content")
+		return nil, InvalidArgument{"invalid scene.json content"}
 	}
 	err = v.ValidateStruct(sce)
 	if err != nil {
-		log.Debugf("Invalid scene.json content: %s", err.Error())
-		return nil, WrapInBadRequestError(err)
+		log.WithError(err).Debug("invalid scene.json content")
+		return nil, InvalidArgument{"invalid scene.json content"}
 	}
 	return &sce, nil
 }
 
 // Extracts a the list of FileMetadata from the Request
-func getManifestContent(r *http.Request, v validation.Validator, cid string) (*[]FileMetadata, error) {
+func getManifestContent(r *http.Request, v validation.Validator, cid string, log *log.Logger) (*[]FileMetadata, error) {
 	filesJSON, isset := r.MultipartForm.Value[cid]
 	if !isset {
 		log.Debug("Missing content in multipart")
-		return nil, NewBadRequestError("Missing content in multipart ")
+		return nil, RequiredValueError{"missing content in multipart"}
 	}
 	return parseFilesMetadata(filesJSON[0], v)
 }
@@ -263,18 +297,18 @@ func parseFilesMetadata(metadataStr string, v validation.Validator) (*[]FileMeta
 	var filesMeta *[]FileMetadata
 	err := json.Unmarshal([]byte(metadataStr), &filesMeta)
 	if err != nil {
-		return nil, WrapInInternalError(err)
+		return nil, InvalidArgument{"invalid manifest"}
 	}
 	for _, element := range *filesMeta {
 		err = v.ValidateStruct(element)
 		if err != nil {
-			return nil, WrapInBadRequestError(err)
+			return nil, InvalidArgument{err.Error()}
 		}
 	}
 	return filesMeta, nil
 }
 
-func sendRequestData(a *metrics.Agent, r *http.Request) {
+func sendRequestData(a *metrics.Agent, r *http.Request, log *log.Logger) {
 	s := r.Header.Get("Content-length")
 	val, err := strconv.Atoi(s)
 	if err != nil {

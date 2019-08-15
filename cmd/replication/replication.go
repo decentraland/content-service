@@ -11,7 +11,7 @@ import (
 	"github.com/decentraland/content-service/metrics"
 
 	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/internal/handlers"
 	"github.com/decentraland/content-service/storage"
 	"github.com/fatih/structs"
 	"github.com/go-redis/redis"
