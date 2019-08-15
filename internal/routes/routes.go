@@ -42,14 +42,13 @@ func AddRoutes(router gin.IRouter, c *Config) {
 	uploadHandler := handlers.NewUploadHandler(validation.NewValidator(), uploadService, c.Agent,
 		handlers.NewContentTypeFilter(c.Conf.AllowedContentTypes), c.Conf.Limits, c.Conf.UploadRequestTTL, c.Log)
 
-	router.OPTIONS("/mappings", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
+	router.OPTIONS("/mappings", dclgin.PrefligthChecksMiddleware("GET, POST",
+		fmt.Sprintf("x-upload-origin, %s", dclgin.BasicHeaders)))
 	router.OPTIONS("/scenes", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	router.OPTIONS("/parcel_info", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	router.OPTIONS("/contents/:cid", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	router.OPTIONS("/validate", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	router.OPTIONS("/content/status", dclgin.PrefligthChecksMiddleware("POST", dclgin.BasicHeaders))
-	router.OPTIONS("/content/status",
-		dclgin.PrefligthChecksMiddleware("POST", fmt.Sprintf("x-upload-origin, %s", dclgin.BasicHeaders)))
 
 	router.GET("/mappings", mappingsHandler.GetMappings)
 	router.GET("/scenes", mappingsHandler.GetScenes)
