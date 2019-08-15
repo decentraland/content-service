@@ -188,7 +188,7 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 		return nil, InvalidArgument{Message: "request contains too many files"}
 	}
 
-	scene, err := getScene(uploadedFiles, c.StructValidator, *c.Log)
+	scene, err := getScene(uploadedFiles, c.StructValidator, c.Log)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +249,7 @@ func parseSceneMetadata(mStr string, v validation.Validator, log *log.Logger) (M
 }
 
 // Extract the scene information from the upload request
-func getScene(files map[string][]*multipart.FileHeader, v validation.Validator, log log.Logger) (*scene, error) {
+func getScene(files map[string][]*multipart.FileHeader, v validation.Validator, log *log.Logger) (*scene, error) {
 	for _, header := range files {
 		if header[0].Filename == "scene.json" {
 			sceneFile, err := header[0].Open()
@@ -266,7 +266,7 @@ func getScene(files map[string][]*multipart.FileHeader, v validation.Validator, 
 
 // Transform a io.Reader into a scene object
 // Retrieves an error if the scene object is missing a required field is missing
-func parseSceneJsonFile(file io.Reader, v validation.Validator, log log.Logger) (*scene, error) {
+func parseSceneJsonFile(file io.Reader, v validation.Validator, log *log.Logger) (*scene, error) {
 	var sce scene
 	err := json.NewDecoder(file).Decode(&sce)
 	if err != nil {

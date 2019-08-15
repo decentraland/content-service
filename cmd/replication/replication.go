@@ -31,10 +31,10 @@ func init() {
 }
 
 func main() {
-	var x1, y1, x2, y2 string
+	var x1, y1, x2, y2, url string
 	args := os.Args[1:]
-	if len(args) == 4 {
-		x1, y1, x2, y2 = args[0], args[1], args[2], args[3]
+	if len(args) == 5 {
+		x1, y1, x2, y2, url = args[0], args[1], args[2], args[3], args[4]
 	} else {
 		fmt.Println("Input NW coordinates")
 		fmt.Print("x1 = ")
@@ -51,7 +51,7 @@ func main() {
 	agent, _ := metrics.Make(config.Metrics{AnalyticsKey: "", Enabled: false, AppName: ""})
 	sto := storage.NewStorage(&conf.Storage, agent)
 
-	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", conf.Server.URL, x1, y1, x2, y2)
+	mappingsURL := fmt.Sprintf("%smappings?nw=%s,%s&se=%s,%s", url, x1, y1, x2, y2)
 	resp, err := http.Get(mappingsURL)
 	if err != nil {
 		log.Fatal(err)
@@ -66,7 +66,7 @@ func main() {
 
 	for _, parcel := range parcelContents {
 		xy := strings.Split(parcel.ParcelID, ",")
-		validateURL := fmt.Sprintf("%svalidate?x=%s&y=%s", conf.Server.URL, xy[0], xy[1])
+		validateURL := fmt.Sprintf("%svalidate?x=%s&y=%s", url, xy[0], xy[1])
 		resp, err3 := http.Get(validateURL)
 		if err3 != nil {
 			log.Fatal(err)
@@ -90,7 +90,7 @@ func main() {
 		}
 
 		for _, element := range parcel.Contents {
-			downloadURL := fmt.Sprintf("%scontents?%s", conf.Server.URL, element.Cid)
+			downloadURL := fmt.Sprintf("%scontents?%s", url, element.Cid)
 			resp, err := http.Get(downloadURL)
 			if err != nil {
 				log.Fatal(err)

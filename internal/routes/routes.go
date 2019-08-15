@@ -37,7 +37,7 @@ func AddRoutes(router gin.IRouter, c *Config) {
 
 	uploadService := handlers.NewUploadService(c.Storage, c.Client, c.Node,
 		data.NewAuthorizationService(data.NewDclClient(c.Conf.DecentralandApi.LandUrl, c.Agent)),
-		c.Agent, c.Conf.Limits.ParcelSizeLimit, c.Conf.Workdir, rpc.NewRPC(c.Conf.RPCConnection.URL))
+		c.Agent, c.Conf.Limits.ParcelSizeLimit, c.Conf.Workdir, rpc.NewRPC(c.Conf.RPCConnection.URL), c.Log)
 
 	uploadHandler := handlers.NewUploadHandler(validation.NewValidator(), uploadService, c.Agent,
 		handlers.NewContentTypeFilter(c.Conf.AllowedContentTypes), c.Conf.Limits, c.Conf.UploadRequestTTL, c.Log)

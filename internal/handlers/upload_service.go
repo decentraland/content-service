@@ -44,9 +44,12 @@ type UploadServiceImpl struct {
 	ParcelSizeLimit int64
 	Workdir         string
 	rpc             *rpc.RPC
+	Log             *log.Logger
 }
 
-func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization, agent *metrics.Agent, parcelSizeLimit int64, workdir string, rpc *rpc.RPC) *UploadServiceImpl {
+func NewUploadService(storage storage.Storage, client data.RedisClient, node *core.IpfsNode, auth data.Authorization,
+	agent *metrics.Agent, parcelSizeLimit int64, workdir string,
+	rpc *rpc.RPC, l *log.Logger) *UploadServiceImpl {
 	return &UploadServiceImpl{
 		Storage:         storage,
 		RedisClient:     client,
@@ -56,18 +59,19 @@ func NewUploadService(storage storage.Storage, client data.RedisClient, node *co
 		ParcelSizeLimit: parcelSizeLimit,
 		Workdir:         workdir,
 		rpc:             rpc,
+		Log:             l,
 	}
 }
 
 func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
-	log.Debug("Processing Upload request")
-	logUploadRequest(r)
+	us.Log.Debug("Processing Upload request")
+	logUploadRequest(r, us.Log)
 
 	if err := us.validateSignature(us.Auth, r.Metadata); err != nil {
 		return err
 	}
 
-	if err := validateKeyAccess(us.Auth, r.Metadata.PubKey, r.Scene.Scene.Parcels); err != nil {
+	if err := validateKeyAccess(us.Auth, r.Metadata.PubKey, r.Scene.Scene.Parcels, us.Log); err != nil {
 		return err
 	}
 
@@ -114,7 +118,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
 func (us *UploadServiceImpl) validateSignature(a data.Authorization, m Metadata) error {
-	log.Debugf("Validating signature: %s", m.Signature)
+	us.Log.Debugf("Validating signature: %s", m.Signature)
 
 	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
 	// We need to validate against a contract address whether this is ok or not?
@@ -132,7 +136,7 @@ func (us *UploadServiceImpl) validateSignature(a data.Authorization, m Metadata)
 		return nil
 	}
 	if !a.IsSignatureValid(fmt.Sprintf("%s.%d", m.RootCid, m.Timestamp), m.Signature, m.PubKey) {
-		log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
+		us.Log.Debugf("Invalid signature[%s] for rootCID[%s] and pubKey[%s]", m.RootCid, m.Signature, m.PubKey)
 		return InvalidArgument{"Signature is invalid"}
 	}
 	return nil
@@ -140,15 +144,15 @@ func (us *UploadServiceImpl) validateSignature(a data.Authorization, m Metadata)
 
 // Retrieves an error if the calculated global CID differs from the expected CID
 func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, rootCid string) error {
-	log.Debugf("Validating content. RootCID: %s", rootCid)
-	if err := checkCIDFormat(rootCid); err != nil {
+	us.Log.Debugf("Validating content. RootCID: %s", rootCid)
+	if err := checkCIDFormat(rootCid, us.Log); err != nil {
 		return err
 	}
 
 	rootDir := filepath.Join(us.Workdir, rootCid)
-	defer cleanUpTmpFile(rootDir)
+	defer cleanUpTmpFile(rootDir, us.Log)
 
-	log.Infof("Consolidating scene content for CID[%s]", rootCid)
+	us.Log.Infof("Consolidating scene content for CID[%s]", rootCid)
 	err := us.consolidateContent(requestFiles, manifest, rootDir)
 	if err != nil {
 		return err
@@ -167,14 +171,14 @@ func (us *UploadServiceImpl) validateContentCID(requestFiles map[string][]*multi
 
 // Consolidate all the scene content under a tmp directory
 func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multipart.FileHeader, manifest *[]FileMetadata, projectTmpFile string) error {
-	log.Debug("Consolidating Content...")
+	us.Log.Debug("Consolidating Content...")
 	for _, m := range *manifest {
-		log.Debugf("Verifying Manifest File[%s] CID [%s]", m.Name, m.Cid)
+		us.Log.Debugf("Verifying Manifest File[%s] CID [%s]", m.Name, m.Cid)
 		if strings.HasSuffix(m.Name, "/") {
 			continue
 		}
-		if err := checkCIDFormat(m.Cid); err != nil {
-			log.Debugf("Invalid CID for fileName[%s] CID [%s]", m.Name, m.Cid)
+		if err := checkCIDFormat(m.Cid, us.Log); err != nil {
+			us.Log.Debugf("Invalid CID for fileName[%s] CID [%s]", m.Name, m.Cid)
 			return err
 		}
 
@@ -182,23 +186,23 @@ func (us *UploadServiceImpl) consolidateContent(requestFiles map[string][]*multi
 
 		var err error
 		if f, ok := requestFiles[m.Cid]; ok {
-			err = saveRequestFile(f[0], tmpFilePath)
+			err = saveRequestFile(f[0], tmpFilePath, us.Log)
 		} else {
-			log.Debugf("File[%s] CID [%s] not found in the request content", m.Name, m.Cid)
+			us.Log.Debugf("File[%s] CID [%s] not found in the request content", m.Name, m.Cid)
 			err = us.retrieveContent(m.Cid, tmpFilePath)
 		}
 		if err != nil {
 			return err
 		}
 		if err := us.validateCID(tmpFilePath, m.Cid); err != nil {
-			log.Debugf("Failed to validate File[%s] cid: %s", m.Name, err.Error())
+			us.Log.Debugf("Failed to validate File[%s] cid: %s", m.Name, err.Error())
 			return err
 		}
 	}
 	return nil
 }
 
-func saveRequestFile(f *multipart.FileHeader, projectTmpFile string) error {
+func saveRequestFile(f *multipart.FileHeader, projectTmpFile string, log *log.Logger) error {
 	dir := filepath.Dir(projectTmpFile)
 	filePath := filepath.Join(dir, filepath.Base(projectTmpFile))
 
@@ -232,10 +236,10 @@ func saveRequestFile(f *multipart.FileHeader, projectTmpFile string) error {
 
 // Check if the expectedCID matches the actual CID for a given file
 func (us *UploadServiceImpl) validateCID(f string, expectedCID string) error {
-	log.Debugf("Validating File[%s] CID, expected: %s", f, expectedCID)
+	us.Log.Debugf("Validating File[%s] CID, expected: %s", f, expectedCID)
 	file, err := os.Open(f)
 	if err != nil {
-		log.Debugf("Unable to open File[%s] to calculate CID", f)
+		us.Log.Debugf("Unable to open File[%s] to calculate CID", f)
 		return InvalidArgument{fmt.Sprintf("Unable to open File[%s] to calculate CID", f)}
 	}
 	defer file.Close()
@@ -247,7 +251,7 @@ func (us *UploadServiceImpl) validateCID(f string, expectedCID string) error {
 		return err
 	}
 	if expectedCID != actualCID {
-		log.Debugf("File[%s] CID does not match expected value: %s", f, expectedCID)
+		us.Log.Debugf("File[%s] CID does not match expected value: %s", f, expectedCID)
 		return InvalidArgument{fmt.Sprintf("File[%s] CID does not match expected value: %s", f, expectedCID)}
 	}
 	return nil
@@ -264,7 +268,7 @@ func (us *UploadServiceImpl) calculateRootCid(rootPath string) (string, error) {
 }
 
 // Retrieves an error if the given pKey does not have permissions to modify the parcels
-func validateKeyAccess(a data.Authorization, pKey string, parcels []string) error {
+func validateKeyAccess(a data.Authorization, pKey string, parcels []string, log *log.Logger) error {
 	log.Debugf("Validating address: %s", pKey)
 	canModify, err := a.UserCanModifyParcels(pKey, parcels)
 	if err != nil {
@@ -278,32 +282,32 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string) erro
 }
 
 func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.FileHeader, paths map[string][]string, cid string) error {
-	log.Infof("Processing  new content for RootCID[%s]. New files: %d", cid, len(fh))
+	us.Log.Infof("Processing  new content for RootCID[%s]. New files: %d", cid, len(fh))
 	for fileCID, fileHeaders := range fh {
 		fileHeader := fileHeaders[0]
-		log.Debugf("Processing file[%s], CID[%s]", fileHeader.Filename, fileCID)
+		us.Log.Debugf("Processing file[%s], CID[%s]", fileHeader.Filename, fileCID)
 
 		// This anonymous function would allow the defers to work properly
 		// preventing resources from being piled up
 		err := func() error {
 			file, err := fileHeader.Open()
 			if err != nil {
-				log.Errorf("Failed to open file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
+				us.Log.Errorf("Failed to open file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
 				return UnexpectedError{"fail to open file", err}
 			}
 			defer file.Close()
 
 			_, err = us.Storage.SaveFile(fileCID, file, fileHeader.Header.Get("Content-Type"))
 			if err != nil {
-				log.Errorf("Failed to store file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
+				us.Log.Errorf("Failed to store file[%s] fileCID[%s]", fileHeader.Filename, fileCID)
 				return UnexpectedError{"fail to store file", err}
 			}
 			us.Agent.RecordBytesStored(fileHeader.Size)
-			log.Infof("File[%s] stored successfully under CID[%s]. Bytes stored: %d", fileHeader.Filename, fileCID, fileHeader.Size)
+			us.Log.Infof("File[%s] stored successfully under CID[%s]. Bytes stored: %d", fileHeader.Filename, fileCID, fileHeader.Size)
 			return nil
 		}()
 		if err != nil {
-			log.Debugf("Failed to upload file[%s], CID[%s]: %s", fileHeader.Filename, fileCID, err.Error())
+			us.Log.Debugf("Failed to upload file[%s], CID[%s]: %s", fileHeader.Filename, fileCID, err.Error())
 			return err
 		}
 	}
@@ -320,7 +324,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 		}
 	}
 
-	log.Infof("[Process New Files] New content for RootCID[%s] done", cid)
+	us.Log.Infof("[Process New Files] New content for RootCID[%s] done", cid)
 	return nil
 }
 
@@ -328,7 +332,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 func (us *UploadServiceImpl) retrieveContent(cid string, storePath string) error {
 	err := us.Storage.DownloadFile(cid, storePath)
 	if err != nil {
-		return handleStorageError(err, cid)
+		return handleStorageError(err, cid, us.Log)
 	}
 
 	return nil
@@ -338,7 +342,7 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 
 	err := us.RedisClient.SetSceneParcels(rootCID, parcels)
 	if err != nil {
-		log.Errorf("Error when storing parcels for root cid %s", rootCID)
+		us.Log.WithError(err).Errorf("Error when storing parcels for root cid %s", rootCID)
 		return UnexpectedError{"redis: fail to store parcel cid", err}
 	}
 
@@ -346,7 +350,7 @@ func (us *UploadServiceImpl) storeParcelsInformation(rootCID string, parcels []s
 
 		err = us.RedisClient.SetProcessedParcel(parcel)
 		if err != nil {
-			log.Errorf("Unable to store parcel[%s] Information: %s ", parcel, err.Error())
+			us.Log.WithError(err).Errorf("Unable to store parcel[%s] ", parcel)
 			return UnexpectedError{"redis: fail to store parcel information", err}
 		}
 	}
@@ -363,7 +367,7 @@ func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {
 	}
 
 	if size > maxSize {
-		log.Errorf(fmt.Sprintf("UploadRequest RootCid[%s] exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", r.Metadata.RootCid, maxSize, size))
+		us.Log.Errorf(fmt.Sprintf("UploadRequest RootCid[%s] exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", r.Metadata.RootCid, maxSize, size))
 		return InvalidArgument{fmt.Sprintf("UploadRequest exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", maxSize, size)}
 	}
 	return nil
@@ -385,19 +389,19 @@ func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error
 			size += s
 		}
 	}
-	log.Debugf(fmt.Sprintf("UploadRequest size: %d", size))
+	us.Log.Debugf(fmt.Sprintf("UploadRequest size: %d", size))
 	return size, nil
 }
 
 func (us *UploadServiceImpl) retrieveUploadedFileSize(cid string) (int64, error) {
 	size, err := us.Storage.FileSize(cid)
 	if err != nil {
-		return 0, handleStorageError(err, cid)
+		return 0, handleStorageError(err, cid, us.Log)
 	}
 	return size, nil
 }
 
-func handleStorageError(err error, cid string) error {
+func handleStorageError(err error, cid string, log *log.Logger) error {
 	switch e := err.(type) {
 	case storage.NotFoundError:
 		log.Debugf("file with cid[%s] not found", cid)
@@ -422,15 +426,15 @@ func groupFilePathsByCid(files *[]FileMetadata) map[string][]string {
 	return filesPaths
 }
 
-func cleanUpTmpFile(rootPath string) {
+func cleanUpTmpFile(rootPath string, log *log.Logger) {
 	if _, err := os.Stat(rootPath); err == nil {
 		if err := os.RemoveAll(rootPath); err != nil {
-			log.Errorf("Failed to remove tmp directory: %s", rootPath)
+			log.WithError(err).Errorf("Failed to remove tmp directory: %s", rootPath)
 		}
 	}
 }
 
-func checkCIDFormat(c string) error {
+func checkCIDFormat(c string, log *log.Logger) error {
 	res, err := cid.Parse(c)
 	if err != nil {
 		log.Debugf("Invalid cid: %s", c)
@@ -443,7 +447,7 @@ func checkCIDFormat(c string) error {
 	return nil
 }
 
-func logUploadRequest(r *UploadRequest) {
+func logUploadRequest(r *UploadRequest, l *log.Logger) {
 	var md []string
 	for _, m := range *r.Manifest {
 		md = append(md, fmt.Sprintf("%s[%s]", m.Name, m.Cid))
@@ -454,7 +458,7 @@ func logUploadRequest(r *UploadRequest) {
 		rd = append(rd, fmt.Sprintf("%s[%d bytes]", h.Filename, h.Size))
 	}
 
-	log.WithFields(log.Fields{
+	l.WithFields(log.Fields{
 		"parcel":       r.Scene.Main,
 		"requestFiles": strings.Join(rd, ", "),
 		"manifest":     strings.Join(md, ", "),

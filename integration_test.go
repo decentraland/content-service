@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/gin-gonic/gin"
-	"github.com/toorop/gin-logrus"
+	ginlogrus "github.com/toorop/gin-logrus"
 
 	"github.com/decentraland/content-service/test/utils"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -124,6 +126,7 @@ func TestMain(m *testing.M) {
 	if runIntegrationTests {
 		conf := config.GetConfig("config_test")
 		l := newLogger()
+		l.SetLevel(logrus.PanicLevel)
 		router := gin.New()
 		router.Use(ginlogrus.Logger(l), gin.Recovery())
 		// Start server

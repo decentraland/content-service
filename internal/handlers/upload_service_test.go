@@ -5,6 +5,7 @@ import (
 
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +17,11 @@ func TestValidateRequestSize(t *testing.T) {
 		for k, v := range tc.sizes {
 			mockStorage.EXPECT().FileSize(k).Return(v, nil).AnyTimes()
 		}
-		us := &UploadServiceImpl{Storage: mockStorage, ParcelSizeLimit: tc.parcelMaxSize}
+
+		l := log.New()
+		l.SetLevel(log.PanicLevel)
+
+		us := &UploadServiceImpl{Storage: mockStorage, ParcelSizeLimit: tc.parcelMaxSize, Log: l}
 
 		err := us.validateRequestSize(tc.r)
 
