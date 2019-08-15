@@ -71,16 +71,16 @@ func NewMappingsHandler(client data.RedisClient, dcl data.Decentraland, storage 
 }
 
 type getMappingsParams struct {
-	nw string `form:"nw" binding:"required"`
-	se string `form:"se" binding:"required"`
+	Nw string `form:"nw" binding:"required"`
+	Se string `form:"se" binding:"required"`
 }
 
-func (sa *getMappingsParams) Nw() (int, int, error) {
-	return parseCoordinates(sa.nw)
+func (sa *getMappingsParams) NwCoord() (int, int, error) {
+	return parseCoordinates(sa.Nw)
 }
 
-func (sa *getMappingsParams) Se() (int, int, error) {
-	return parseCoordinates(sa.se)
+func (sa *getMappingsParams) SeCoord() (int, int, error) {
+	return parseCoordinates(sa.Se)
 }
 
 func parseCoordinates(coord string) (int, int, error) {
@@ -108,13 +108,13 @@ func (ms *mappingsHandlerImpl) GetMappings(c *gin.Context) {
 		return
 	}
 
-	x1, y1, err := params.Nw()
+	x1, y1, err := params.NwCoord()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
 		return
 	}
 
-	x2, y2, err := params.Nw()
+	x2, y2, err := params.SeCoord()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
 		return
