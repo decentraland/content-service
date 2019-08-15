@@ -143,10 +143,10 @@ func (ms *mappingsHandlerImpl) GetMappings(c *gin.Context) {
 }
 
 type getScenesParams struct {
-	X1 int `form:"x1" binding:"required,numeric,min=-150,max=150"`
-	Y1 int `form:"y1" binding:"required,numeric,min=-150,max=150"`
-	X2 int `form:"x2" binding:"required,numeric,min=-150,max=150"`
-	Y2 int `form:"y2" binding:"required,numeric,min=-150,max=150"`
+	X1 int `form:"x1" binding:"required,min=-150,max=150"`
+	Y1 int `form:"y1" binding:"required,min=-150,max=150"`
+	X2 int `form:"x2" binding:"required,min=-150,max=150"`
+	Y2 int `form:"y2" binding:"required,min=-150,max=150"`
 }
 
 func (ms *mappingsHandlerImpl) GetScenes(c *gin.Context) {

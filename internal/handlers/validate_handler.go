@@ -28,8 +28,8 @@ type metadataHandlerImpl struct {
 }
 
 type validateParams struct {
-	X int `form:"x" binding:"required,numeric,min=-150,max=150"`
-	Y int `form:"y" binding:"required,numeric,min=-150,max=150"`
+	X int `form:"x" binding:"required,min=-150,max=150"`
+	Y int `form:"y" binding:"required,min=-150,max=150"`
 }
 
 func (mh *metadataHandlerImpl) GetParcelMetadata(c *gin.Context) {
