@@ -3,46 +3,54 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"strings"
+
+	"github.com/decentraland/dcl-gin/pkg/dclgin"
+	"github.com/gin-gonic/gin"
 
 	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/internal/routes"
 	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/routes"
-	gHandlers "github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/storage"
 
 	"github.com/ipsn/go-ipfs/core"
 	log "github.com/sirupsen/logrus"
-
-	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	ginlogrus "github.com/toorop/gin-logrus"
 )
 
 func main() {
 	conf := config.GetConfig("config")
 
-	initLogger(conf)
+	l := newLogger()
+	router := gin.New()
+	router.Use(ginlogrus.Logger(l), gin.Recovery())
 
-	log.Info("Starting server")
-
-	//CORS
-	corsObj := gHandlers.AllowedOrigins([]string{"*"})
-	headersObj := gHandlers.AllowedHeaders([]string{"*", "x-upload-origin"})
-
-	serverURL := fmt.Sprintf(":%s", conf.Server.Port)
-	handler := InitializeHandler(conf)
-	if conf.Metrics.Enabled {
-		defer tracer.Stop()
+	if err := setLogLevel(l, conf.LogLevel); err != nil {
+		l.Fatal("error setting log level")
 	}
 
-	log.Fatal(http.ListenAndServe(serverURL, gHandlers.CORS(corsObj, headersObj)(handler)))
+	l.Info("Starting server")
+
+	InitializeHandler(router, conf, l)
+	if conf.Metrics.Enabled {
+		metricsConfig := &dclgin.HttpMetricsConfig{
+			TraceName:            conf.Metrics.AppName,
+			AnalyticsRateEnabled: true,
+		}
+		if traceError := dclgin.EnableTrace(metricsConfig, router); traceError != nil {
+			log.WithError(traceError).Fatal("Unable to start metrics")
+		}
+		defer dclgin.StopTrace()
+	}
+
+	addr := fmt.Sprintf("%s:%d", conf.Server.Host, conf.Server.Port)
+	if err := router.Run(addr); err != nil {
+		log.WithError(err).Fatal("Failed to start server.")
+	}
 }
 
-func InitializeHandler(conf *config.Configuration) http.Handler {
+func InitializeHandler(r gin.IRouter, conf *config.Configuration, l *log.Logger) {
 	agent, err := metrics.Make(conf.Metrics)
 	if err != nil {
 		log.Fatal("Error initializing metrics agent")
@@ -63,16 +71,14 @@ func InitializeHandler(conf *config.Configuration) http.Handler {
 
 	sto := storage.NewStorage(&conf.Storage, agent)
 
-	if conf.Metrics.Enabled {
-		tracer.Start(tracer.WithServiceName("test-go"))
-		tracer := muxtrace.NewRouter(muxtrace.WithServiceName(conf.Metrics.AppName), muxtrace.WithAnalytics(true))
-		routes.AddRoutes(tracer.Router, client, sto, ipfsNode, agent, conf)
-		return tracer
-	} else {
-		router := mux.NewRouter()
-		routes.AddRoutes(router, client, sto, ipfsNode, agent, conf)
-		return router
-	}
+	routes.AddRoutes(r, &routes.Config{
+		Client:  client,
+		Storage: sto,
+		Node:    ipfsNode,
+		Agent:   agent,
+		Conf:    conf,
+		Log:     l,
+	})
 }
 
 func initIpfsNode() (*core.IpfsNode, error) {
@@ -80,17 +86,21 @@ func initIpfsNode() (*core.IpfsNode, error) {
 	return core.NewNode(ctx, nil)
 }
 
-func initLogger(c *config.Configuration) {
-	lvl, err := log.ParseLevel(strings.ToLower(c.LogLevel))
-	if err != nil {
-		log.Fatalf("Invalid log level: %s", c.LogLevel)
+func newLogger() *log.Logger {
+	l := log.New()
+	formatter := log.JSONFormatter{
+		FieldMap: log.FieldMap{
+			log.FieldKeyTime: "@timestamp",
+		},
 	}
-	log.SetFormatter(&log.TextFormatter{
-		TimestampFormat: "2006-01-02T15:04:05.000",
-		FullTimestamp:   true,
-	})
+	l.SetFormatter(&formatter)
+	return l
+}
 
-	log.SetReportCaller(true)
-	log.SetLevel(lvl)
-	log.Infof("Log level: %s", c.LogLevel)
+func setLogLevel(logger *log.Logger, level string) error {
+	lvl, err := log.ParseLevel(level)
+	if err == nil {
+		logger.SetLevel(lvl)
+	}
+	return err
 }

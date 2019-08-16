@@ -1,6 +1,6 @@
 server:
   port: '8000'                    # Set SERVER_PORT env variable to overwrite this value
-  url:  'http://localhost:8000/'  # Set SERVER_URL env variable to overwrite this value
+  host: '0.0.0.0'                 # Set SERVER_HOST env variable to overwrite this value
 
 storage:
   storageType: 'LOCAL' # Set STORAGE_TYPE env variable to overwrite this value, Possible values 'REMOTE' and 'LOCAL'

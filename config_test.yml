@@ -18,7 +18,7 @@ redis:
 decentralandApi:
   landUrl: 'https://api.decentraland.zone/v1/'
 
-logLevel: 'INFO'
+logLevel: 'PANIC'
 
 metrics:
   appName:  ''

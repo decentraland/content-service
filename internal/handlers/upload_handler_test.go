@@ -12,10 +12,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -211,8 +214,11 @@ func TestUploadRequestValidation(t *testing.T) {
 			} else {
 				filter = tc.filter
 			}
-			ctx := &UploadCtx{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{ParcelAssetsLimit: tc.maxFiles}, TimeToLive: tc.ttl}
-			request, err := ctx.parseRequest(r)
+			l := log.New()
+			l.SetLevel(log.PanicLevel)
+
+			h := &uploadHandlerImpl{StructValidator: validator, Agent: agent, Filter: filter, Limits: config.Limits{ParcelAssetsLimit: tc.maxFiles}, TimeToLive: tc.ttl, Log: l}
+			request, err := h.parseRequest(r)
 			tc.assert(t, request, err)
 		})
 	}
@@ -571,23 +577,37 @@ func TestMultipartNaming(t *testing.T) {
 		Timestamp:    time.Now().Unix(),
 	}
 
+	l := log.New()
+	l.SetLevel(log.PanicLevel)
+
 	dummyAgent, _ := metrics.Make(config.Metrics{AppName: "", Enabled: false, AnalyticsKey: ""})
 	service := &uploadServiceMock{uploadedContent: make(map[string]string)}
 	limits := config.Limits{ParcelSizeLimit: 150000, ParcelAssetsLimit: 1000}
-	uploadCtx := UploadCtx{StructValidator: validation.NewValidator(), Service: service, Agent: dummyAgent, Filter: NewContentTypeFilter([]string{".*"}), Limits: limits, TimeToLive: 600}
+	uploadHandler := uploadHandlerImpl{
+		StructValidator: validation.NewValidator(),
+		Service:         service,
+		Agent:           dummyAgent,
+		Filter:          NewContentTypeFilter([]string{".*"}),
+		Limits:          limits,
+		TimeToLive:      600,
+		Log:             l,
+	}
 
-	h := &ResponseHandler{Ctx: uploadCtx, H: UploadContent, Agent: dummyAgent, Id: "UploadContent"}
+	router := gin.New()
+	router.POST("/mappings", uploadHandler.UploadContent)
 
 	for _, tc := range namingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
+
 			request, err := buildUploadRequest(validRootCid, s, sceneJsonCID, m, tc.content)
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
-			rr := httptest.NewRecorder()
-			h.ServeHTTP(rr, request)
 
-			status := rr.Code
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, request)
+
+			status := w.Code
 
 			assert.Equal(t, http.StatusOK, status)
 

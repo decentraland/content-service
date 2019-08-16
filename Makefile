@@ -9,10 +9,10 @@ init:
 	git config core.hooksPath .githooks
 
 build:
-	docker-compose run --rm --name content_service_golang golang go build -ldflags '-X github.com/decentraland/content-service/handlers.commitHash=$(COMMIT)'
+	docker-compose run --rm --name content_service_golang golang go build -ldflags '-X github.com/decentraland/dcl-gin/pkg/dclgin.version=$(COMMIT)'
 
 run:
-	docker-compose run --rm --name content_service_golang -p 8000:8000 golang /bin/bash -c "go build -ldflags '-X github.com/decentraland/content-service/handlers.commitHash=$(COMMIT)' && ./content-service"
+	docker-compose run --rm --name content_service_golang -p 8000:8000 golang /bin/bash -c "go build -ldflags '-X github.com/decentraland/dcl-gin/pkg/dclgin.version=$(COMMIT)' && ./content-service"
 
 test:
 	go test -v ./... -count=1

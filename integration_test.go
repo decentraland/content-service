@@ -8,6 +8,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/gin-gonic/gin"
+	ginlogrus "github.com/toorop/gin-logrus"
+
 	"github.com/decentraland/content-service/test/utils"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
@@ -25,7 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/decentraland/content-service/config"
-	"github.com/decentraland/content-service/handlers"
+	"github.com/decentraland/content-service/internal/handlers"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -120,52 +125,18 @@ var scenesUploadContent2 = &uploadTestConfig{
 func TestMain(m *testing.M) {
 	if runIntegrationTests {
 		conf := config.GetConfig("config_test")
-
-		initLogger(conf)
+		l := newLogger()
+		l.SetLevel(logrus.PanicLevel)
+		router := gin.New()
+		router.Use(ginlogrus.Logger(l), gin.Recovery())
 		// Start server
-		server = httptest.NewServer(InitializeHandler(conf))
+		InitializeHandler(router, conf, l)
+		server = httptest.NewServer(router)
 		defer server.Close()
 		code := m.Run()
 
 		os.Exit(code)
 	}
-}
-
-func TestContentsHandlerS3Redirect(t *testing.T) {
-	if !runIntegrationTests {
-		t.Skip("Skipping integration test. To run it set RUN_IT=true")
-	}
-	const CID = "123456789"
-
-	client := getNoRedirectClient()
-	response, err := client.Get(server.URL + "/contents/" + CID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	awsKeys := [3]string{"AWS_REGION", "AWS_ACCESS_KEY", "AWS_SECRET_KEY"}
-	for _, key := range awsKeys {
-		_, ok := os.LookupEnv(key)
-		if !ok {
-			t.Skip("S3 Storage disabled. Skipping test")
-		}
-	}
-
-	assert.Equal(t, http.StatusMovedPermanently, response.StatusCode)
-
-	link := new(Link)
-	err = xml.NewDecoder(response.Body).Decode(link)
-	if err != nil {
-		t.Fatal("Error parsing response body")
-	}
-
-	c := config.GetConfig("config_test")
-
-	expected := c.Storage.RemoteConfig.URL + CID
-
-	assert.Equal(t, expected, link.Href, fmt.Sprintf("Should redirect to %s. Recieved link to : %s", expected, link.Href))
-
 }
 
 func TestInvalidCoordinates(t *testing.T) {
@@ -183,9 +154,6 @@ func TestInvalidCoordinates(t *testing.T) {
 	defer response.Body.Close()
 
 	assert.Equal(t, http.StatusOK, response.StatusCode)
-
-	contentType := response.Header.Get("Content-Type")
-	assert.Equal(t, "application/json", contentType)
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -211,10 +179,6 @@ func TestCoordinatesNotCached(t *testing.T) {
 
 	if response.StatusCode != http.StatusOK {
 		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
-	}
-
-	if contentType := response.Header.Get("Content-Type"); contentType != "application/json" {
-		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
@@ -251,10 +215,6 @@ func TestScenes(t *testing.T) {
 
 	if response.StatusCode != http.StatusOK {
 		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
-	}
-
-	if contentType := response.Header.Get("Content-Type"); contentType != "application/json" {
-		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
@@ -297,10 +257,6 @@ func TestScenes(t *testing.T) {
 
 	if response.StatusCode != http.StatusOK {
 		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
-	}
-
-	if contentType := response.Header.Get("Content-Type"); contentType != "application/json" {
-		t.Error("Mappings handler should return JSON file. Got 'Content-Type' :", contentType)
 	}
 
 	body, err = ioutil.ReadAll(response.Body)
@@ -663,7 +619,7 @@ var validateTc = []validateCoordConfig{
 		name:           "Invalid Coordinate",
 		x:              "-10",
 		y:              "s",
-		expectedStatus: http.StatusNotFound,
+		expectedStatus: http.StatusBadRequest,
 	},
 }
 
