@@ -7,7 +7,7 @@ ENV GOOS=linux
 COPY . .
 RUN go get
 RUN GIT_COMMIT=$(git rev-list -1 HEAD) && \
-      go build -ldflags "-X github.com/decentraland/content-service/handlers.commitHash=$GIT_COMMIT"
+      go build -ldflags "-X github.com/decentraland/dcl-gin/pkg/dclgin.version=$GIT_COMMIT"
 
 EXPOSE 8000
 CMD ["./content-service"]
