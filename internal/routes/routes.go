@@ -31,6 +31,8 @@ type Config struct {
 func AddRoutes(router gin.IRouter, c *Config) {
 	c.Log.Debug("Initializing routes...")
 
+	router.Use(dclgin.CorsMiddleware())
+
 	mappingsHandler := handlers.NewMappingsHandler(c.Client, data.NewDclClient(c.Conf.DecentralandApi.LandUrl, c.Agent), c.Storage, c.Log)
 	contentHandler := handlers.NewContentHandler(c.Storage, c.Client, c.Log)
 	metadataHandler := handlers.NewMetadataHandler(c.Client, c.Log)
