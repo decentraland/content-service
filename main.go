@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-
 	"github.com/decentraland/dcl-gin/pkg/dclgin"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/decentraland/content-service/data"
@@ -16,7 +16,7 @@ import (
 
 	"github.com/ipsn/go-ipfs/core"
 	log "github.com/sirupsen/logrus"
-	ginlogrus "github.com/toorop/gin-logrus"
+	"github.com/toorop/gin-logrus"
 )
 
 func main() {
@@ -32,7 +32,6 @@ func main() {
 
 	l.Info("Starting server")
 
-	InitializeHandler(router, conf, l)
 	if conf.Metrics.Enabled {
 		metricsConfig := &dclgin.HttpMetricsConfig{
 			TraceName:            conf.Metrics.AppName,
@@ -43,6 +42,8 @@ func main() {
 		}
 		defer dclgin.StopTrace()
 	}
+
+	InitializeHandler(router, conf, l)
 
 	addr := fmt.Sprintf("%s:%d", conf.Server.Host, conf.Server.Port)
 	if err := router.Run(addr); err != nil {
