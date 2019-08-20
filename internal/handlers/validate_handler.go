@@ -28,8 +28,8 @@ type metadataHandlerImpl struct {
 }
 
 type validateParams struct {
-	X int `form:"x" binding:"required,min=-150,max=150"`
-	Y int `form:"y" binding:"required,min=-150,max=150"`
+	X *int `form:"x" binding:"exists,min=-150,max=150"`
+	Y *int `form:"y" binding:"exists,min=-150,max=150"`
 }
 
 func (mh *metadataHandlerImpl) GetParcelMetadata(c *gin.Context) {
@@ -39,7 +39,7 @@ func (mh *metadataHandlerImpl) GetParcelMetadata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
 		return
 	}
-	parcelId := fmt.Sprintf("%d,%d", p.X, p.Y)
+	parcelId := fmt.Sprintf("%d,%d", *p.X, *p.Y)
 	mh.Log.Debugf("Retrieving parcel metadata. Parcel[%s]", parcelId)
 	parcelMeta, err := mh.RedisClient.GetParcelMetadata(parcelId)
 	if err != nil {

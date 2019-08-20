@@ -143,21 +143,22 @@ func (ms *mappingsHandlerImpl) GetMappings(c *gin.Context) {
 }
 
 type getScenesParams struct {
-	X1 int `form:"x1" binding:"required,min=-150,max=150"`
-	Y1 int `form:"y1" binding:"required,min=-150,max=150"`
-	X2 int `form:"x2" binding:"required,min=-150,max=150"`
-	Y2 int `form:"y2" binding:"required,min=-150,max=150"`
+	X1 *int `form:"x1" binding:"exists,min=-150,max=150"`
+	Y1 *int `form:"y1" binding:"exists,min=-150,max=150"`
+	X2 *int `form:"x2" binding:"exists,min=-150,max=150"`
+	Y2 *int `form:"y2" binding:"exists,min=-150,max=150"`
 }
 
 func (ms *mappingsHandlerImpl) GetScenes(c *gin.Context) {
 	var p getScenesParams
 	err := c.ShouldBindWith(&p, binding.Query)
 	if err != nil {
+		println(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
 		return
 	}
 
-	pids := RectToParcels(p.X1, p.Y1, p.X2, p.Y2, 200)
+	pids := RectToParcels(*p.X1, *p.Y1, *p.X2, *p.Y2, 200)
 	if pids == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "too many parcels requested"})
 		return
