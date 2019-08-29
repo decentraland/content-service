@@ -71,7 +71,7 @@ $ ./content-service
 
 ## API Documentation
 
-[Documentation](https://github.com/decentraland/content-service/blob/master/docs/APIDOC.go)
+[Documentation](https://github.com/decentraland/content-service/blob/master/docs/APIDOC.md)
 
 ## Replication
 
