@@ -139,58 +139,6 @@ func TestMain(m *testing.M) {
 	}
 }
 
-func TestInvalidCoordinates(t *testing.T) {
-	if !runIntegrationTests {
-		t.Skip("Skipping integration test. To run it set RUN_IT=true")
-	}
-	x1, y1, x2, y2 := 45, 45, 44, 46
-	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
-
-	client := getNoRedirectClient()
-	response, err := client.Get(server.URL + query)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	assert.Equal(t, http.StatusOK, response.StatusCode)
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Error(err)
-	}
-	bodyString := string(body)
-	assert.Equal(t, "[]", bodyString)
-}
-
-func TestCoordinatesNotCached(t *testing.T) {
-	if !runIntegrationTests {
-		t.Skip("Skipping integration test. To run it set RUN_IT=true")
-	}
-	x1, y1, x2, y2 := 120, 120, 120, 120
-	query := fmt.Sprintf("/mappings?nw=%d,%d&se=%d,%d", x1, y1, x2, y2)
-
-	client := getNoRedirectClient()
-	response, err := client.Get(server.URL + query)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		t.Error("Mappings handler should respond with status code 200. Recieved code: ", response.StatusCode)
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	bodyString := string(body)
-	if bodyString != "[]" {
-		t.Errorf("Mappings handler should return empty JSON List when coordinates not in cache.\nRecieved:\n%s", bodyString)
-	}
-}
-
 func TestScenes(t *testing.T) {
 	if !runIntegrationTests {
 		t.Skip("Skipping integration test. To run it set RUN_IT=true")

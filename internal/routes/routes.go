@@ -52,7 +52,6 @@ func AddRoutes(router gin.IRouter, c *Config) {
 	router.OPTIONS("/validate", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	router.OPTIONS("/content/status", dclgin.PrefligthChecksMiddleware("POST", dclgin.BasicHeaders))
 
-	router.GET("/mappings", mappingsHandler.GetMappings)
 	router.GET("/scenes", mappingsHandler.GetScenes)
 	router.GET("/parcel_info", mappingsHandler.GetInfo)
 	router.GET("/contents/:cid", contentHandler.GetContents)
