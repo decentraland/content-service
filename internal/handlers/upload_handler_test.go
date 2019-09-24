@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const validRootCid = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
+const validSceneCid = "QmeoVuRM2ynxMfBn6eEqeTVRkJR9KZBQbLMLakZjioNhdn"
 const validSignature = "0x96a6e3f69b25fcf89d5af9fb9d6f17da8dd86548f486822e74296af1d8bcaf920e67684e2a15cd942526a4ede10dd5483eccb381d92f88b932858d7a466f99ed1b"
 const validTestPubKey = "0xa08a656ac52c0b32902a76e122d2973b022caa0e"
 const sceneJsonCID = "QmfRoY2437YZgrJK9s5Vvkj6z9xH4DqGT1VKp1WFoh6Ec4"
@@ -59,73 +59,49 @@ var metadataValidations = []testDataValidation{
 	{
 		caseName: "Valid Metadata",
 		s: Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
 		},
 		errorsAssertion: assert.Nil,
 	}, {
 		caseName: "Missing Root CID",
 		s: Metadata{
-			Value:        "",
 			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
 			PubKey:       validTestPubKey,
-			RootCid:      "",
+			SceneCid:      "",
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Missing Signature",
 		s: Metadata{
-			Value:        validRootCid,
-			Signature:    "",
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
+			Signature: "",
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Invalid Signature",
 		s: Metadata{
-			Value:        validRootCid,
-			Signature:    "not a valid signature",
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
+			Signature: "not a valid signature",
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Missing Key",
 		s: Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       "",
-			RootCid:      validRootCid,
+			Signature: validSignature,
+			PubKey:    "",
+			SceneCid:  validSceneCid,
 		},
 		errorsAssertion: assert.NotNil,
 	}, {
 		caseName: "Invalid key",
 		s: Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       "Not the key you are looking for",
-			RootCid:      validRootCid,
+			Signature: validSignature,
+			PubKey:    "Not the key you are looking for",
+			SceneCid:  validSceneCid,
 		},
 		errorsAssertion: assert.NotNil,
 	},
@@ -133,8 +109,8 @@ var metadataValidations = []testDataValidation{
 
 var fileMetadataValidations = []testDataValidation{
 	{
-		caseName: "Valid FileMetadata",
-		s: FileMetadata{
+		caseName: "Valid ContentMapping",
+		s: ContentMapping{
 			Cid:  sceneJsonCID,
 			Name: "scene.json",
 		},
@@ -142,7 +118,7 @@ var fileMetadataValidations = []testDataValidation{
 	},
 	{
 		caseName: "Missing CID",
-		s: FileMetadata{
+		s: ContentMapping{
 			Cid:  "",
 			Name: "scene.json",
 		},
@@ -150,7 +126,7 @@ var fileMetadataValidations = []testDataValidation{
 	},
 	{
 		caseName: "Missing File Name",
-		s: FileMetadata{
+		s: ContentMapping{
 			Cid:  sceneJsonCID,
 			Name: "",
 		},
@@ -175,6 +151,7 @@ var sceneValidation = []testDataValidation{
 				Signalling: "https://rendezvous.decentraland.org",
 			},
 			Main: "scene.js",
+			Mappings: []
 		},
 		errorsAssertion: assert.Nil,
 	}, {
@@ -229,7 +206,7 @@ func buildUploadRequest(rootCID string, scene *scene, sceneCID string, metadata 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	manifest := []FileMetadata{
+	manifest := []ContentMapping{
 		{Cid: sceneCID, Name: "scene.json"},
 	}
 
@@ -288,7 +265,7 @@ type requestValidation struct {
 }
 
 type fileContent struct {
-	fm      *FileMetadata
+	fm      *ContentMapping
 	content string
 }
 
@@ -320,17 +297,13 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix(),
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix(),
 		},
 		maxFiles: 1000,
 		ttl:      600,
@@ -350,34 +323,26 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix(),
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix(),
 		},
 		maxFiles: 1000,
 		ttl:      600,
 		assert:   requestErrorAssertion,
 	}, {
 		name:     "Missing Scene.json file",
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix(),
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix(),
 		},
 		maxFiles: 1000,
 		ttl:      600,
@@ -399,16 +364,12 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix(),
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix(),
 		},
 		maxFiles: 1000,
 		ttl:      600,
@@ -430,7 +391,7 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		maxFiles: 1000,
 		ttl:      600,
@@ -454,22 +415,18 @@ var requestValidationTestCases = []requestValidation{
 			Main: "scene.js",
 		},
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix(),
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix(),
 		},
 		maxFiles: 1,
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		ttl:      600,
 		assert:   requestErrorAssertion,
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "RandomFile",
 			},
@@ -493,21 +450,17 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		maxFiles: 1000,
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix(),
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix(),
 		},
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "RandomFile",
 			},
@@ -534,17 +487,13 @@ var requestValidationTestCases = []requestValidation{
 			},
 			Main: "scene.js",
 		},
-		cid:      validRootCid,
+		cid:      validSceneCid,
 		sceneCid: sceneJsonCID,
 		metadata: &Metadata{
-			Value:        validRootCid,
-			Signature:    validSignature,
-			Validity:     "2018-12-12T14:49:14.074000000Z",
-			ValidityType: 0,
-			Sequence:     2,
-			PubKey:       validTestPubKey,
-			RootCid:      validRootCid,
-			Timestamp:    time.Now().Unix() - 10000,
+			Signature: validSignature,
+			PubKey:    validTestPubKey,
+			SceneCid:  validSceneCid,
+			Timestamp: time.Now().Unix() - 10000,
 		},
 		maxFiles: 1000,
 		ttl:      1,
@@ -567,14 +516,10 @@ func TestMultipartNaming(t *testing.T) {
 	}
 
 	m := &Metadata{
-		Value:        validRootCid,
-		Signature:    validSignature,
-		Validity:     "2018-12-12T14:49:14.074000000Z",
-		ValidityType: 0,
-		Sequence:     2,
-		PubKey:       validTestPubKey,
-		RootCid:      validRootCid,
-		Timestamp:    time.Now().Unix(),
+		Signature: validSignature,
+		PubKey:    validTestPubKey,
+		SceneCid:  validSceneCid,
+		Timestamp: time.Now().Unix(),
 	}
 
 	l := log.New()
@@ -599,7 +544,7 @@ func TestMultipartNaming(t *testing.T) {
 	for _, tc := range namingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 
-			request, err := buildUploadRequest(validRootCid, s, sceneJsonCID, m, tc.content)
+			request, err := buildUploadRequest(validSceneCid, s, sceneJsonCID, m, tc.content)
 			if err != nil {
 				t.Fatal(fmt.Scanf("Unexpected error: %s", err.Error()))
 			}
@@ -623,7 +568,7 @@ var namingTestCases = []namingCase{
 	{
 		name: "Alphanumeric",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "ABCDEFGHIJKLMNOPQRSTUVWabcdefghijklmnopqrstuv0123456789.txt",
 			},
@@ -633,7 +578,7 @@ var namingTestCases = []namingCase{
 	{
 		name: "White Spaces",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "one two three.txt",
 			},
@@ -642,7 +587,7 @@ var namingTestCases = []namingCase{
 	}, {
 		name: "Pound Char",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "mambo#5.txt",
 			},
@@ -651,7 +596,7 @@ var namingTestCases = []namingCase{
 	}, {
 		name: "Compare Chars",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "<mambo>.txt",
 			},
@@ -660,7 +605,7 @@ var namingTestCases = []namingCase{
 	}, {
 		name: "Percent Char",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "%mambo%.txt",
 			},
@@ -669,7 +614,7 @@ var namingTestCases = []namingCase{
 	}, {
 		name: "Braces",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "[{mambo}].txt",
 			},
@@ -678,7 +623,7 @@ var namingTestCases = []namingCase{
 	}, {
 		name: "Slashes",
 		content: &fileContent{
-			fm: &FileMetadata{
+			fm: &ContentMapping{
 				Cid:  uuid.New().String(),
 				Name: "\\|//.txt",
 			},

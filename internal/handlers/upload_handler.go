@@ -46,20 +46,16 @@ type uploadHandlerImpl struct {
 	Log             *log.Logger
 }
 
-type FileMetadata struct {
+type ContentMapping struct {
 	Cid  string `json:"cid" validate:"required"`
 	Name string `json:"name" validate:"required"`
 }
 
 type Metadata struct {
-	Value        string `json:"value" structs:"value " validate:"required"`
-	Signature    string `json:"signature" structs:"signature" validate:"required,prefix=0x"`
-	Validity     string `json:"validity" structs:"validity" validate:"required"`
-	ValidityType int    `json:"validityType" structs:"validityType" validate:"gte=0"`
-	Sequence     int    `json:"sequence" structs:"sequence" validate:"gte=0"`
-	PubKey       string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
-	RootCid      string `json:"root_cid" structs:"root_cid" validate:"required"`
-	Timestamp    int64  `json:"timestamp" structs:"timestamp" validate:"gte=0"`
+	Signature string `json:"signature" structs:"signature" validate:"required,prefix=0x"`
+	PubKey    string `json:"pubkey" structs:"pubkey" validate:"required,eth_addr"`
+	SceneCid  string `json:"scene_cid" structs:"root_cid" validate:"required"`
+	Timestamp int64  `json:"timestamp" structs:"timestamp" validate:"gte=0"`
 }
 
 type scene struct {
@@ -68,6 +64,7 @@ type scene struct {
 	Scene          sceneData   `json:"scene"`
 	Communications commsConfig `json:"communications"`
 	Main           string      `json:"main" validate:"required"`
+	Mappings       []ContentMapping    `json:"mappings" validate:"required"`
 }
 
 type display struct {
@@ -78,6 +75,20 @@ type sceneData struct {
 	EstateID int      `json:"estateId"`
 	Parcels  []string `json:"parcels" validate:"required"`
 	Base     string   `json:"base" validate:"required"`
+}
+
+func (s *sceneData) UniqueParcels() []string {
+	parcels := map[string]bool{}
+	for _, p := range s.Parcels {
+		parcels[p] = true
+	}
+	unique := make([]string, len(parcels))
+	i := 0
+	for k := range parcels {
+		unique[i] = k
+		i++
+	}
+	return unique
 }
 
 type commsConfig struct {
@@ -162,19 +173,10 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 		return nil, err
 	}
 
-	if hasRequestExpired(&metadata, c.TimeToLive) {
+	if hasRequestExpired(metadata, c.TimeToLive) {
 		c.Log.Debug("expired request")
 		return nil, InvalidArgument{Message: "expired request"}
 	}
-
-	manifestContent, err := getManifestContent(r, c.StructValidator, metadata.RootCid, c.Log)
-	if err != nil {
-		return nil, err
-	}
-
-	filesPerScene := c.Limits.ParcelAssetsLimit
-	manifestSize := len(*manifestContent)
-	c.Agent.RecordManifestSize(len(*manifestContent))
 
 	uploadedFiles := r.MultipartForm.File
 	c.Agent.RecordUploadRequestFiles(len(uploadedFiles))
@@ -182,24 +184,42 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 		return nil, err
 	}
 
+	scene, err := getScene(uploadedFiles, c.StructValidator, c.Log)
+	if err != nil {
+		return nil, err
+	}
+
+	filesPerScene := c.Limits.ParcelAssetsLimit
+	manifestSize := len(scene.Mappings)
+	c.Agent.RecordManifestSize(len(scene.Mappings))
+
 	requestFilesNumber := len(uploadedFiles)
 	if requestFilesNumber > manifestSize {
 		c.Log.Debugf("Request contains too many files. Max expected: %d, found: %d", manifestSize, requestFilesNumber)
 		return nil, InvalidArgument{Message: "request contains too many files"}
 	}
 
-	scene, err := getScene(uploadedFiles, c.StructValidator, c.Log)
-	if err != nil {
-		return nil, err
+	sceneParcels := scene.Scene.UniqueParcels()
+	nUniqueParcels := len(sceneParcels)
+
+	if nUniqueParcels != len(scene.Scene.Parcels) {
+		return nil, InvalidArgument{Message: "Parcel list contains duplicate elements"}
 	}
 
-	sceneMaxElements := len(scene.Scene.Parcels) * filesPerScene
+	sceneMaxElements := nUniqueParcels * filesPerScene
 	if manifestSize > sceneMaxElements {
 		c.Log.Debugf("Max Elements per scene exceeded. Max Value: %d, Got: %d, Owner: %s", filesPerScene, manifestSize, metadata.PubKey)
 		return nil, InvalidArgument{Message: fmt.Sprintf("Max Elements per scene exceeded. Max Value: %d, Got: %d", filesPerScene, manifestSize)}
 	}
 
-	request := UploadRequest{Metadata: metadata, Manifest: manifestContent, UploadedFiles: uploadedFiles, Scene: scene, Origin: r.Header.Get("x-upload-origin")}
+	request := UploadRequest{
+		Metadata: metadata,
+		Mappings: scene.Mappings,
+		UploadedFiles: uploadedFiles,
+		Parcels: sceneParcels,
+		Origin: r.Header.Get("x-upload-origin"),
+	}
+
 	err = c.StructValidator.ValidateStruct(request)
 	if err != nil {
 		c.Log.WithError(err).Debug("invalid UploadRequest")
@@ -221,31 +241,30 @@ func validateContentTypes(files map[string][]*multipart.FileHeader, filter *Cont
 }
 
 // Extracts the request Metadata
-func getMetadata(r *http.Request, v validation.Validator, log *log.Logger) (Metadata, error) {
+func getMetadata(r *http.Request, v validation.Validator, log *log.Logger) (*Metadata, error) {
 	metaMultipart, isset := r.MultipartForm.Value["metadata"]
 	if !isset {
 		log.Error("Metadata not  found in UploadRequest")
-		return Metadata{}, RequiredValueError{"missing metadata part in multipart"}
+		return nil, RequiredValueError{"missing metadata part in multipart"}
 	}
 	return parseSceneMetadata(metaMultipart[0], v, log)
 }
 
 // Parse a Json String into a Metadata
 // Retrieves an error if the Json String is malformed or if a required field is missing
-func parseSceneMetadata(mStr string, v validation.Validator, log *log.Logger) (Metadata, error) {
+func parseSceneMetadata(mStr string, v validation.Validator, log *log.Logger) (*Metadata, error) {
 	var meta Metadata
 	err := json.Unmarshal([]byte(mStr), &meta)
 	if err != nil {
 		log.WithError(err).Debug("invalid metadata content")
-		return Metadata{}, InvalidArgument{"invalid metadata content"}
+		return nil, InvalidArgument{"invalid metadata content"}
 	}
-	meta.RootCid = strings.TrimPrefix(meta.Value, "/ipfs/")
 	err = v.ValidateStruct(meta)
 	if err != nil {
 		log.WithError(err).Debug("invalid metadata content")
-		return Metadata{}, InvalidArgument{"invalid metadata content"}
+		return nil, InvalidArgument{"invalid metadata content"}
 	}
-	return meta, nil
+	return &meta, nil
 }
 
 // Extract the scene information from the upload request
@@ -281,8 +300,8 @@ func parseSceneJsonFile(file io.Reader, v validation.Validator, log *log.Logger)
 	return &sce, nil
 }
 
-// Extracts a the list of FileMetadata from the Request
-func getManifestContent(r *http.Request, v validation.Validator, cid string, log *log.Logger) (*[]FileMetadata, error) {
+// Extracts a the list of ContentMapping from the Request
+func getManifestContent(r *http.Request, v validation.Validator, cid string, log *log.Logger) ([]ContentMapping, error) {
 	filesJSON, isset := r.MultipartForm.Value[cid]
 	if !isset {
 		log.Debug("Missing content in multipart")
@@ -291,15 +310,15 @@ func getManifestContent(r *http.Request, v validation.Validator, cid string, log
 	return parseFilesMetadata(filesJSON[0], v)
 }
 
-// Parse a Json String into an array of FileMetadata
+// Parse a Json String into an array of ContentMapping
 // Retrieves an error if the Json String is malformed or if a required field is missing
-func parseFilesMetadata(metadataStr string, v validation.Validator) (*[]FileMetadata, error) {
-	var filesMeta *[]FileMetadata
+func parseFilesMetadata(metadataStr string, v validation.Validator) ([]ContentMapping, error) {
+	var filesMeta []ContentMapping
 	err := json.Unmarshal([]byte(metadataStr), &filesMeta)
 	if err != nil {
 		return nil, InvalidArgument{"invalid manifest"}
 	}
-	for _, element := range *filesMeta {
+	for _, element := range filesMeta {
 		err = v.ValidateStruct(element)
 		if err != nil {
 			return nil, InvalidArgument{err.Error()}

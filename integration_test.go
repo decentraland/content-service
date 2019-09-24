@@ -344,7 +344,7 @@ func TestContentStatus(t *testing.T) {
 	rUpload := execRequest(buildUploadRequest(okUploadContent, t), t)
 	assert.Equal(t, http.StatusOK, rUpload.StatusCode)
 
-	var contentsJSON []handlers.FileMetadata
+	var contentsJSON []handlers.ContentMapping
 	c, err := os.Open(okUploadContent.manifest)
 	if err != nil {
 		t.Fail()
@@ -411,8 +411,8 @@ func TestPartialUpload(t *testing.T) {
 	}
 }
 
-func (conf *uploadTestConfig) readManifest() (*[]handlers.FileMetadata, error) {
-	var manifest []handlers.FileMetadata
+func (conf *uploadTestConfig) readManifest() (*[]handlers.ContentMapping, error) {
+	var manifest []handlers.ContentMapping
 	c, err := os.Open(conf.manifest)
 	if err != nil {
 		return nil, err

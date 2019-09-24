@@ -42,8 +42,8 @@ var sizeTestTable = []sizeCase{
 		name:          "Valid Size",
 		parcelMaxSize: 1000,
 		r: &UploadRequest{
-			Scene:    &scene{Scene: sceneData{Parcels: []string{"0,0"}, Base: "0,0"}},
-			Manifest: &[]FileMetadata{{Cid: "content", Name: "content"}},
+			Parcels:  []string{"0,0"},
+			Mappings: []ContentMapping{{Cid: "content", Name: "content"}},
 		},
 		sizes:           map[string]int64{"content": 1000},
 		errorsAssertion: assert.Nil,
@@ -51,10 +51,8 @@ var sizeTestTable = []sizeCase{
 		name:          "Valid Size - Multiple Elements",
 		parcelMaxSize: 800,
 		r: &UploadRequest{
-			Scene: &scene{
-				Scene: sceneData{Parcels: []string{"0,0"}, Base: "0,0"},
-			},
-			Manifest: &[]FileMetadata{{Cid: "content1", Name: "content1"}, {Cid: "content2", Name: "content2"}},
+			Parcels:  []string{"0,0"},
+			Mappings: []ContentMapping{{Cid: "content1", Name: "content1"}, {Cid: "content2", Name: "content2"}},
 		},
 		sizes:           map[string]int64{"content1": 400, "content2": 400},
 		errorsAssertion: assert.Nil,
@@ -62,10 +60,8 @@ var sizeTestTable = []sizeCase{
 		name:          "Invalid Size - Multiple Elements",
 		parcelMaxSize: 800,
 		r: &UploadRequest{
-			Scene: &scene{
-				Scene: sceneData{Parcels: []string{"0,0"}, Base: "0,0"},
-			},
-			Manifest: &[]FileMetadata{{Cid: "content1", Name: "content1"}, {Cid: "content2", Name: "content2"}},
+			Parcels:  []string{"0,0"},
+			Mappings: []ContentMapping{{Cid: "content1", Name: "content1"}, {Cid: "content2", Name: "content2"}},
 		},
 		sizes:           map[string]int64{"content1": 400, "content2": 410},
 		errorsAssertion: assert.NotNil,
@@ -73,10 +69,8 @@ var sizeTestTable = []sizeCase{
 		name:          "Valid Size - Multiple Elements and Parcels",
 		parcelMaxSize: 800,
 		r: &UploadRequest{
-			Scene: &scene{
-				Scene: sceneData{Parcels: []string{"0,0", "0,1"}, Base: "0,0"},
-			},
-			Manifest: &[]FileMetadata{{Cid: "content1", Name: "content1"}, {Cid: "content2", Name: "content2"}},
+			Parcels:  []string{"0,0", "0,1"},
+			Mappings: []ContentMapping{{Cid: "content1", Name: "content1"}, {Cid: "content2", Name: "content2"}},
 		},
 		sizes:           map[string]int64{"content1": 400, "content2": 410},
 		errorsAssertion: assert.Nil,
