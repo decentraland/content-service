@@ -3,7 +3,9 @@ package routes
 import (
 	"fmt"
 
-	"github.com/decentraland/content-service/config"
+	"github.com/decentraland/content-service/internal/ipfs"
+	"github.com/decentraland/content-service/utils"
+
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/internal/handlers"
 	"github.com/decentraland/content-service/metrics"
@@ -14,18 +16,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/ipsn/go-ipfs/core"
-
 	"github.com/decentraland/dcl-gin/pkg/dclgin"
 )
 
 type Config struct {
-	Client  data.RedisClient
-	Storage storage.Storage
-	Node    *core.IpfsNode
-	Agent   *metrics.Agent
-	Conf    *config.Configuration
-	Log     *log.Logger
+	Storage          storage.Storage
+	Ipfs             *ipfs.IpfsHelper
+	Agent            *metrics.Agent
+	Log              *log.Logger
+	DclClient        data.Decentraland
+	RpcClient        *rpc.RPC
+	Filter           utils.ContentTypeFilter
+	ParcelSizeLimit  int64
+	ParcelAssetLimit int
+	RequestTTL       int64
 }
 
 func AddRoutes(router gin.IRouter, c *Config) {
@@ -33,16 +37,15 @@ func AddRoutes(router gin.IRouter, c *Config) {
 
 	router.Use(dclgin.CorsMiddleware())
 
-	mappingsHandler := handlers.NewMappingsHandler(c.Client, data.NewDclClient(c.Conf.DecentralandApi.LandUrl, c.Agent), c.Storage, c.Log)
-	contentHandler := handlers.NewContentHandler(c.Storage, c.Client, c.Log)
-	metadataHandler := handlers.NewMetadataHandler(c.Client, c.Log)
+	mappingsHandler := handlers.NewMappingsHandler(c.DclClient, c.Storage, c.Log)
+	contentHandler := handlers.NewContentHandler(c.Storage, c.Log)
+	metadataHandler := handlers.NewMetadataHandler(c.Log)
 
-	uploadService := handlers.NewUploadService(c.Storage, c.Client, c.Node,
-		data.NewAuthorizationService(data.NewDclClient(c.Conf.DecentralandApi.LandUrl, c.Agent)),
-		c.Agent, c.Conf.Limits.ParcelSizeLimit, c.Conf.Workdir, rpc.NewRPC(c.Conf.RPCConnection.URL), c.Log)
+	uploadService := handlers.NewUploadService(c.Storage, c.Ipfs, data.NewAuthorizationService(c.DclClient),
+		c.Agent, c.ParcelSizeLimit, c.RpcClient, c.Log)
 
-	uploadHandler := handlers.NewUploadHandler(validation.NewValidator(), uploadService, c.Agent,
-		handlers.NewContentTypeFilter(c.Conf.AllowedContentTypes), c.Conf.Limits, c.Conf.UploadRequestTTL, c.Log)
+	uploadHandler := handlers.NewUploadHandler(validation.NewValidator(), uploadService, c.Agent, c.Filter,
+		c.ParcelAssetLimit, c.RequestTTL, c.Log)
 
 	router.OPTIONS("/mappings", dclgin.PrefligthChecksMiddleware("GET, POST",
 		fmt.Sprintf("x-upload-origin, %s", dclgin.BasicHeaders)))

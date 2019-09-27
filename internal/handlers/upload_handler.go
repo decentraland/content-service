@@ -6,14 +6,13 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/decentraland/content-service/utils"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/decentraland/content-service/config"
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/content-service/validation"
 	log "github.com/sirupsen/logrus"
@@ -23,27 +22,27 @@ type UploadHandler interface {
 	UploadContent(c *gin.Context)
 }
 
-func NewUploadHandler(v validation.Validator, us UploadService, a *metrics.Agent, f *ContentTypeFilter,
-	limits config.Limits, ttl int64, l *log.Logger) UploadHandler {
+func NewUploadHandler(v validation.Validator, us UploadService, a *metrics.Agent, f utils.ContentTypeFilter,
+	limit int, ttl int64, l *log.Logger) UploadHandler {
 	return &uploadHandlerImpl{
-		StructValidator: v,
-		Service:         us,
-		Agent:           a,
-		Filter:          f,
-		Limits:          limits,
-		TimeToLive:      ttl,
-		Log:             l,
+		StructValidator:  v,
+		Service:          us,
+		Agent:            a,
+		Filter:           f,
+		ParcelAssetLimit: limit,
+		TimeToLive:       ttl,
+		Log:              l,
 	}
 }
 
 type uploadHandlerImpl struct {
-	StructValidator validation.Validator
-	Service         UploadService
-	Agent           *metrics.Agent
-	Filter          *ContentTypeFilter
-	Limits          config.Limits
-	TimeToLive      int64
-	Log             *log.Logger
+	StructValidator  validation.Validator
+	Service          UploadService
+	Agent            *metrics.Agent
+	Filter           utils.ContentTypeFilter
+	ParcelAssetLimit int
+	TimeToLive       int64
+	Log              *log.Logger
 }
 
 type ContentMapping struct {
@@ -59,12 +58,12 @@ type Metadata struct {
 }
 
 type scene struct {
-	Display        display     `json:"display"`
-	Owner          string      `json:"owner"`
-	Scene          sceneData   `json:"scene"`
-	Communications commsConfig `json:"communications"`
-	Main           string      `json:"main" validate:"required"`
-	Mappings       []ContentMapping    `json:"mappings" validate:"required"`
+	Display        display          `json:"display"`
+	Owner          string           `json:"owner"`
+	Scene          sceneData        `json:"scene"`
+	Communications commsConfig      `json:"communications"`
+	Main           string           `json:"main" validate:"required"`
+	Mappings       []ContentMapping `json:"mappings" validate:"required"`
 }
 
 type display struct {
@@ -94,24 +93,6 @@ func (s *sceneData) UniqueParcels() []string {
 type commsConfig struct {
 	Type       string `json:"type"`
 	Signalling string `json:"signalling"`
-}
-
-type ContentTypeFilter struct {
-	filterPattern string
-}
-
-// Retrieves a new content filter. If the lis is empty all content types will be allowed
-func NewContentTypeFilter(types []string) *ContentTypeFilter {
-	if len(types) == 0 {
-		return &ContentTypeFilter{filterPattern: ".*"}
-	}
-	pattern := "(" + strings.Join(types, "?)|(") + "?)"
-	return &ContentTypeFilter{filterPattern: pattern}
-}
-
-func (f *ContentTypeFilter) IsAllowed(t string) bool {
-	r := regexp.MustCompile(f.filterPattern)
-	return r.MatchString(t)
 }
 
 func (uh *uploadHandlerImpl) UploadContent(c *gin.Context) {
@@ -189,7 +170,7 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 		return nil, err
 	}
 
-	filesPerScene := c.Limits.ParcelAssetsLimit
+	filesPerScene := c.ParcelAssetLimit
 	manifestSize := len(scene.Mappings)
 	c.Agent.RecordManifestSize(len(scene.Mappings))
 
@@ -213,11 +194,11 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 	}
 
 	request := UploadRequest{
-		Metadata: metadata,
-		Mappings: scene.Mappings,
+		Metadata:      metadata,
+		Mappings:      scene.Mappings,
 		UploadedFiles: uploadedFiles,
-		Parcels: sceneParcels,
-		Origin: r.Header.Get("x-upload-origin"),
+		Parcels:       sceneParcels,
+		Origin:        r.Header.Get("x-upload-origin"),
 	}
 
 	err = c.StructValidator.ValidateStruct(request)
@@ -228,7 +209,7 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 	return &request, nil
 }
 
-func validateContentTypes(files map[string][]*multipart.FileHeader, filter *ContentTypeFilter) error {
+func validateContentTypes(files map[string][]*multipart.FileHeader, filter utils.ContentTypeFilter) error {
 	for _, v := range files {
 		for _, f := range v {
 			t := f.Header.Get("Content-Type")

@@ -26,8 +26,6 @@ The following dependencies need to be installed to run a content service server.
 
 - [Go 1.12](https://golang.org/dl/)
 - [Docker Compose](https://docs.docker.com/compose/)
-- [Redis](https://redis.io)
-
 ## Setup git hooks Environment for development
 
 ```
@@ -43,11 +41,27 @@ To configure the service, edit the `config.yml` file, in the base directory.
 
 ## Running
 
-First start Redis:
+### Local environment setup
 
-```
-$ make ops
-```
+This service uses S3. In order to run the full service locally without a dependency on a real s3 bucket you will need to install [Localstack](https://github.com/localstack/localstack)
+
+#### Setup
+* Install [Localstack](https://github.com/localstack/localstack)
+* Install [AWS CLi](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+* Run `$ aws configure` to create some fake credentials.
+* Run `$ make dev-env`
+* Create local bucket for content
+ `$aws --endpoint-url=http://localhost:4572 s3 mb s3://local-content`
+* Create local bucket for mappings
+ `$aws --endpoint-url=http://localhost:4572 s3 mb s3://local-mappings`
+* Set the following env variables:
+    ```
+    AWS_ACCESS_KEY=123123
+    AWS_SECRET_KEY=123123
+    AWS_REGION=us-west-1
+    ```
+
+### Run Project
 
 Then build the project:
 
@@ -63,11 +77,7 @@ $ make run
 
 `make run` starts an instance of the content service server.
 
-Alternatively to docker, you can build and run the server with
-```
-$ go build .
-$ ./content-service
-```
+
 
 ## API Documentation
 

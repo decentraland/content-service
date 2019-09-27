@@ -8,3 +8,5 @@ demo/
 tmp/
 
 coverage.out
+
+.localstack/*

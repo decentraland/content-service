@@ -2,12 +2,8 @@ package storage
 
 import (
 	"io"
-	"strings"
 
 	"github.com/decentraland/content-service/metrics"
-
-	"github.com/decentraland/content-service/config"
-	log "github.com/sirupsen/logrus"
 )
 
 type Storage interface {
@@ -17,26 +13,14 @@ type Storage interface {
 	FileSize(cid string) (int64, error)
 }
 
-func NewStorage(conf *config.Storage, agent *metrics.Agent) Storage {
-	log.Infof("Storage mode: %s", conf.StorageType)
-	switch config.StorageType(strings.ToUpper(conf.StorageType)) {
-	case config.LOCAL:
-		return buildLocalStorage(conf)
-	case config.REMOTE:
-		return NewS3(conf.RemoteConfig.Bucket, conf.RemoteConfig.ACL, conf.RemoteConfig.URL, agent)
-	default:
-		log.Fatalf("Invalid Storage Type: %s", conf.StorageType)
-	}
-	return nil
+type ContentBucket struct {
+	Bucket string
+	ACL    string
+	URL    string
 }
 
-func buildLocalStorage(conf *config.Storage) Storage {
-	sto := NewLocal(conf.LocalPath)
-	err := sto.CreateLocalDir()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return sto
+func NewStorage(c ContentBucket, agent *metrics.Agent) Storage {
+	return newS3(c.Bucket, c.ACL, c.URL, agent)
 }
 
 type NotFoundError struct {

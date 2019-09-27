@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/DataDog/datadog-go/statsd"
-	"github.com/decentraland/content-service/config"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/segmentio/analytics-go.v3"
 )
@@ -170,7 +169,13 @@ type segmentDummy struct {
 func (sa *segmentDummy) RecordUpload(uploadId string, uploader string, parcels []string, files map[string][]string, origin string) {
 }
 
-func Make(metrics config.Metrics) (*Agent, error) {
+type Config struct {
+	Enabled      bool
+	AppName      string
+	AnalyticsKey string
+}
+
+func Make(metrics Config) (*Agent, error) {
 
 	var ddClient ddClient
 	if metrics.Enabled {

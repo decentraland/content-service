@@ -20,15 +20,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type S3 struct {
+type s3Storage struct {
 	Bucket *string
 	ACL    *string
 	URL    string
 	Agent  *metrics.Agent
 }
 
-func NewS3(bucket, acl, url string, agent *metrics.Agent) *S3 {
-	sto := new(S3)
+func newS3(bucket, acl, url string, agent *metrics.Agent) *s3Storage {
+	sto := new(s3Storage)
 	sto.Bucket = aws.String(bucket)
 	sto.ACL = aws.String(acl)
 	sto.URL = url
@@ -36,19 +36,25 @@ func NewS3(bucket, acl, url string, agent *metrics.Agent) *S3 {
 	return sto
 }
 
-func (sto *S3) GetFile(cid string) string {
+func (sto *s3Storage) GetFile(cid string) string {
 	u, _ := url.Parse(sto.URL)
 	u.Path = path.Join(u.Path, cid)
 	url, _ := url.PathUnescape(u.String())
 	return url
 }
 
-func (sto *S3) SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error) {
+func (sto *s3Storage) SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error) {
 	t := time.Now()
-	log.Debugf("Uploading file[%s] to S3", filename)
+	log.Debugf("Uploading file[%s] to s3Storage", filename)
 	sess := session.Must(session.NewSession())
 
-	uploader := s3manager.NewUploader(sess)
+	uploader := &s3manager.Uploader{
+		S3:                s3.New(sess, aws.NewConfig().WithEndpoint(sto.URL)),
+		PartSize:          s3manager.DefaultUploadPartSize,
+		Concurrency:       s3manager.DefaultUploadConcurrency,
+		LeavePartsOnError: false,
+		MaxUploadParts:    s3manager.MaxUploadParts,
+	}
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket:      sto.Bucket,
@@ -65,7 +71,7 @@ func (sto *S3) SaveFile(filename string, fileDesc io.Reader, contentType string)
 	return result.Location, nil
 }
 
-func (sto *S3) DownloadFile(cid string, filePath string) error {
+func (sto *s3Storage) DownloadFile(cid string, filePath string) error {
 	t := time.Now()
 	log.Debugf("Downloading Key[%s] to File[%s]", cid, filePath)
 	dir := filepath.Dir(filePath)
@@ -96,12 +102,12 @@ func (sto *S3) DownloadFile(cid string, filePath string) error {
 		return handleS3Error(err)
 	}
 	sto.Agent.RecordBytesRetrieved(n)
-	log.Debugf("CID[%s] found. %d bytes downloaded from S3 to %s", cid, n, filePath)
+	log.Debugf("CID[%s] found. %d bytes downloaded from s3Storage to %s", cid, n, filePath)
 
 	return nil
 }
 
-func (sto *S3) FileSize(cid string) (int64, error) {
+func (sto *s3Storage) FileSize(cid string) (int64, error) {
 	s := session.Must(session.NewSession())
 	client := s3.New(s)
 

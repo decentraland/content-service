@@ -17,7 +17,7 @@ func TestGetFile(t *testing.T) {
 
 type getFileData struct {
 	name   string
-	s3     S3
+	s3     s3Storage
 	cid    string
 	result string
 }
@@ -25,14 +25,14 @@ type getFileData struct {
 var getFileTestCases = []getFileData{
 	{
 		name: "Base url without a '/' at the end",
-		s3: S3{
+		s3: s3Storage{
 			URL: "https://s3bucket.com",
 		},
 		cid:    "theCid",
 		result: "https://s3bucket.com/theCid",
 	}, {
 		name: "Base url with a '/' at the end",
-		s3: S3{
+		s3: s3Storage{
 			URL: "https://s3bucket.com/",
 		},
 		cid:    "theCid",

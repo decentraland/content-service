@@ -15,9 +15,9 @@ type MetadataHandler interface {
 	GetParcelMetadata(c *gin.Context)
 }
 
-func NewMetadataHandler(client data.RedisClient, l *log.Logger) MetadataHandler {
+func NewMetadataHandler(l *log.Logger) MetadataHandler {
 	return &metadataHandlerImpl{
-		RedisClient: client,
+		RedisClient: nil,
 		Log:         l,
 	}
 }

@@ -3,10 +3,11 @@ package handlers
 import (
 	"bufio"
 	"fmt"
-	"github.com/decentraland/content-service/internal/ipfs"
 	"mime/multipart"
 	"strings"
 	"time"
+
+	"github.com/decentraland/content-service/internal/ipfs"
 
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/metrics"
@@ -19,7 +20,7 @@ import (
 )
 
 type UploadRequest struct {
-	Metadata      *Metadata                           `validate:"required"`
+	Metadata      *Metadata                          `validate:"required"`
 	Mappings      []ContentMapping                   `validate:"required"`
 	UploadedFiles map[string][]*multipart.FileHeader `validate:"required"`
 	Parcels       []string                           `validate:"required"`
@@ -152,7 +153,7 @@ func (us *UploadServiceImpl) validateRequestContent(requestFiles map[string][]*m
 				return err
 			}
 
-			if rFile[0].Filename == "scene.json" &&  fileCID != sceneCID {
+			if rFile[0].Filename == "scene.json" && fileCID != sceneCID {
 				return InvalidArgument{"scene.json cid does not match"}
 			}
 

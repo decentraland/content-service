@@ -1,9 +1,10 @@
 package ipfs
 
 import (
+	"io"
+
 	"github.com/ipsn/go-ipfs/core"
 	"github.com/ipsn/go-ipfs/core/coreunix"
-	"io"
 )
 
 type IpfsHelper struct {

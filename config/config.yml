@@ -3,17 +3,14 @@ server:
   host: '0.0.0.0'                 # Set SERVER_HOST env variable to overwrite this value
 
 storage:
-  storageType: 'LOCAL' # Set STORAGE_TYPE env variable to overwrite this value, Possible values 'REMOTE' and 'LOCAL'
-  remoteConfig:
-    bucket: ''  # Set AWS_S3_BUCKET env variable to overwrite this value
-    url:    ''  # Set AWS_S3_URL env variable to overwrite this value
-    acl:    ''  # Set AWS_S3_ACL env variable to overwrite this value
-  localPath: 'tmp/' # Set LOCAL_STORAGE_PATH env variable to overwrite this value
+  bucket: 'local-content'                       # Set AWS_S3_BUCKET env variable to overwrite this value
+  url:    'http://localhost:4572/local-content' # Set AWS_S3_URL env variable to overwrite this value
+  acl:    'public-read'                         # Set AWS_S3_ACL env variable to overwrite this value
 
-redis:
-  address:  'localhost:6379' # Set REDIS_ADDRESS env variable to overwrite this value
-  password: ''                           # Set REDIS_PASSWORD env variable to overwrite this value
-  DB:       0                            # Set REDIS_DB env variable to overwrite this value
+mappings:
+  bucket: 'local-mappings'                        # Set MAPPINGS_BUCKET env variable to overwrite this value
+  url:    'http://localhost:4572/local-mappings'  # Set MAPPINGS_URL env variable to overwrite this value
+  acl:    'public-read'                           # Set MAPPINGS_ACL env variable to overwrite this value
 
 decentralandApi:
   landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
@@ -42,7 +39,5 @@ allowedContentTypes:    # Set ALLOWED_TYPES (a comma separated string whit all t
 limits:
   parcelSizeLimit: 15000000 # Bytes/Parcel. Set LIMIT_PARCEL_SIZE env variable to overwrite this value
   parcelAssetsLimit: 1000 # Assets/Parcel. Set LIMIT_PARCEL_ASSETS env variable to overwrite this value
-
-workdir: '/tmp' # Set WORK_DIR env variable to overwrite this value
 
 uploadRequestTTL: 600 # Set UPLOAD_TTL env variable to overwrite this value

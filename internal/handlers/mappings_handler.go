@@ -57,12 +57,11 @@ type mappingsHandlerImpl struct {
 	Log         *log.Logger
 }
 
-func NewMappingsHandler(client data.RedisClient, dcl data.Decentraland, storage storage.Storage, l *log.Logger) MappingsHandler {
+func NewMappingsHandler(dcl data.Decentraland, storage storage.Storage, l *log.Logger) MappingsHandler {
 	return &mappingsHandlerImpl{
-		RedisClient: client,
-		Dcl:         dcl,
-		Storage:     storage,
-		Log:         l,
+		Dcl:     dcl,
+		Storage: storage,
+		Log:     l,
 	}
 }
 

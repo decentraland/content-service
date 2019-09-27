@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 
@@ -24,10 +23,10 @@ type contentHandlerImpl struct {
 	Log         *log.Logger
 }
 
-func NewContentHandler(storage storage.Storage, client data.RedisClient, l *log.Logger) ContentHandler {
+func NewContentHandler(storage storage.Storage, l *log.Logger) ContentHandler {
 	return &contentHandlerImpl{
 		Storage:     storage,
-		RedisClient: client,
+		RedisClient: nil,
 		Log:         l,
 	}
 }
@@ -36,20 +35,8 @@ func (ch *contentHandlerImpl) GetContents(c *gin.Context) {
 	cid := c.Param("cid")
 	storeValue := ch.Storage.GetFile(cid)
 
-	switch ch.Storage.(type) {
-	case *storage.S3:
-		c.Writer.Header().Set("Cache-Control", "max-age:31536000, public")
-		c.Redirect(http.StatusMovedPermanently, storeValue)
-	case *storage.Local:
-		if _, err := os.Stat(storeValue); err == nil {
-			c.Writer.Header().Set("Content-Disposition", "Attachment")
-			c.File(storeValue)
-		} else {
-			c.Status(http.StatusNotFound)
-		}
-	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid storage"})
-	}
+	c.Writer.Header().Set("Cache-Control", "max-age:31536000, public")
+	c.Redirect(http.StatusMovedPermanently, storeValue)
 }
 
 type contentStatusRequest struct {
