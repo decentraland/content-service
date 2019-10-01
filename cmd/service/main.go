@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/decentraland/content-service/internal/deployment"
+
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/internal/ipfs"
 	"github.com/decentraland/content-service/utils"
@@ -18,7 +20,7 @@ import (
 	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/dcl-viper/pkg/config"
 
-	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/internal/storage"
 
 	"github.com/ipsn/go-ipfs/core"
 	log "github.com/sirupsen/logrus"
@@ -38,7 +40,7 @@ type Configuration struct {
 		URL    string `overwrite-env:"AWS_S3_URL"`
 	}
 
-	Mappings struct {
+	Deployment struct {
 		Bucket string `overwrite-env:"MAPPINGS_BUCKET"`
 		ACL    string `overwrite-env:"MAPPINGS_URL"`
 		URL    string `overwrite-env:"MAPPINGS_ACL"`
@@ -150,6 +152,11 @@ func InitializeHandler(r gin.IRouter, conf *Configuration, l *log.Logger) {
 		ParcelSizeLimit:  conf.Limits.ParcelSizeLimit,
 		ParcelAssetLimit: conf.Limits.ParcelAssetsLimit,
 		RequestTTL:       conf.UploadRequestTTL,
+		MRepo: deployment.NewRepository(&deployment.Config{
+			Bucket: conf.Deployment.Bucket,
+			ACL:    conf.Deployment.ACL,
+			URL:    conf.Deployment.URL,
+		}),
 	})
 }
 

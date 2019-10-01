@@ -188,15 +188,15 @@ func (r Redis) SetProcessedParcel(pid string) error {
 // Every every parcel or pair of coordinates must be unique for between all scenes, so we need to check
 // for every parcel if it got a scene before and delete it if needed
 // Parcels will map its own cid, "99,108" -> Qvcslk2duadjao0rsdfaZaAAA...
-// We can be tempted to remove the old parcel -> old cid map, but that would break the /mappings map, so
+// We can be tempted to remove the old parcel -> old cid map, but that would break the /deployment map, so
 // for now we are going to keep that map and check the validity of the cid when requesting /scenes, thing that will be
-// updatable once removed the /mappings endpoint
+// updatable once removed the /deployment endpoint
 func (r Redis) SetSceneParcels(scene string, parcels []string) error {
 	if len(parcels) == 0 {
 		return fmt.Errorf("Trying to push empty parcels list for scene %s", scene)
 	}
 
-	// We first iterate over all parcels deleting the mappings root cid -> [parcels] for all
+	// We first iterate over all parcels deleting the deployment root cid -> [parcels] for all
 	// the scenes of the parcels of the parameter
 	cids := make(map[string]bool, len(parcels))
 	for _, p := range parcels {

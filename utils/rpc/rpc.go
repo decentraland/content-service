@@ -14,18 +14,22 @@ import (
 
 const methodjson = `[{ "type" : "function", "name" : "isValidSignature", "constant" : true, "inputs": [{"name": "hash", "type": "bytes32"}, {"name": "signature", "type": "bytes"}], "outputs": [{"type": "magicValue", "type": "bytes4"}] }]`
 
-type RPC struct {
+type RPC interface {
+	ValidateDapperSignature(address, value, signature string) (bool, error)
+}
+
+type rpcClient struct {
 	url string
 }
 
-func NewRPC(url string) *RPC {
-	return &RPC{url: url}
+func NewRPC(url string) RPC {
+	return &rpcClient{url: url}
 }
 
 // ERC-1654 uses this constant when a signature is valid
 var expected = []byte{0x16, 0x26, 0xba, 0x7e}
 
-func (r *RPC) ValidateDapperSignature(address, value, signature string) (bool, error) {
+func (r *rpcClient) ValidateDapperSignature(address, value, signature string) (bool, error) {
 
 	client, _ := ethclient.Dial(r.url)
 	defer client.Close()

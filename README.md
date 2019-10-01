@@ -51,9 +51,10 @@ This service uses S3. In order to run the full service locally without a depende
 * Run `$ aws configure` to create some fake credentials.
 * Run `$ make dev-env`
 * Create local bucket for content
- `$aws --endpoint-url=http://localhost:4572 s3 mb s3://local-content`
+ `$ aws --endpoint-url=http://localhost:4572 s3 mb s3://local-content`
 * Create local bucket for mappings
- `$aws --endpoint-url=http://localhost:4572 s3 mb s3://local-mappings`
+ `$ aws --endpoint-url=http://localhost:4572 s3 mb s3://local-mappings`
+* Verify the buckets were created: `http://localhost:8055/#!/infra`
 * Set the following env variables:
     ```
     AWS_ACCESS_KEY=123123

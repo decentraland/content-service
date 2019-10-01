@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/decentraland/content-service/internal/deployment"
+	"github.com/decentraland/content-service/internal/entities"
+
 	"github.com/decentraland/content-service/internal/ipfs"
 
 	"github.com/decentraland/content-service/data"
@@ -14,24 +17,62 @@ import (
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 
-	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/internal/storage"
 	"github.com/decentraland/content-service/utils/rpc"
 	log "github.com/sirupsen/logrus"
 )
 
 type UploadRequest struct {
-	Metadata      *Metadata                          `validate:"required"`
-	Mappings      []ContentMapping                   `validate:"required"`
-	UploadedFiles map[string][]*multipart.FileHeader `validate:"required"`
-	Parcels       []string                           `validate:"required"`
-	Origin        string
+	Proof   *entities.DeployProof     `validate:"required"`
+	Mapping []entities.ContentMapping `validate:"required"`
+	Content *RequestContent           `validate:"required"`
+	Parcels []string                  `validate:"required"`
+	Deploy  *entities.Deploy          `validate:"required"`
+	Origin  string
+}
+
+type RequestContent struct {
+	ContentFiles map[string][]*multipart.FileHeader
+	RawDeploy    []*multipart.FileHeader
+	RawProof     []*multipart.FileHeader
+	RawMapping   []*multipart.FileHeader
+}
+
+func NewRequestContent(c map[string][]*multipart.FileHeader) (*RequestContent, error) {
+	ret := &RequestContent{}
+	files := make(map[string][]*multipart.FileHeader)
+	for k, v := range c {
+		if k != "deploy.json" && k != "proof.json" && k != "mapping.json" {
+			files[k] = v
+		}
+	}
+	ret.ContentFiles = files
+	p, ok := c["proof.json"]
+	if !ok {
+		return nil, RequiredValueError{"missing proof.json"}
+	}
+	ret.RawProof = p
+
+	d, ok := c["deploy.json"]
+	if !ok {
+		return nil, RequiredValueError{"missing deploy.json"}
+	}
+	ret.RawDeploy = d
+
+	m, ok := c["mapping.json"]
+	if !ok {
+		return nil, RequiredValueError{"missing mapping.json"}
+	}
+	ret.RawMapping = m
+
+	return ret, nil
 }
 
 // Groups all the files in the list by file CID
 // The map will contain an entry for each CID, and the associated value would be a list of all the paths
 func (r *UploadRequest) GroupFilePathsByCid() map[string][]string {
 	filesPaths := make(map[string][]string)
-	for _, fileMeta := range r.Mappings {
+	for _, fileMeta := range r.Mapping {
 		paths := filesPaths[fileMeta.Cid]
 		if paths == nil {
 			paths = []string{}
@@ -41,24 +82,35 @@ func (r *UploadRequest) GroupFilePathsByCid() map[string][]string {
 	return filesPaths
 }
 
+func (r *UploadRequest) CheckRequiredFiles() bool {
+	for _, req := range r.Deploy.Required {
+		_, ok := r.Content.ContentFiles[req.Cid]
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
 type UploadService interface {
 	ProcessUpload(r *UploadRequest) error
 }
 
-type UploadServiceImpl struct {
+type uploadService struct {
 	Storage         storage.Storage
 	IpfsHelper      *ipfs.IpfsHelper
 	Auth            data.Authorization
 	Agent           *metrics.Agent
 	ParcelSizeLimit int64
-	rpc             *rpc.RPC
+	rpc             rpc.RPC
 	Log             *log.Logger
+	MRepo           deployment.Repository
 }
 
 func NewUploadService(storage storage.Storage, helper *ipfs.IpfsHelper, auth data.Authorization,
-	agent *metrics.Agent, parcelSizeLimit int64,
-	rpc *rpc.RPC, l *log.Logger) *UploadServiceImpl {
-	return &UploadServiceImpl{
+	agent *metrics.Agent, parcelSizeLimit int64, repo deployment.Repository,
+	rpc rpc.RPC, l *log.Logger) UploadService {
+	return &uploadService{
 		Storage:         storage,
 		IpfsHelper:      helper,
 		Auth:            auth,
@@ -66,17 +118,26 @@ func NewUploadService(storage storage.Storage, helper *ipfs.IpfsHelper, auth dat
 		ParcelSizeLimit: parcelSizeLimit,
 		rpc:             rpc,
 		Log:             l,
+		MRepo:           repo,
 	}
 }
 
-func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
+func (us *uploadService) ProcessUpload(r *UploadRequest) error {
 	us.Log.Debug("Processing Upload request")
 
-	if err := us.validateSignature(us.Auth, r.Metadata); err != nil {
+	if err := us.validateDeployment(r); err != nil {
 		return err
 	}
 
-	if err := validateKeyAccess(us.Auth, r.Metadata.PubKey, r.Parcels, us.Log); err != nil {
+	if !r.CheckRequiredFiles() {
+		return InvalidArgument{"missing required files"}
+	}
+
+	if err := us.validateSignature(us.Auth, r.Proof); err != nil {
+		return err
+	}
+
+	if err := validateKeyAccess(us.Auth, r.Proof.Address, r.Parcels, us.Log); err != nil {
 		return err
 	}
 
@@ -85,7 +146,7 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	}
 
 	t := time.Now()
-	err := us.validateRequestContent(r.UploadedFiles, r.Mappings, r.Metadata.SceneCid)
+	err := us.validateRequestContent(r.Content.ContentFiles, r.Mapping, r.Proof.ID)
 	us.Agent.RecordUploadRequestValidationTime(time.Since(t))
 
 	if err != nil {
@@ -93,29 +154,62 @@ func (us *UploadServiceImpl) ProcessUpload(r *UploadRequest) error {
 	}
 
 	pathsByCid := r.GroupFilePathsByCid()
-	if err := us.processUploadedFiles(r.UploadedFiles, r.Metadata.SceneCid); err != nil {
+	if err := us.processUploadedFiles(r.Content.ContentFiles, r.Proof.ID); err != nil {
 		return err
 	}
 
-	// TODO: Update bucket for all coords. update local cache
+	if err := us.saveMapping(r); err != nil {
+		return err
+	}
 
-	// TODO: Store scene upload metadata
+	if err := us.MRepo.StoreDeployment(r.Deploy, r.Proof); err != nil {
+		return err
+	}
 
-	us.Agent.RecordUpload(r.Metadata.SceneCid, r.Metadata.PubKey, r.Parcels, pathsByCid, r.Origin)
+	if err := us.MRepo.StoreMapping(r.Proof.ID, r.Deploy.Positions); err != nil {
+		return err
+	}
+
+	us.Agent.RecordUpload(r.Proof.ID, r.Proof.Address, r.Parcels, pathsByCid, r.Origin)
+
+	return nil
+}
+
+func (us *uploadService) validateDeployment(r *UploadRequest) error {
+
+	mCid, err := us.calculateCID(r.Content.RawMapping[0])
+	if err != nil {
+		return InvalidArgument{fmt.Sprintf("fail to calculate mapping.json CID: %s", err.Error())}
+	}
+
+	if r.Deploy.Mappings != mCid {
+		return InvalidArgument{
+			fmt.Sprintf("calculated mapping.json CID[%s] does not match:  %s", mCid, r.Deploy.Mappings)}
+	}
+
+	dCid, err := us.calculateCID(r.Content.RawDeploy[0])
+	if err != nil {
+		return InvalidArgument{fmt.Sprintf("fail to calculate deploy.json CID: %s", err.Error())}
+	}
+
+	if r.Proof.ID != dCid {
+		return InvalidArgument{
+			fmt.Sprintf("calculated deploy.json CID[%s] does not match:  %s", dCid, r.Proof.ID)}
+	}
 
 	return nil
 }
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
-func (us *UploadServiceImpl) validateSignature(a data.Authorization, m *Metadata) error {
-	us.Log.Debugf("Validating signature: %s", m.Signature)
+func (us *uploadService) validateSignature(a data.Authorization, p *entities.DeployProof) error {
+	us.Log.Debugf("Validating signature: %s", p.Signature)
 
 	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
 	// We need to validate against a contract address whether this is ok or not?
-	if len(m.Signature) > 150 {
-		signature := m.Signature
-		address := m.PubKey
-		msg := fmt.Sprintf("%s.%d", m.SceneCid, m.Timestamp)
+	if len(p.Signature) > 150 {
+		signature := p.Signature
+		address := p.Address
+		msg := fmt.Sprintf("%s.%d", p.ID, p.Timestamp)
 		valid, err := us.rpc.ValidateDapperSignature(address, msg, signature)
 		if err != nil {
 			return err
@@ -125,36 +219,31 @@ func (us *UploadServiceImpl) validateSignature(a data.Authorization, m *Metadata
 		}
 		return nil
 	}
-	if !a.IsSignatureValid(fmt.Sprintf("%s.%d", m.SceneCid, m.Timestamp), m.Signature, m.PubKey) {
-		us.Log.Debugf("Invalid signature[%s] for SceneCid[%s] and pubKey[%s]", m.SceneCid, m.Signature, m.PubKey)
+	if !a.IsSignatureValid(fmt.Sprintf("%s.%d", p.ID, p.Timestamp), p.Signature, p.Address) {
+		us.Log.Debugf("Invalid signature[%s] for SceneCid[%s] and pubKey[%s]", p.ID, p.Signature, p.Address)
 		return InvalidArgument{"Signature is invalid"}
 	}
 	return nil
 }
 
 // Retrieves an error if the calculated global CID differs from the expected CID
-func (us *UploadServiceImpl) validateRequestContent(requestFiles map[string][]*multipart.FileHeader,
-	manifest []ContentMapping, sceneCID string) error {
+func (us *uploadService) validateRequestContent(requestFiles map[string][]*multipart.FileHeader,
+	mappings []entities.ContentMapping, sceneCID string) error {
 
 	us.Log.Debugf("Validating content. SceneCID: %s", sceneCID)
 	if err := checkCIDFormat(sceneCID, us.Log); err != nil {
 		return err
 	}
-	for _, m := range manifest {
+	for _, m := range mappings {
 		if strings.HasSuffix(m.Name, "/") {
 			continue
 		}
-
 		rFile, ok := requestFiles[m.Cid]
 		if ok {
-			fileCID, err := us.calculateCID(rFile[0], m.Cid)
+			fileCID, err := us.calculateCID(rFile[0])
 			if err != nil {
 				us.Log.Debugf("Failed to validate File[%s] cid: %s", m.Name, err.Error())
 				return err
-			}
-
-			if rFile[0].Filename == "scene.json" && fileCID != sceneCID {
-				return InvalidArgument{"scene.json cid does not match"}
 			}
 
 			if fileCID != m.Cid {
@@ -174,8 +263,7 @@ func (us *UploadServiceImpl) validateRequestContent(requestFiles map[string][]*m
 	return nil
 }
 
-func (us *UploadServiceImpl) calculateCID(file *multipart.FileHeader, expectedCID string) (string, error) {
-	us.Log.Debugf("Validating File, expectedCID: %s", expectedCID)
+func (us *uploadService) calculateCID(file *multipart.FileHeader) (string, error) {
 	f, err := file.Open()
 	if err != nil {
 		us.Log.Debugf("Unable to open File[%s] to calculate CID", f)
@@ -204,7 +292,7 @@ func validateKeyAccess(a data.Authorization, pKey string, parcels []string, log 
 	return nil
 }
 
-func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.FileHeader, cid string) error {
+func (us *uploadService) processUploadedFiles(fh map[string][]*multipart.FileHeader, cid string) error {
 	us.Log.Infof("Processing  new content for RootCID[%s]. New files: %d", cid, len(fh))
 	for fileCID, fileHeaders := range fh {
 		fileHeader := fileHeaders[0]
@@ -238,7 +326,7 @@ func (us *UploadServiceImpl) processUploadedFiles(fh map[string][]*multipart.Fil
 	return nil
 }
 
-func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {
+func (us *uploadService) validateRequestSize(r *UploadRequest) error {
 	maxSize := int64(len(r.Parcels)) * us.ParcelSizeLimit
 
 	size, err := us.estimateRequestSize(r)
@@ -247,24 +335,29 @@ func (us *UploadServiceImpl) validateRequestSize(r *UploadRequest) error {
 	}
 
 	if size > maxSize {
-		us.Log.Errorf(fmt.Sprintf("UploadRequest RootCid[%s] exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", r.Metadata.SceneCid, maxSize, size))
-		return InvalidArgument{fmt.Sprintf("UploadRequest exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d", maxSize, size)}
+		us.Log.Errorf("UploadRequest ID[%s] exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d",
+			r.Proof.ID,
+			maxSize,
+			size)
+		return InvalidArgument{
+			fmt.Sprintf("UploadRequest exceeds the allowed limit Max[bytes]: %d, RequestSize[bytes]: %d",
+				maxSize, size)}
 	}
 	return nil
 }
 
-func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error) {
+func (us *uploadService) estimateRequestSize(r *UploadRequest) (int64, error) {
 	size := int64(0)
-	for _, m := range r.Mappings {
+	for _, m := range r.Mapping {
 		if strings.HasSuffix(m.Name, "/") {
 			continue
 		}
-		if f, ok := r.UploadedFiles[m.Cid]; ok {
+		if f, ok := r.Content.ContentFiles[m.Cid]; ok {
 			size += f[0].Size
 		} else {
-			s, err := us.retrieveUploadedFileSize(m.Cid)
+			s, err := us.Storage.FileSize(m.Cid)
 			if err != nil {
-				return 0, err
+				return 0, handleStorageError(err, m.Cid, us.Log)
 			}
 			size += s
 		}
@@ -273,14 +366,19 @@ func (us *UploadServiceImpl) estimateRequestSize(r *UploadRequest) (int64, error
 	return size, nil
 }
 
-func (us *UploadServiceImpl) retrieveUploadedFileSize(cid string) (int64, error) {
-	size, err := us.Storage.FileSize(cid)
+func (us *uploadService) saveMapping(r *UploadRequest) error {
+	file, err := r.Content.RawMapping[0].Open()
 	if err != nil {
-		return 0, handleStorageError(err, cid, us.Log)
+		us.Log.Errorf("Failed to store mapping[%s] ", r.Deploy.Mappings)
+		return UnexpectedError{"fail to store file", err}
 	}
-	return size, nil
-}
+	defer file.Close()
 
+	if _, err := us.Storage.SaveFile(r.Deploy.Mappings, file, "application/json"); err != nil {
+		return handleStorageError(err, r.Deploy.Mappings, us.Log)
+	}
+	return nil
+}
 func handleStorageError(err error, cid string, log *log.Logger) error {
 	switch e := err.(type) {
 	case storage.NotFoundError:

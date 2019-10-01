@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/decentraland/content-service/data"
-	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/internal/storage"
 	. "github.com/decentraland/content-service/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"

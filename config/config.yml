@@ -7,13 +7,12 @@ storage:
   url:    'http://localhost:4572/local-content' # Set AWS_S3_URL env variable to overwrite this value
   acl:    'public-read'                         # Set AWS_S3_ACL env variable to overwrite this value
 
-mappings:
+deployment:
   bucket: 'local-mappings'                        # Set MAPPINGS_BUCKET env variable to overwrite this value
   url:    'http://localhost:4572/local-mappings'  # Set MAPPINGS_URL env variable to overwrite this value
   acl:    'public-read'                           # Set MAPPINGS_ACL env variable to overwrite this value
 
-decentralandApi:
-  landUrl: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
+dclApi: 'https://api.decentraland.org/v1/' # Set DCL_API env variable to overwrite this value
 
 logLevel: 'DEBUG' # Set LOG_LEVEL env variable to overwrite this value
 

@@ -156,7 +156,7 @@ $> curl 'http://localhost:8000/validate?x=54&y=-136'
 ```
 
 ```bash
-$> curl 'http://localhost:8000/mappings?nw=53,-135&se=55,-137'
+$> curl deployment
 [
   {
     "parcel_id": "54,-136",

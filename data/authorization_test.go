@@ -40,10 +40,6 @@ func expectFalse(err error, value bool, t *testing.T) {
 	assert.False(t, value)
 }
 
-func expectError(err error, _ bool, t *testing.T) {
-	assert.NotNil(t, err)
-}
-
 func TestUserCanModifyParcels(t *testing.T) {
 	mockController := gomock.NewController(t)
 	defer mockController.Finish()

@@ -4,6 +4,7 @@ require (
 	bazil.org/fuse v0.0.0-20180421153158-65cc252bf669 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 // indirect
 	github.com/DataDog/datadog-go v2.2.0+incompatible
+	github.com/aristanetworks/goarista v0.0.0-20191001182449-186a6201b8ef // indirect
 	github.com/aws/aws-sdk-go v1.15.47
 	github.com/bifurcation/mint v0.0.0-20180715133206-93c51c6ce115 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -18,6 +19,7 @@ require (
 	github.com/dgraph-io/badger v1.5.4 // indirect
 	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102 // indirect
 	github.com/dustin/go-humanize v0.0.0-20180713052910-9f541cc9db5d // indirect
+	github.com/edsrzf/mmap-go v1.0.0 // indirect
 	github.com/ethereum/go-ethereum v1.8.17
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/fd/go-nat v1.0.0 // indirect
@@ -27,8 +29,7 @@ require (
 	github.com/go-playground/universal-translator v0.16.0
 	github.com/go-redis/redis v6.14.1+incompatible
 	github.com/golang/mock v1.1.1
-	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
-	github.com/google/uuid v1.0.0 // indirect
+	github.com/google/uuid v1.0.0
 	github.com/gopherjs/gopherjs v0.0.0-20181004151105-1babbf986f6f // indirect
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
@@ -40,6 +41,7 @@ require (
 	github.com/jbenet/go-randbuf v0.0.0-20160322125720-674640a50e6a // indirect
 	github.com/jbenet/go-temp-err-catcher v0.0.0-20150120210811-aac704a3f4f2 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
+	github.com/karalabe/hid v1.0.0 // indirect
 	github.com/lucas-clemente/aes12 v0.0.0-20171027163421-cd47fb39b79f // indirect
 	github.com/lucas-clemente/quic-go-certificates v0.0.0-20160823095156-d2f86524cced // indirect
 	github.com/magiconair/properties v1.8.0
@@ -49,12 +51,14 @@ require (
 	github.com/minio/sha256-simd v0.0.0-20171213220625-ad98a36ba0da // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
 	github.com/mr-tron/base58 v0.0.0-20180922112544-9ad991d48a42 // indirect
-	github.com/onsi/gomega v1.4.2 // indirect
+	github.com/pborman/uuid v1.2.0 // indirect
+	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/rs/cors v1.6.0 // indirect
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
+	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v0.0.0-20180815032940-ae2bd5eed72d // indirect
 	github.com/toorop/gin-logrus v0.0.0-20190701131413-6c374ad36b67
@@ -62,7 +66,6 @@ require (
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go4.org v0.0.0-20180809161055-417644f6feb5 // indirect
-	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 // indirect
 	gopkg.in/DataDog/dd-trace-go.v1 v1.16.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.0
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect

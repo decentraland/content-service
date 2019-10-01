@@ -9,7 +9,7 @@ import (
 	"github.com/decentraland/content-service/data"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/decentraland/content-service/storage"
+	"github.com/decentraland/content-service/internal/storage"
 )
 
 type ContentHandler interface {
