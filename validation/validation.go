@@ -47,7 +47,7 @@ func setupTranslations(v *validator.Validate) ut.Translator {
 	addTranslation("eth_addr", "{0} field is not a valid address.", trans, v)
 	addTranslation("prefix", "{0} field does not starts with {1}.", trans, v)
 
-	enTranslations.RegisterDefaultTranslations(v, trans)
+	_ = enTranslations.RegisterDefaultTranslations(v, trans)
 
 	return trans
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-const methodjson = `[{ "type" : "function", "name" : "isValidSignature", "constant" : true, "inputs": [{"name": "hash", "type": "bytes32"}, {"name": "signature", "type": "bytes"}], "outputs": [{"type": "magicValue", "type": "bytes4"}] }]`
+const methodJSON = `[{ "type" : "function", "name" : "isValidSignature", "constant" : true, "inputs": [{"name": "hash", "type": "bytes32"}, {"name": "signature", "type": "bytes"}], "outputs": [{"type": "magicValue", "type": "bytes4"}] }]`
 
 type RPC interface {
 	ValidateDapperSignature(address, value, signature string) (bool, error)
@@ -34,7 +34,7 @@ func (r *rpcClient) ValidateDapperSignature(address, value, signature string) (b
 	client, _ := ethclient.Dial(r.url)
 	defer client.Close()
 
-	a, err := abi.JSON(strings.NewReader(methodjson))
+	a, err := abi.JSON(strings.NewReader(methodJSON))
 
 	h := crypto.Keccak256([]byte(value))
 	hash := [32]byte{}

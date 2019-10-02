@@ -55,14 +55,13 @@ func AddRoutes(router gin.IRouter, c *Config) {
 
 	v1.OPTIONS("/contents", dclgin.PrefligthChecksMiddleware("POST",
 		fmt.Sprintf("x-upload-origin, %s", dclgin.BasicHeaders)))
+
 	v1.OPTIONS("/scenes", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
-	v1.OPTIONS("/parcel_info", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	v1.OPTIONS("/contents/:cid", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	v1.OPTIONS("/validate", dclgin.PrefligthChecksMiddleware("GET", dclgin.BasicHeaders))
 	v1.OPTIONS("/asset_status", dclgin.PrefligthChecksMiddleware("POST", dclgin.BasicHeaders))
 
 	v1.GET("/scenes", mappingsHandler.GetScenes)
-	v1.GET("/parcel_info", mappingsHandler.GetInfo)
 	v1.GET("/contents/:cid", contentHandler.GetContents)
 	v1.GET("/validate", metadataHandler.GetParcelMetadata)
 	v1.POST("/asset_status", contentHandler.CheckContentStatus)
