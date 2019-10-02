@@ -10,12 +10,12 @@ import (
 
 	"github.com/decentraland/content-service/internal/entities"
 
-	"github.com/decentraland/content-service/utils"
+	"github.com/decentraland/content-service/internal/utils"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/validation"
+	"github.com/decentraland/content-service/internal/metrics"
+	"github.com/decentraland/content-service/internal/validation"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -3,17 +3,19 @@ package routes
 import (
 	"fmt"
 
+	"github.com/decentraland/content-service/internal/decentraland"
+
 	"github.com/decentraland/content-service/internal/deployment"
 
 	"github.com/decentraland/content-service/internal/ipfs"
-	"github.com/decentraland/content-service/utils"
+	"github.com/decentraland/content-service/internal/utils"
 
-	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/internal/auth"
 	"github.com/decentraland/content-service/internal/handlers"
+	"github.com/decentraland/content-service/internal/metrics"
 	"github.com/decentraland/content-service/internal/storage"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/utils/rpc"
-	"github.com/decentraland/content-service/validation"
+	"github.com/decentraland/content-service/internal/utils/rpc"
+	"github.com/decentraland/content-service/internal/validation"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +28,7 @@ type Config struct {
 	Ipfs             *ipfs.IpfsHelper
 	Agent            *metrics.Agent
 	Log              *log.Logger
-	DclClient        data.Decentraland
+	DclClient        decentraland.Client
 	RpcClient        rpc.RPC
 	Filter           utils.ContentTypeFilter
 	MRepo            deployment.Repository
@@ -44,7 +46,7 @@ func AddRoutes(router gin.IRouter, c *Config) {
 	contentHandler := handlers.NewContentHandler(c.Storage, c.Log)
 	metadataHandler := handlers.NewMetadataHandler(c.Log)
 
-	uploadService := handlers.NewUploadService(c.Storage, c.Ipfs, data.NewAuthorizationService(c.DclClient),
+	uploadService := handlers.NewUploadService(c.Storage, c.Ipfs, auth.NewAuthorizationService(c.DclClient),
 		c.Agent, c.ParcelSizeLimit, c.MRepo, c.RpcClient, c.Log)
 
 	uploadHandler := handlers.NewUploadHandler(validation.NewValidator(), uploadService, c.Agent, c.Filter,

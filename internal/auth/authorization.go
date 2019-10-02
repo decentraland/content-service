@@ -1,10 +1,12 @@
-package data
+package auth
 
 import (
 	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/decentraland/content-service/internal/decentraland"
 
 	log "github.com/sirupsen/logrus"
 
@@ -18,10 +20,10 @@ type Authorization interface {
 }
 
 type AuthorizationService struct {
-	dclClient Decentraland
+	dclClient decentraland.Client
 }
 
-func NewAuthorizationService(client Decentraland) *AuthorizationService {
+func NewAuthorizationService(client decentraland.Client) *AuthorizationService {
 	return &AuthorizationService{client}
 }
 

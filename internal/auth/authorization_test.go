@@ -1,12 +1,14 @@
-package data_test
+package auth_test
 
 import (
 	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/decentraland/content-service/data"
-	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/internal/decentraland"
+
+	"github.com/decentraland/content-service/internal/auth"
+	"github.com/decentraland/content-service/internal/metrics"
 	"github.com/decentraland/content-service/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +17,7 @@ import (
 type userCanModifyParcelsTestData struct {
 	inputKey     string
 	inputParcel  string
-	accessData   *data.AccessData
+	accessData   *decentraland.AccessData
 	testCaseName string
 	evalResult   evalBooleanResult
 }
@@ -52,7 +54,7 @@ func TestUserCanModifyParcels(t *testing.T) {
 				y, _ := strconv.Atoi(coords[1])
 				mockDcl.EXPECT().GetParcelAccessData(tc.inputKey, int64(x), int64(y)).Return(tc.accessData, nil).AnyTimes()
 			}
-			service := data.NewAuthorizationService(mockDcl)
+			service := auth.NewAuthorizationService(mockDcl)
 			canModify, err := service.UserCanModifyParcels(tc.inputKey, []string{tc.inputParcel})
 			tc.evalResult(err, canModify, t)
 		})
@@ -63,7 +65,7 @@ func TestIsSignatureValid(t *testing.T) {
 	a, _ := metrics.Make(metrics.Config{AppName: "", Enabled: false, AnalyticsKey: ""})
 	for _, tc := range isSignatureValidTable {
 		t.Run(tc.testCaseName, func(t *testing.T) {
-			service := data.NewAuthorizationService(data.NewDclClient("", a))
+			service := auth.NewAuthorizationService(decentraland.NewDclClient("", a))
 			isValid := service.IsSignatureValid(tc.inputMsg, tc.inputSignature, tc.inputAddress)
 			tc.evalResult(t, isValid)
 		})
@@ -76,14 +78,14 @@ var userCanModifyTable = []userCanModifyParcelsTestData{
 		testCaseName: "Address Approved",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsUpdateAuthorized: true},
+		accessData:   &decentraland.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsUpdateAuthorized: true},
 		evalResult:   expectTrue,
 	},
 	{
 		testCaseName: "Address Unauthorized",
 		inputKey:     "0xa08a656ac52c0b32902a76e122d2973b022caa0e",
 		inputParcel:  "1,2",
-		accessData:   &data.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsUpdateAuthorized: false},
+		accessData:   &decentraland.AccessData{Id: "1,2", Address: "0xa08a656ac52c0b32902a76e122d2973b022caa0e", IsUpdateAuthorized: false},
 		evalResult:   expectFalse,
 	},
 }

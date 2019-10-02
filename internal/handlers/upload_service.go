@@ -12,13 +12,13 @@ import (
 
 	"github.com/decentraland/content-service/internal/ipfs"
 
-	"github.com/decentraland/content-service/data"
-	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/internal/auth"
+	"github.com/decentraland/content-service/internal/metrics"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 
 	"github.com/decentraland/content-service/internal/storage"
-	"github.com/decentraland/content-service/utils/rpc"
+	"github.com/decentraland/content-service/internal/utils/rpc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -99,7 +99,7 @@ type UploadService interface {
 type uploadService struct {
 	Storage         storage.Storage
 	IpfsHelper      *ipfs.IpfsHelper
-	Auth            data.Authorization
+	Auth            auth.Authorization
 	Agent           *metrics.Agent
 	ParcelSizeLimit int64
 	rpc             rpc.RPC
@@ -107,7 +107,7 @@ type uploadService struct {
 	MRepo           deployment.Repository
 }
 
-func NewUploadService(storage storage.Storage, helper *ipfs.IpfsHelper, auth data.Authorization,
+func NewUploadService(storage storage.Storage, helper *ipfs.IpfsHelper, auth auth.Authorization,
 	agent *metrics.Agent, parcelSizeLimit int64, repo deployment.Repository,
 	rpc rpc.RPC, l *log.Logger) UploadService {
 	return &uploadService{
@@ -201,7 +201,7 @@ func (us *uploadService) validateDeployment(r *UploadRequest) error {
 }
 
 // Retrieves an error if the signature is invalid, of if the signature does not corresponds to the given key and message
-func (us *uploadService) validateSignature(a data.Authorization, p *entities.DeployProof) error {
+func (us *uploadService) validateSignature(a auth.Authorization, p *entities.DeployProof) error {
 	us.Log.Debugf("Validating signature: %s", p.Signature)
 
 	// ERC 1654 support https://github.com/ethereum/EIPs/issues/1654
@@ -279,7 +279,7 @@ func (us *uploadService) calculateCID(file *multipart.FileHeader) (string, error
 }
 
 // Retrieves an error if the given pKey does not have permissions to modify the parcels
-func validateKeyAccess(a data.Authorization, pKey string, parcels []string, log *log.Logger) error {
+func validateKeyAccess(a auth.Authorization, pKey string, parcels []string, log *log.Logger) error {
 	log.Debugf("Validating address: %s", pKey)
 	canModify, err := a.UserCanModifyParcels(pKey, parcels)
 	if err != nil {

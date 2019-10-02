@@ -19,6 +19,8 @@ dev-env:
 
 integration:
 	docker start cs_localstack \
+        && aws --endpoint-url=http://localhost:4572 s3 mb s3://local-content \
+        && aws --endpoint-url=http://localhost:4572 s3 mb s3://local-mappings \
         && AWS_REGION="us-east-1" AWS_ACCESS_KEY="something" AWS_SECRET_KEY="something" /bin/bash -c 'go test -count=1 -tags=integration ./test/integration/integration_test.go' \
         && docker stop cs_localstack
 

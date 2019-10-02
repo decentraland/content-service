@@ -1,5 +1,3 @@
-// +build integration
-
 package integration
 
 import (
@@ -17,14 +15,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/internal/decentraland"
+
 	"github.com/decentraland/content-service/internal/deployment"
 	"github.com/decentraland/content-service/internal/entities"
 	"github.com/decentraland/content-service/internal/ipfs"
+	"github.com/decentraland/content-service/internal/metrics"
 	"github.com/decentraland/content-service/internal/routes"
 	"github.com/decentraland/content-service/internal/storage"
-	"github.com/decentraland/content-service/metrics"
-	"github.com/decentraland/content-service/utils"
+	"github.com/decentraland/content-service/internal/utils"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core"
@@ -374,8 +373,8 @@ func (r *mockRpc) ValidateDapperSignature(address, value, signature string) (boo
 
 type mockDcl struct{}
 
-func (d *mockDcl) GetParcelAccessData(address string, x int64, y int64) (*data.AccessData, error) {
-	return &data.AccessData{
+func (d *mockDcl) GetParcelAccessData(address string, x int64, y int64) (*decentraland.AccessData, error) {
+	return &decentraland.AccessData{
 		IsUpdateAuthorized: true,
 	}, nil
 }

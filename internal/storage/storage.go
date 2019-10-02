@@ -3,7 +3,7 @@ package storage
 import (
 	"io"
 
-	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/internal/metrics"
 )
 
 type Storage interface {

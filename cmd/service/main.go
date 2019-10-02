@@ -6,18 +6,19 @@ import (
 	"os"
 	"strings"
 
+	"github.com/decentraland/content-service/internal/decentraland"
+
 	"github.com/decentraland/content-service/internal/deployment"
 
-	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/internal/ipfs"
-	"github.com/decentraland/content-service/utils"
-	"github.com/decentraland/content-service/utils/rpc"
+	"github.com/decentraland/content-service/internal/utils"
+	"github.com/decentraland/content-service/internal/utils/rpc"
 	"github.com/decentraland/dcl-gin/pkg/dclgin"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/decentraland/content-service/internal/metrics"
 	"github.com/decentraland/content-service/internal/routes"
-	"github.com/decentraland/content-service/metrics"
 	"github.com/decentraland/dcl-viper/pkg/config"
 
 	"github.com/decentraland/content-service/internal/storage"
@@ -137,7 +138,7 @@ func InitializeHandler(r gin.IRouter, conf *Configuration, l *log.Logger) {
 		URL:    conf.Storage.URL,
 	}, agent)
 
-	dcl := data.NewDclClient(conf.DclApi, agent)
+	dcl := decentraland.NewDclClient(conf.DclApi, agent)
 
 	rpcClient := rpc.NewRPC(conf.RPCConnection.URL)
 

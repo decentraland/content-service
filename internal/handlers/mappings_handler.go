@@ -3,9 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/decentraland/content-service/utils"
+	"github.com/decentraland/content-service/internal/decentraland"
 
-	"github.com/decentraland/content-service/data"
+	"github.com/decentraland/content-service/internal/utils"
+
 	"github.com/decentraland/content-service/internal/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -25,12 +26,12 @@ type MappingsHandler interface {
 }
 
 type mappingsHandlerImpl struct {
-	Dcl     data.Decentraland
+	Dcl     decentraland.Client
 	Storage storage.Storage
 	Log     *log.Logger
 }
 
-func NewMappingsHandler(dcl data.Decentraland, storage storage.Storage, l *log.Logger) MappingsHandler {
+func NewMappingsHandler(dcl decentraland.Client, storage storage.Storage, l *log.Logger) MappingsHandler {
 	return &mappingsHandlerImpl{
 		Dcl:     dcl,
 		Storage: storage,
@@ -64,5 +65,5 @@ func (ms *mappingsHandlerImpl) GetScenes(c *gin.Context) {
 
 	ret := []*parcelContent{}
 
-	c.JSON(http.StatusOK, gin.H{"data": ret})
+	c.JSON(http.StatusOK, gin.H{"auth": ret})
 }

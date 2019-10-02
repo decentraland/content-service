@@ -1,4 +1,4 @@
-package data
+package decentraland
 
 import (
 	"encoding/json"
@@ -10,13 +10,13 @@ import (
 	"path"
 	"time"
 
-	"github.com/decentraland/content-service/metrics"
+	"github.com/decentraland/content-service/internal/metrics"
 	"github.com/sirupsen/logrus"
 )
 
 type accessResponse struct {
 	Ok   bool        `json:"ok"`
-	Data *AccessData `json:"data"`
+	Data *AccessData `json:"auth"`
 }
 
 type AccessData struct {
@@ -41,7 +41,7 @@ type MapResponse struct {
 			Parcels []*Parcel `json:"parcels"`
 			Estates []*Estate `json:"estates"`
 		} `json:"assets"`
-	} `json:"data"`
+	} `json:"auth"`
 }
 
 type Parcel struct {
@@ -59,24 +59,24 @@ type Estate struct {
 	UpdateOperator string `json:"update_operator"`
 	Data           struct {
 		Parcels []*Parcel `json:"parcels"`
-	} `json:"data"`
+	} `json:"auth"`
 }
 
-type Decentraland interface {
+type Client interface {
 	GetParcelAccessData(address string, x int64, y int64) (*AccessData, error)
 }
 
-type DclClient struct {
+type dclClient struct {
 	ApiUrl string
 	Agent  *metrics.Agent
 }
 
-func NewDclClient(apiUrl string, agent *metrics.Agent) *DclClient {
-	return &DclClient{apiUrl, agent}
+func NewDclClient(apiUrl string, agent *metrics.Agent) Client {
+	return &dclClient{apiUrl, agent}
 }
 
-// Retrieves the access data of a address over a given accessData
-func (dcl DclClient) GetParcelAccessData(address string, x int64, y int64) (*AccessData, error) {
+// Retrieves the access auth of a address over a given accessData
+func (dcl *dclClient) GetParcelAccessData(address string, x int64, y int64) (*AccessData, error) {
 	var response accessResponse
 	err := dcl.doGet(buildUrl(dcl.ApiUrl, "parcels/%d/%d/%s/authorizations", x, y, address), &response)
 	if err != nil {
@@ -93,7 +93,7 @@ func buildUrl(basePath string, relPath string, args ...interface{}) string {
 	return urlResult
 }
 
-func (dcl DclClient) doGet(url string, response interface{}) error {
+func (dcl *dclClient) doGet(url string, response interface{}) error {
 	t := time.Now()
 	resp, err := http.Get(url)
 	dcl.Agent.RecordDCLResponseTime(time.Since(t))
