@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/decentraland/content-service/data"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/decentraland/content-service/internal/storage"
@@ -18,16 +16,14 @@ type ContentHandler interface {
 }
 
 type contentHandlerImpl struct {
-	Storage     storage.Storage
-	RedisClient data.RedisClient
-	Log         *log.Logger
+	Storage storage.Storage
+	Log     *log.Logger
 }
 
 func NewContentHandler(storage storage.Storage, l *log.Logger) ContentHandler {
 	return &contentHandlerImpl{
-		Storage:     storage,
-		RedisClient: nil,
-		Log:         l,
+		Storage: storage,
+		Log:     l,
 	}
 }
 
@@ -51,20 +47,11 @@ func (ch *contentHandlerImpl) CheckContentStatus(c *gin.Context) {
 	}
 	resp := make(map[string]bool)
 	for _, cid := range statusReq.Content {
-		uploaded, err := ch.RedisClient.IsContentMember(cid)
+		uploaded, err := ch.checkContentInStorage(cid)
 		if err != nil {
-			ch.Log.WithError(err).Error("fail to read redis")
-			_ = c.Error(err)
+			ch.Log.WithError(err).Error("fail to check content")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "try again later"})
 			return
-		}
-
-		if !uploaded {
-			if uploaded, err = ch.checkContentInStorage(cid); err != nil {
-				ch.Log.WithError(err).Error("fail to check content")
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "try again later"})
-				return
-			}
 		}
 		resp[cid] = uploaded
 	}
@@ -81,10 +68,6 @@ func (ch *contentHandlerImpl) checkContentInStorage(cid string) (bool, error) {
 			log.WithError(err).Errorf("error while reading storage: %s", e.Error())
 			return false, err
 		}
-	}
-	if err = ch.RedisClient.AddCID(cid); err != nil {
-		log.WithError(err).Error("fail to save into redis")
-		return false, errors.New("unexpected error")
 	}
 	return true, nil
 }

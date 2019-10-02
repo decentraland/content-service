@@ -1,3 +1,5 @@
+// +build integration
+
 package integration
 
 import (
@@ -50,9 +52,35 @@ type content struct {
 	data     string
 }
 
+type uploadContent struct {
+	c []content
+}
+
+func newUploadContent() uploadContent {
+	return uploadContent{
+		c: []content{},
+	}
+}
+
+func (uc uploadContent) addContent(data string, cid string, name string) uploadContent {
+	uc.c = append(uc.c, content{
+		Metadata: &contentMetadata{
+			Cid:  cid,
+			Name: name,
+		},
+		data: data,
+	})
+	return uc
+}
+
+func (uc uploadContent) append(c content) uploadContent {
+	uc.c = append(uc.c, c)
+	return uc
+}
+
 func prepareEngine(t *testing.T, h *ipfs.IpfsHelper) testRouter {
 	l := logrus.New()
-	l.SetLevel(logrus.ErrorLevel)
+	l.SetLevel(logrus.PanicLevel)
 
 	r := gin.New()
 	r.Use(ginlogrus.Logger(l), gin.Recovery())
@@ -102,92 +130,240 @@ func TestBasicUpload(t *testing.T) {
 	address := getAddressFromKey(pk.PublicKey)
 
 	positions := []string{"0,0"}
-	sceneJson := generateSceneJson(address, positions, r.T)
+	sceneJson, sCID := generateSceneJson(address, positions, r.T, helper)
 
-	sCID, err := helper.CalculateCID(strings.NewReader(sceneJson))
-	require.NoError(t, err)
-
-	file := fmt.Sprintf(`{"something" : true, "random" : "%s"}`, uuid.New().String())
-	cCID, err := helper.CalculateCID(strings.NewReader(file))
+	file, fCID := generateRandomFile(r.T, helper)
 	require.NoError(t, err)
 
 	required := []entities.ContentMapping{{Cid: sCID, Name: "scene.json"}}
 
-	m := append(required, entities.ContentMapping{Cid: cCID, Name: "file.json"})
-	mSlice, err := json.Marshal(m)
-	require.NoError(t, err)
-	mappings := string(mSlice)
+	mappings, mCID := generateContentData(append(required, entities.ContentMapping{Cid: fCID, Name: "file.json"}), r.T, helper)
 
-	mCID, err := helper.CalculateCID(strings.NewReader(mappings))
-	require.NoError(t, err)
-
-	d := entities.Deploy{
-		Required:  required,
-		Positions: positions,
-		Mappings:  mCID,
-		Timestamp: time.Now().Unix(),
-	}
-
-	dSlice, err := json.Marshal(d)
-	require.NoError(t, err)
-	deploy := string(dSlice)
-
-	dCID, err := helper.CalculateCID(strings.NewReader(deploy))
-	require.NoError(t, err)
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
 
 	now := time.Now().Unix()
 	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), pk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
 
-	p := entities.DeployProof{
-		Signature: signature,
-		Address:   address,
-		ID:        dCID,
-		Timestamp: now,
-	}
+	content := newUploadContent().
+		addContent(sceneJson, sCID, "scene.json").
+		addContent(file, fCID, "file.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
 
-	pSlice, err := json.Marshal(p)
+	r.UploadContent(content.c, http.StatusOK)
+}
+
+func TestMissingRequiredFiles(t *testing.T) {
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := iCore.NewNode(ctx, nil)
 	require.NoError(t, err)
-	proof := string(pSlice)
+	helper := &ipfs.IpfsHelper{node}
 
-	content := []content{
-		{
-			Metadata: &contentMetadata{
-				Cid:  sCID,
-				Name: "scene.json",
-			},
-			data: sceneJson,
-		},
-		{
-			Metadata: &contentMetadata{
-				Cid:  cCID,
-				Name: "randomFile.json",
-			},
-			data: file,
-		},
-		{
-			Metadata: &contentMetadata{
-				Cid:  "mapping.json",
-				Name: "mapping.json",
-			},
-			data: mappings,
-		},
-		{
-			Metadata: &contentMetadata{
-				Cid:  "deploy.json",
-				Name: "deploy.json",
-			},
-			data: deploy,
-		},
-		{
-			Metadata: &contentMetadata{
-				Cid:  "proof.json",
-				Name: "proof.json",
-			},
-			data: proof,
-		},
-	}
+	r := prepareEngine(t, helper)
 
-	r.UploadContent(content, http.StatusOK)
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	address := getAddressFromKey(pk.PublicKey)
+
+	positions := []string{"0,0"}
+
+	file, fCID := generateRandomFile(r.T, helper)
+	require.NoError(t, err)
+
+	required := []entities.ContentMapping{{Cid: uuid.New().String(), Name: "scene.json"}}
+
+	mappings, mCID := generateContentData(append(required, entities.ContentMapping{Cid: fCID, Name: "file.json"}), r.T, helper)
+
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
+
+	now := time.Now().Unix()
+	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), pk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
+
+	content := newUploadContent().
+		addContent(file, fCID, "randomFile.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
+
+	errMsg := r.UploadContent(content.c, http.StatusBadRequest)
+	assert.Equal(r.T, "missing required files", errMsg)
+}
+
+func TestMissingFile(t *testing.T) {
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := iCore.NewNode(ctx, nil)
+	require.NoError(t, err)
+	helper := &ipfs.IpfsHelper{node}
+
+	r := prepareEngine(t, helper)
+
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	address := getAddressFromKey(pk.PublicKey)
+
+	positions := []string{"0,0"}
+	sceneJson, sCID := generateSceneJson(address, positions, r.T, helper)
+
+	_, fCID := generateRandomFile(r.T, helper)
+	require.NoError(t, err)
+
+	required := []entities.ContentMapping{{Cid: sCID, Name: "scene.json"}}
+
+	mappings, mCID := generateContentData(append(required, entities.ContentMapping{Cid: fCID, Name: "file.json"}), r.T, helper)
+
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
+
+	now := time.Now().Unix()
+	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), pk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
+
+	// The request will not contain the 'file.json'
+	content := newUploadContent().
+		addContent(sceneJson, sCID, "scene.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
+
+	errMsg := r.UploadContent(content.c, http.StatusBadRequest)
+	assert.Equal(r.T, fmt.Sprintf("file: %s not found", fCID), errMsg)
+}
+
+func TestPartialUpload(t *testing.T) {
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := iCore.NewNode(ctx, nil)
+	require.NoError(t, err)
+	helper := &ipfs.IpfsHelper{node}
+
+	r := prepareEngine(t, helper)
+
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	address := getAddressFromKey(pk.PublicKey)
+
+	positions := []string{"0,0"}
+	sceneJson, sCID := generateSceneJson(address, positions, r.T, helper)
+
+	file, fCID := generateRandomFile(r.T, helper)
+	require.NoError(t, err)
+
+	required := []entities.ContentMapping{{Cid: sCID, Name: "scene.json"}}
+
+	mappings, mCID := generateContentData(append(required, entities.ContentMapping{Cid: fCID, Name: "file.json"}), r.T, helper)
+
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
+
+	now := time.Now().Unix()
+	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), pk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
+
+	// First time i need to upload all files
+	content := newUploadContent().
+		addContent(sceneJson, sCID, "scene.json").
+		addContent(file, fCID, "file.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
+
+	r.UploadContent(content.c, http.StatusOK)
+
+	// Second time i can avoid uploading non required files that had been previously uploade
+	content = newUploadContent().
+		addContent(sceneJson, sCID, "scene.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
+
+	r.UploadContent(content.c, http.StatusOK)
+}
+
+func TestNotMatchingSignature(t *testing.T) {
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := iCore.NewNode(ctx, nil)
+	require.NoError(t, err)
+	helper := &ipfs.IpfsHelper{node}
+
+	r := prepareEngine(t, helper)
+
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	address := getAddressFromKey(pk.PublicKey)
+
+	positions := []string{"0,0"}
+	sceneJson, sCID := generateSceneJson(address, positions, r.T, helper)
+	required := []entities.ContentMapping{{Cid: sCID, Name: "scene.json"}}
+
+	mappings, mCID := generateContentData(required, r.T, helper)
+
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
+
+	alternativePk, err := crypto.GenerateKey()
+
+	now := time.Now().Unix()
+	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), alternativePk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
+
+	content := newUploadContent().
+		addContent(sceneJson, sCID, "scene.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
+
+	errMsg := r.UploadContent(content.c, http.StatusBadRequest)
+	assert.Equal(r.T, "Signature is invalid", errMsg)
+}
+
+func TestContentStatus(t *testing.T) {
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := iCore.NewNode(ctx, nil)
+	require.NoError(t, err)
+	helper := &ipfs.IpfsHelper{node}
+
+	r := prepareEngine(t, helper)
+
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	address := getAddressFromKey(pk.PublicKey)
+
+	positions := []string{"0,0"}
+	sceneJson, sCID := generateSceneJson(address, positions, r.T, helper)
+
+	file, fCID := generateRandomFile(r.T, helper)
+	require.NoError(t, err)
+
+	required := []entities.ContentMapping{{Cid: sCID, Name: "scene.json"}}
+
+	mappings, mCID := generateContentData(append(required, entities.ContentMapping{Cid: fCID, Name: "file.json"}), r.T, helper)
+
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
+
+	now := time.Now().Unix()
+	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), pk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
+
+	// First time i need to upload all files
+	content := newUploadContent().
+		addContent(sceneJson, sCID, "scene.json").
+		addContent(file, fCID, "file.json").
+		addContent(mappings, "mapping.json", "mapping.json").
+		addContent(deploy, "deploy.json", "deploy.json").
+		addContent(proof, "proof.json", "proof.json")
+
+	r.UploadContent(content.c, http.StatusOK)
+
+	fakeId := uuid.New().String()
+	resp := r.CheckContentStatus([]string{sCID, fCID, fakeId}, http.StatusOK)
+
+	assert.True(r.T, resp[sCID].(bool))
+	assert.True(r.T, resp[fCID].(bool))
+	assert.False(r.T, resp[fakeId].(bool))
 }
 
 type mockRpc struct{}
@@ -226,6 +402,74 @@ func (tr testRouter) UploadContent(files []content, expectedStatus int) string {
 	return ""
 }
 
+func (tr testRouter) CheckContentStatus(cids []string, expectedStatus int) map[string]interface{} {
+
+	body := fmt.Sprintf(`{ "content" : ["%s"] }`, strings.Join(cids, `","`))
+
+	req, err := http.NewRequest("POST", "/api/v1/asset_status", strings.NewReader(body))
+	require.NoError(tr.T, err)
+
+	code, response := tr.runRequest(req, expectedStatus)
+	assert.Equal(tr.T, code, expectedStatus)
+	return response
+}
+
+func TestMissingDeploymentFiles(t *testing.T) {
+	ctx, _ := context.WithCancel(context.Background())
+	node, err := iCore.NewNode(ctx, nil)
+	require.NoError(t, err)
+	helper := &ipfs.IpfsHelper{node}
+
+	r := prepareEngine(t, helper)
+
+	pk, err := crypto.GenerateKey()
+	require.NoError(t, err)
+
+	address := getAddressFromKey(pk.PublicKey)
+
+	positions := []string{"0,0"}
+	sceneJson, sCID := generateSceneJson(address, positions, r.T, helper)
+
+	required := []entities.ContentMapping{{Cid: sCID, Name: "scene.json"}}
+
+	mappings, mCID := generateContentData(required, r.T, helper)
+
+	deploy, dCID := generateDeployJson(required, positions, mCID, time.Now().Unix(), r.T, helper)
+
+	now := time.Now().Unix()
+	signature := signMessage(fmt.Sprintf("%s.%d", dCID, now), pk, r.T)
+	proof, _ := generateDeployProof(signature, address, dCID, time.Now().Unix(), r.T, helper)
+
+	t.Run("Missing deploy.json", func(t *testing.T) {
+		content := newUploadContent().
+			addContent(sceneJson, sCID, "scene.json").
+			addContent(mappings, "mapping.json", "mapping.json").
+			addContent(proof, "proof.json", "proof.json")
+
+		r.UploadContent(content.c, http.StatusBadRequest)
+
+	})
+
+	t.Run("Missing mapping.json", func(t *testing.T) {
+		content := newUploadContent().
+			addContent(sceneJson, sCID, "scene.json").
+			addContent(deploy, "deploy.json", "deploy.json").
+			addContent(proof, "proof.json", "proof.json")
+
+		r.UploadContent(content.c, http.StatusBadRequest)
+
+	})
+
+	t.Run("Missing proof.json", func(t *testing.T) {
+		content := newUploadContent().
+			addContent(sceneJson, sCID, "scene.json").
+			addContent(mappings, "mapping.json", "mapping.json").
+			addContent(deploy, "deploy.json", "deploy.json")
+
+		r.UploadContent(content.c, http.StatusBadRequest)
+	})
+}
+
 func (t testRouter) loadContent(files []content, w *multipart.Writer) {
 	for _, file := range files {
 		part, err := w.CreateFormFile(file.Metadata.Cid, file.Metadata.Name)
@@ -249,14 +493,56 @@ func (tr testRouter) runRequest(req *http.Request, expectedStatus int) (int, map
 	return w.Code, response
 }
 
-func generateSceneJson(ownerAddress string, parcels []string, t *testing.T) string {
+func generateSceneJson(ownerAddress string, parcels []string, t *testing.T, h *ipfs.IpfsHelper) (string, string) {
 	read, err := ioutil.ReadFile("../resources/scene-template.json")
 	require.NoError(t, err)
 	out := strings.Replace(string(read), "${PARCELS}", strings.Join(parcels, `","`), -1)
 	out = strings.Replace(string(out), "${OWNER}", ownerAddress, -1)
 	out = strings.Replace(string(out), "${BASE_PARCEL}", parcels[0], -1)
 
-	return out
+	sCID, err := h.CalculateCID(strings.NewReader(out))
+	require.NoError(t, err)
+
+	return out, sCID
+}
+
+func generateRandomFile(t *testing.T, h *ipfs.IpfsHelper) (string, string) {
+	file := fmt.Sprintf(`{"something" : true, "random" : "%s"}`, uuid.New().String())
+	fCID, err := h.CalculateCID(strings.NewReader(file))
+	require.NoError(t, err)
+	return file, fCID
+}
+
+func generateDeployJson(r []entities.ContentMapping, pos []string, mHash string, ts int64,
+	t *testing.T, h *ipfs.IpfsHelper) (string, string) {
+	d := entities.Deploy{
+		Required:  r,
+		Positions: pos,
+		Mappings:  mHash,
+		Timestamp: ts,
+	}
+	return generateContentData(d, t, h)
+}
+
+func generateDeployProof(s string, a string, id string, ts int64, t *testing.T, h *ipfs.IpfsHelper) (string, string) {
+	p := entities.DeployProof{
+		Signature: s,
+		Address:   a,
+		ID:        id,
+		Timestamp: ts,
+	}
+	return generateContentData(p, t, h)
+}
+
+func generateContentData(entity interface{}, t *testing.T, h *ipfs.IpfsHelper) (string, string) {
+	slice, err := json.Marshal(entity)
+	require.NoError(t, err)
+	str := string(slice)
+
+	cid, err := h.CalculateCID(strings.NewReader(str))
+	require.NoError(t, err)
+
+	return str, cid
 }
 
 func getAddressFromKey(pk ecdsa.PublicKey) string {

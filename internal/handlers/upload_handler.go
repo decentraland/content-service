@@ -58,7 +58,7 @@ func (uh *uploadHandlerImpl) UploadContent(c *gin.Context) {
 	if err != nil {
 		uh.Log.WithError(err).Error("Error parsing upload")
 		switch e := err.(type) {
-		case InvalidArgument:
+		case InvalidArgument, RequiredValueError:
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": e.Error()})
 			return
 		default:
@@ -103,7 +103,12 @@ func (c *uploadHandlerImpl) parseRequest(r *http.Request) (*UploadRequest, error
 	content, err := NewRequestContent(r.MultipartForm.File)
 	if err != nil {
 		c.Log.WithError(err).Error("Invalid UploadContent request")
-		return nil, UnexpectedError{"error parsing request form", err}
+		switch err.(type) {
+		case RequiredValueError:
+			return nil, err
+		default:
+			return nil, UnexpectedError{"error parsing request form", err}
+		}
 	}
 
 	proof, err := c.getDeploymentProof(content)

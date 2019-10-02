@@ -10,3 +10,5 @@ tmp/
 coverage.out
 
 .localstack/*
+
+build/*

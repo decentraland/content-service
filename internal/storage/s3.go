@@ -84,7 +84,11 @@ func (sto *s3Storage) DownloadFile(cid string, filePath string) error {
 	}
 
 	s := session.Must(session.NewSession())
-	downloader := s3manager.NewDownloader(s)
+	downloader := &s3manager.Downloader{
+		S3:          s3.New(s, aws.NewConfig().WithEndpoint(sto.URL)),
+		PartSize:    s3manager.DefaultDownloadPartSize,
+		Concurrency: s3manager.DefaultDownloadConcurrency,
+	}
 
 	f, err := os.Create(fp)
 	if err != nil {
@@ -109,7 +113,7 @@ func (sto *s3Storage) DownloadFile(cid string, filePath string) error {
 
 func (sto *s3Storage) FileSize(cid string) (int64, error) {
 	s := session.Must(session.NewSession())
-	client := s3.New(s)
+	client := s3.New(s, aws.NewConfig().WithEndpoint(sto.URL))
 
 	hi := &s3.HeadObjectInput{
 		Bucket: sto.Bucket,

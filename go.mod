@@ -11,6 +11,7 @@ require (
 	github.com/bren2010/proquint v0.0.0-20160323162903-38337c27106d // indirect
 	github.com/btcsuite/btcd v0.0.0-20180924021209-2a560b2036be // indirect
 	github.com/cenkalti/backoff v2.0.0+incompatible // indirect
+	github.com/cespare/cp v1.1.1 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20170701192655-dcfb0a7ac018 // indirect
 	github.com/decentraland/dcl-gin v0.0.0-20190703152958-d628aa1ca82b
@@ -20,9 +21,11 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102 // indirect
 	github.com/dustin/go-humanize v0.0.0-20180713052910-9f541cc9db5d // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
+	github.com/elastic/gosigar v0.10.5 // indirect
 	github.com/ethereum/go-ethereum v1.8.17
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/fd/go-nat v1.0.0 // indirect
+	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-check/check v0.0.0-20180628173108-788fd7840127 // indirect
 	github.com/go-playground/locales v0.12.1
@@ -34,6 +37,7 @@ require (
 	github.com/gxed/hashland v0.0.0-20180221191214-d9f6b97f8db2 // indirect
 	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
+	github.com/influxdata/influxdb v1.7.8 // indirect
 	github.com/ipsn/go-ipfs v0.0.0-20181218231732-efbfe11f7e03
 	github.com/jbenet/go-cienv v0.0.0-20150120210510-1bb1476777ec // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -50,6 +54,7 @@ require (
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v0.0.0-20171213220625-ad98a36ba0da // indirect
 	github.com/mitchellh/go-homedir v1.0.0 // indirect
+	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/mr-tron/base58 v0.0.0-20180922112544-9ad991d48a42 // indirect
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/rjeczalik/notify v0.9.2 // indirect
@@ -69,5 +74,6 @@ require (
 	gopkg.in/DataDog/dd-trace-go.v1 v1.16.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.0
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
+	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20190709231704-1e4459ed25ff // indirect
 	gopkg.in/segmentio/analytics-go.v3 v3.0.1
 )
