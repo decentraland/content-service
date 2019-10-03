@@ -24,4 +24,4 @@ integration:
         && AWS_REGION="us-east-1" AWS_ACCESS_KEY="something" AWS_SECRET_KEY="something" /bin/bash -c 'go test -count=1 -tags=integration ./test/integration/integration_test.go' \
         && docker stop cs_localstack
 
-.PHONY: build
+.PHONY: build test

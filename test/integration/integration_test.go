@@ -1,3 +1,5 @@
+// +build integration
+
 package integration
 
 import (
@@ -19,6 +21,7 @@ import (
 
 	"github.com/decentraland/content-service/internal/decentraland"
 
+	cont "github.com/decentraland/content-service/internal/content"
 	"github.com/decentraland/content-service/internal/deployment"
 	"github.com/decentraland/content-service/internal/entities"
 	"github.com/decentraland/content-service/internal/ipfs"
@@ -92,7 +95,7 @@ func prepareEngine(t *testing.T, h *ipfs.IpfsHelper) testRouter {
 	})
 
 	handlers.RegisterEndpoints(r, &handlers.Config{
-		Storage: content.NewStorage(content.ContentBucket{
+		Storage: cont.NewStorage(cont.RepoConfig{
 			Bucket: "local-content",
 			ACL:    "public-read",
 			URL:    "http://localhost:4572/local-content",
