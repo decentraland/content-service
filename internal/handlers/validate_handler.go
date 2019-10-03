@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
+
+	"github.com/decentraland/content-service/internal/entities"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 
-	"github.com/decentraland/content-service/data"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,16 +15,14 @@ type MetadataHandler interface {
 	GetParcelMetadata(c *gin.Context)
 }
 
-func NewMetadataHandler(client data.RedisClient, l *log.Logger) MetadataHandler {
+func NewMetadataHandler(l *log.Logger) MetadataHandler {
 	return &metadataHandlerImpl{
-		RedisClient: client,
-		Log:         l,
+		Log: l,
 	}
 }
 
 type metadataHandlerImpl struct {
-	RedisClient data.RedisClient
-	Log         *log.Logger
+	Log *log.Logger
 }
 
 type validateParams struct {
@@ -39,20 +37,7 @@ func (mh *metadataHandlerImpl) GetParcelMetadata(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
 		return
 	}
-	parcelId := fmt.Sprintf("%d,%d", *p.X, *p.Y)
-	mh.Log.Debugf("Retrieving parcel metadata. Parcel[%s]", parcelId)
-	parcelMeta, err := mh.RedisClient.GetParcelMetadata(parcelId)
-	if err != nil {
-		mh.Log.WithError(err).Error("error reading parcel metadata from redis")
-		_ = c.Error(err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "unexpected error, try again later"})
-		return
-	}
+	//TODO: retrieve x,y -> CID, CID -> proof.json from private bucket
 
-	if parcelMeta == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "parcel metadata not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, parcelMeta)
+	c.JSON(http.StatusOK, entities.DeployProof{})
 }

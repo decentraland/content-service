@@ -26,8 +26,6 @@ The following dependencies need to be installed to run a content service server.
 
 - [Go 1.12](https://golang.org/dl/)
 - [Docker Compose](https://docs.docker.com/compose/)
-- [Redis](https://redis.io)
-
 ## Setup git hooks Environment for development
 
 ```
@@ -43,47 +41,52 @@ To configure the service, edit the `config.yml` file, in the base directory.
 
 ## Running
 
-First start Redis:
+### Local environment setup
 
-```
-$ make ops
-```
+This service uses S3. In order to run the full service locally without a dependency on a real s3 bucket you will need to install [Localstack](https://github.com/localstack/localstack)
 
-Then build the project:
+#### Setup
+* Install [AWS CLi](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+* Run `$ aws configure` to create some fake credentials.
+* Run `$ make dev-env`
+* Create local bucket for content
+ `$ aws --endpoint-url=http://localhost:4572 s3 mb s3://local-content`
+* Create local bucket for mappings
+ `$ aws --endpoint-url=http://localhost:4572 s3 mb s3://local-mappings`
+* Verify the buckets were created: `http://localhost:8055/#!/infra`
+* Set the following env variables:
+    ```
+    AWS_ACCESS_KEY=123123
+    AWS_SECRET_KEY=123123
+    AWS_REGION=us-west-1
+    ```
+
+### Build Project
 
 ```
 $ make build
 ```
 
-You can instead build and run with a single command:
+### Run Project locally
+
+In order to run the project run
 
 ```
-$ make run
+$ make run AWS_ACCESS_KEY=123123 AWS_SECRET_KEY=123123 AWS_REGION=us-west-1
 ```
 
-`make run` starts an instance of the content service server.
+This will use [Localstack](https://github.com/localstack/localstack) as S3 storage provider.
 
-Alternatively to docker, you can build and run the server with
-```
-$ go build .
-$ ./content-service
-```
+You can read the rest default configuration from [Documentation](config/config.yml)
+
+In order to overwrite any configuration when you run the service, check the env variables you will need to change in the configuration defined in the [service entry point](cmd/service/main.go) 
+
+
 
 ## API Documentation
 
 [Documentation](https://github.com/decentraland/content-service/blob/master/docs/APIDOC.md)
 
-## Replication
-
-To replicate a `content-service` server run:
-
-```
-$ make replicate
-```
-
-You will recieve a prompt to input the map coordinates for the NW and SE parcels.
-
-This program connects to the server url provided in `config.yml`. It stores the data files in the dir specified by `localstorage` and populates the Redis instance defined in the `redis` field.
 
 ## Copyright info
 This repository is protected with a standard Apache 2 license. See the terms and conditions in the [LICENSE](https://github.com/decentraland/content-service/blob/master/LICENSE) file.
