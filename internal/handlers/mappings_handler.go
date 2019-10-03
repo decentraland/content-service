@@ -7,7 +7,7 @@ import (
 
 	"github.com/decentraland/content-service/internal/utils"
 
-	"github.com/decentraland/content-service/internal/storage"
+	"github.com/decentraland/content-service/internal/content"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	log "github.com/sirupsen/logrus"
@@ -27,11 +27,11 @@ type MappingsHandler interface {
 
 type mappingsHandlerImpl struct {
 	Dcl     decentraland.Client
-	Storage storage.Storage
+	Storage content.Repository
 	Log     *log.Logger
 }
 
-func NewMappingsHandler(dcl decentraland.Client, storage storage.Storage, l *log.Logger) MappingsHandler {
+func NewMappingsHandler(dcl decentraland.Client, storage content.Repository, l *log.Logger) MappingsHandler {
 	return &mappingsHandlerImpl{
 		Dcl:     dcl,
 		Storage: storage,

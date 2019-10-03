@@ -1,4 +1,4 @@
-package storage
+package content
 
 import (
 	"io"
@@ -6,20 +6,20 @@ import (
 	"github.com/decentraland/content-service/internal/metrics"
 )
 
-type Storage interface {
+type Repository interface {
 	GetFile(cid string) string
 	SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error)
 	DownloadFile(cid string, fileName string) error
 	FileSize(cid string) (int64, error)
 }
 
-type ContentBucket struct {
+type RepoConfig struct {
 	Bucket string
 	ACL    string
 	URL    string
 }
 
-func NewStorage(c ContentBucket, agent *metrics.Agent) Storage {
+func NewStorage(c RepoConfig, agent *metrics.Agent) Repository {
 	return newS3(c.Bucket, c.ACL, c.URL, agent)
 }
 

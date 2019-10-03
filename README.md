@@ -46,7 +46,6 @@ To configure the service, edit the `config.yml` file, in the base directory.
 This service uses S3. In order to run the full service locally without a dependency on a real s3 bucket you will need to install [Localstack](https://github.com/localstack/localstack)
 
 #### Setup
-* Install [Localstack](https://github.com/localstack/localstack)
 * Install [AWS CLi](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 * Run `$ aws configure` to create some fake credentials.
 * Run `$ make dev-env`

@@ -7,7 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/decentraland/content-service/internal/storage"
+	"github.com/decentraland/content-service/internal/content"
 )
 
 type ContentHandler interface {
@@ -16,11 +16,11 @@ type ContentHandler interface {
 }
 
 type contentHandlerImpl struct {
-	Storage storage.Storage
+	Storage content.Repository
 	Log     *log.Logger
 }
 
-func NewContentHandler(storage storage.Storage, l *log.Logger) ContentHandler {
+func NewContentHandler(storage content.Repository, l *log.Logger) ContentHandler {
 	return &contentHandlerImpl{
 		Storage: storage,
 		Log:     l,
@@ -62,10 +62,10 @@ func (ch *contentHandlerImpl) checkContentInStorage(cid string) (bool, error) {
 	_, err := ch.Storage.FileSize(cid)
 	if err != nil {
 		switch e := err.(type) {
-		case storage.NotFoundError:
+		case content.NotFoundError:
 			return false, nil
 		default:
-			log.WithError(err).Errorf("error while reading storage: %s", e.Error())
+			log.WithError(err).Errorf("error while reading content: %s", e.Error())
 			return false, err
 		}
 	}

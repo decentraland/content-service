@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/decentraland/content-service/internal/handlers"
+
 	"github.com/decentraland/content-service/internal/decentraland"
 
 	"github.com/decentraland/content-service/internal/deployment"
@@ -18,10 +20,9 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/decentraland/content-service/internal/metrics"
-	"github.com/decentraland/content-service/internal/routes"
 	"github.com/decentraland/dcl-viper/pkg/config"
 
-	"github.com/decentraland/content-service/internal/storage"
+	"github.com/decentraland/content-service/internal/content"
 
 	"github.com/ipsn/go-ipfs/core"
 	log "github.com/sirupsen/logrus"
@@ -132,7 +133,7 @@ func InitializeHandler(r gin.IRouter, conf *Configuration, l *log.Logger) {
 		log.Fatal("Error initializing IPFS node")
 	}
 
-	sto := storage.NewStorage(storage.ContentBucket{
+	sto := content.NewStorage(content.RepoConfig{
 		Bucket: conf.Storage.Bucket,
 		ACL:    conf.Storage.ACL,
 		URL:    conf.Storage.URL,
@@ -142,7 +143,7 @@ func InitializeHandler(r gin.IRouter, conf *Configuration, l *log.Logger) {
 
 	rpcClient := rpc.NewRPC(conf.RPCConnection.URL)
 
-	routes.AddRoutes(r, &routes.Config{
+	handlers.RegisterEndpoints(r, &handlers.Config{
 		Storage:          sto,
 		Ipfs:             &ipfs.IpfsHelper{Node: node},
 		Agent:            agent,

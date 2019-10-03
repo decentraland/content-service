@@ -17,7 +17,7 @@ import (
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-cid"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-verifcid"
 
-	"github.com/decentraland/content-service/internal/storage"
+	"github.com/decentraland/content-service/internal/content"
 	"github.com/decentraland/content-service/internal/utils/rpc"
 	log "github.com/sirupsen/logrus"
 )
@@ -97,7 +97,7 @@ type UploadService interface {
 }
 
 type uploadService struct {
-	Storage         storage.Storage
+	Storage         content.Repository
 	IpfsHelper      *ipfs.IpfsHelper
 	Auth            auth.Authorization
 	Agent           *metrics.Agent
@@ -107,7 +107,7 @@ type uploadService struct {
 	MRepo           deployment.Repository
 }
 
-func NewUploadService(storage storage.Storage, helper *ipfs.IpfsHelper, auth auth.Authorization,
+func NewUploadService(storage content.Repository, helper *ipfs.IpfsHelper, auth auth.Authorization,
 	agent *metrics.Agent, parcelSizeLimit int64, repo deployment.Repository,
 	rpc rpc.RPC, l *log.Logger) UploadService {
 	return &uploadService{
@@ -381,12 +381,12 @@ func (us *uploadService) saveMapping(r *UploadRequest) error {
 }
 func handleStorageError(err error, cid string, log *log.Logger) error {
 	switch e := err.(type) {
-	case storage.NotFoundError:
+	case content.NotFoundError:
 		log.Debugf("file with cid[%s] not found", cid)
 		return InvalidArgument{fmt.Sprintf("file: %s not found", cid)}
 	default:
-		log.WithError(e).Error("Storage Error")
-		return UnexpectedError{"storage error", err}
+		log.WithError(e).Error("Repository Error")
+		return UnexpectedError{"content error", err}
 	}
 }
 

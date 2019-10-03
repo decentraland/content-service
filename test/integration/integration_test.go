@@ -15,14 +15,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/decentraland/content-service/internal/handlers"
+
 	"github.com/decentraland/content-service/internal/decentraland"
 
 	"github.com/decentraland/content-service/internal/deployment"
 	"github.com/decentraland/content-service/internal/entities"
 	"github.com/decentraland/content-service/internal/ipfs"
 	"github.com/decentraland/content-service/internal/metrics"
-	"github.com/decentraland/content-service/internal/routes"
-	"github.com/decentraland/content-service/internal/storage"
 	"github.com/decentraland/content-service/internal/utils"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -91,8 +91,8 @@ func prepareEngine(t *testing.T, h *ipfs.IpfsHelper) testRouter {
 		AppName:      "",
 	})
 
-	routes.AddRoutes(r, &routes.Config{
-		Storage: storage.NewStorage(storage.ContentBucket{
+	handlers.RegisterEndpoints(r, &handlers.Config{
+		Storage: content.NewStorage(content.ContentBucket{
 			Bucket: "local-content",
 			ACL:    "public-read",
 			URL:    "http://localhost:4572/local-content",

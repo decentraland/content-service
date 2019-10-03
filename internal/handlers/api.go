@@ -1,4 +1,4 @@
-package routes
+package handlers
 
 import (
 	"fmt"
@@ -11,9 +11,8 @@ import (
 	"github.com/decentraland/content-service/internal/utils"
 
 	"github.com/decentraland/content-service/internal/auth"
-	"github.com/decentraland/content-service/internal/handlers"
+	"github.com/decentraland/content-service/internal/content"
 	"github.com/decentraland/content-service/internal/metrics"
-	"github.com/decentraland/content-service/internal/storage"
 	"github.com/decentraland/content-service/internal/utils/rpc"
 	"github.com/decentraland/content-service/internal/validation"
 	log "github.com/sirupsen/logrus"
@@ -24,7 +23,7 @@ import (
 )
 
 type Config struct {
-	Storage          storage.Storage
+	Storage          content.Repository
 	Ipfs             *ipfs.IpfsHelper
 	Agent            *metrics.Agent
 	Log              *log.Logger
@@ -37,19 +36,19 @@ type Config struct {
 	RequestTTL       int64
 }
 
-func AddRoutes(router gin.IRouter, c *Config) {
+func RegisterEndpoints(router gin.IRouter, c *Config) {
 	c.Log.Debug("Initializing routes...")
 
 	router.Use(dclgin.CorsMiddleware())
 
-	mappingsHandler := handlers.NewMappingsHandler(c.DclClient, c.Storage, c.Log)
-	contentHandler := handlers.NewContentHandler(c.Storage, c.Log)
-	metadataHandler := handlers.NewMetadataHandler(c.Log)
+	mappingsHandler := NewMappingsHandler(c.DclClient, c.Storage, c.Log)
+	contentHandler := NewContentHandler(c.Storage, c.Log)
+	metadataHandler := NewMetadataHandler(c.Log)
 
-	uploadService := handlers.NewUploadService(c.Storage, c.Ipfs, auth.NewAuthorizationService(c.DclClient),
+	uploadService := NewUploadService(c.Storage, c.Ipfs, auth.NewAuthorizationService(c.DclClient),
 		c.Agent, c.ParcelSizeLimit, c.MRepo, c.RpcClient, c.Log)
 
-	uploadHandler := handlers.NewUploadHandler(validation.NewValidator(), uploadService, c.Agent, c.Filter,
+	uploadHandler := NewUploadHandler(validation.NewValidator(), uploadService, c.Agent, c.Filter,
 		c.ParcelAssetLimit, c.RequestTTL, c.Log)
 
 	api := router.Group("/api")

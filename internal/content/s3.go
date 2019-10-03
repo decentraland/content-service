@@ -1,4 +1,4 @@
-package storage
+package content
 
 import (
 	"fmt"
@@ -39,8 +39,8 @@ func newS3(bucket, acl, url string, agent *metrics.Agent) *s3Storage {
 func (sto *s3Storage) GetFile(cid string) string {
 	u, _ := url.Parse(sto.URL)
 	u.Path = path.Join(u.Path, cid)
-	url, _ := url.PathUnescape(u.String())
-	return url
+	fURL, _ := url.PathUnescape(u.String())
+	return fURL
 }
 
 func (sto *s3Storage) SaveFile(filename string, fileDesc io.Reader, contentType string) (string, error) {
