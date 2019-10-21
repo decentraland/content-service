@@ -2,13 +2,16 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/pkg/errors"
 
 	"github.com/decentraland/content-service/data"
 	"github.com/decentraland/content-service/storage"
 	. "github.com/decentraland/content-service/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,6 +48,7 @@ type StringPair struct {
 // Logic layer
 
 type MappingsHandler interface {
+	GetMappings(c *gin.Context)
 	GetScenes(c *gin.Context)
 	GetParcelInformation(parcelId string) (*ParcelContent, error)
 	GetInfo(c *gin.Context)
@@ -64,6 +68,78 @@ func NewMappingsHandler(client data.RedisClient, dcl data.Decentraland, storage 
 		Storage:     storage,
 		Log:         l,
 	}
+}
+
+type getMappingsParams struct {
+	Nw string `form:"nw" binding:"required"`
+	Se string `form:"se" binding:"required"`
+}
+
+func (sa *getMappingsParams) NwCoord() (int, int, error) {
+	return parseCoordinates(sa.Nw)
+}
+
+func (sa *getMappingsParams) SeCoord() (int, int, error) {
+	return parseCoordinates(sa.Se)
+}
+
+func parseCoordinates(coord string) (int, int, error) {
+	tkns := strings.Split(coord, ",")
+	if len(tkns) != 2 {
+		return 0, 0, errors.New("invalid coordinate")
+	}
+	x, err := strconv.Atoi(tkns[0])
+	if err != nil {
+		return 0, 0, errors.New("invalid coordinate")
+	}
+	y, err := strconv.Atoi(tkns[0])
+	if err != nil {
+		return 0, 0, errors.New("invalid coordinate")
+	}
+	return x, y, nil
+}
+
+func (ms *mappingsHandlerImpl) GetMappings(c *gin.Context) {
+
+	var params getMappingsParams
+	err := c.ShouldBindWith(&params, binding.Query)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
+		return
+	}
+
+	x1, y1, err := params.NwCoord()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
+		return
+	}
+
+	x2, y2, err := params.SeCoord()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid query params"})
+		return
+	}
+
+	parcels := RectToParcels(x1, y1, x2, y2, 200)
+	if parcels == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "too many parcels requested"})
+		return
+	}
+
+	mapContents := []ParcelContent{}
+	for _, pid := range parcels {
+		content, err := ms.GetParcelInformation(pid)
+		if err != nil {
+			c.Error(err)
+			ms.Log.WithError(err).Error("fail to retrieve parcel")
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "unexpected error, try again later"})
+			return
+		}
+		if content != nil {
+			mapContents = append(mapContents, *content)
+		}
+	}
+	c.JSON(http.StatusOK, mapContents)
 }
 
 type getScenesParams struct {
