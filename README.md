@@ -1,3 +1,6 @@
+# IMPORTANT
+This repository is outdated and has not been used is a while. If you want to see how Decentraland's distributed content network works, check out [this repository](https://github.com/decentraland/catalyst).
+
 # Content Service
 
 The content service is used to store and distribute content in decentraland that's manipulated by land owners
