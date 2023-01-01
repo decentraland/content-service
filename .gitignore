@@ -8,3 +8,4 @@ demo/
 tmp/
 
 coverage.out
+.git/
