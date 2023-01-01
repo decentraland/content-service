@@ -90,3 +90,4 @@ This program connects to the server url provided in `config.yml`. It stores the 
 
 ## Copyright info
 This repository is protected with a standard Apache 2 license. See the terms and conditions in the [LICENSE](https://github.com/decentraland/content-service/blob/master/LICENSE) file.
+test
